@@ -196,7 +196,11 @@ export function OfferCreatePage() {
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
             </div>
           ) : applications.length === 0 ? (
-            <p className="text-sm text-gray-500 py-2">No applications found.</p>
+            <p className="text-sm text-gray-500 py-2">
+              No applications yet. An offer is extended for a candidate's
+              application to a specific job — add a candidate to a job posting
+              (or wait for a public application) first.
+            </p>
           ) : (
             <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg border border-gray-200 p-2">
               {applications.map((app) => (

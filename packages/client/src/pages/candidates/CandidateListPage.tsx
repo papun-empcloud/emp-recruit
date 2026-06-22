@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Plus, Search, Users, ChevronRight, Mail, Building2, Clock } from "lucide-react";
 import { apiGet } from "@/api/client";
 import type { Candidate, PaginatedResponse } from "@emp-recruit/shared";
@@ -16,6 +16,7 @@ const SOURCE_BADGE: Record<string, string> = {
 };
 
 export function CandidateListPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const page = Number(searchParams.get("page") ?? "1");
@@ -120,7 +121,11 @@ export function CandidateListPage() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {candidates.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                <tr
+                  key={c.id}
+                  onClick={() => navigate(`/candidates/${c.id}`)}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                >
                   <td className="px-6 py-4">
                     <Link
                       to={`/candidates/${c.id}`}

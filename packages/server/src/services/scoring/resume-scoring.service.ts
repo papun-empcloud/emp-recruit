@@ -395,7 +395,12 @@ function getRecommendation(overallScore: number): ScoringRecommendation {
 export async function batchScoreCandidates(
   orgId: number,
   jobId: string,
-): Promise<{ scored: number; results: Array<ScoreResult & { id: string; applicationId: string; candidateId: string }> }> {
+): Promise<{
+  scored: number;
+  total: number;
+  skipped: number;
+  results: Array<ScoreResult & { id: string; applicationId: string; candidateId: string }>;
+}> {
   const db = getDB();
 
   // Verify job exists
@@ -426,7 +431,8 @@ export async function batchScoreCandidates(
     }
   }
 
-  return { scored: results.length, results };
+  const total = applicationsResult.data.length;
+  return { scored: results.length, total, skipped: total - results.length, results };
 }
 
 // ---------------------------------------------------------------------------

@@ -168,6 +168,18 @@ export function JobDetailPage() {
     onError: () => toast.error("Failed to update status"),
   });
 
+  // Closing a job stops accepting applications and (unlike Pause) is a final
+  // state — confirm before doing it.
+  const handleClose = () => {
+    if (
+      window.confirm(
+        "Close this job posting? It will stop accepting applications. You can reopen it by editing the job, but it won't auto-resume like Pause.",
+      )
+    ) {
+      statusMutation.mutate("closed");
+    }
+  };
+
   const scoreAppMutation = useMutation({
     mutationFn: (appId: string) => apiPost<any>(`/scoring/applications/${appId}/score`),
     onSuccess: (data, appId) => {
@@ -346,7 +358,7 @@ export function JobDetailPage() {
                 Pause
               </button>
               <button
-                onClick={() => statusMutation.mutate("closed")}
+                onClick={handleClose}
                 className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
                 Close
@@ -362,7 +374,7 @@ export function JobDetailPage() {
                 Resume
               </button>
               <button
-                onClick={() => statusMutation.mutate("closed")}
+                onClick={handleClose}
                 className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
                 Close
