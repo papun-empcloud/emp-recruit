@@ -1,16 +1,16 @@
-import { lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Route } from "react-router-dom";
 
-const InterviewListPage = lazy(() =>
+const InterviewListPage = lazyWithRetry(() =>
   import("@/pages/interviews/InterviewListPage").then((m) => ({ default: m.InterviewListPage })),
 );
-const InterviewDetailPage = lazy(() =>
+const InterviewDetailPage = lazyWithRetry(() =>
   import("@/pages/interviews/InterviewDetailPage").then((m) => ({ default: m.InterviewDetailPage })),
 );
-const InterviewSchedulePage = lazy(() =>
+const InterviewSchedulePage = lazyWithRetry(() =>
   import("@/pages/interviews/InterviewSchedulePage").then((m) => ({ default: m.InterviewSchedulePage })),
 );
-const InterviewFeedbackPage = lazy(() =>
+const InterviewFeedbackPage = lazyWithRetry(() =>
   import("@/pages/interviews/InterviewFeedbackPage").then((m) => ({ default: m.InterviewFeedbackPage })),
 );
 

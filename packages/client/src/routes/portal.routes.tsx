@@ -1,16 +1,16 @@
-import { lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Route } from "react-router-dom";
 
-const PortalRequestPage = lazy(() =>
+const PortalRequestPage = lazyWithRetry(() =>
   import("@/pages/portal/PortalRequestPage").then((m) => ({ default: m.PortalRequestPage })),
 );
-const PortalDashboardPage = lazy(() =>
+const PortalDashboardPage = lazyWithRetry(() =>
   import("@/pages/portal/PortalDashboardPage").then((m) => ({ default: m.PortalDashboardPage })),
 );
-const PortalApplicationDetailPage = lazy(() =>
+const PortalApplicationDetailPage = lazyWithRetry(() =>
   import("@/pages/portal/PortalApplicationDetailPage").then((m) => ({ default: m.PortalApplicationDetailPage })),
 );
-const PortalInterviewsPage = lazy(() =>
+const PortalInterviewsPage = lazyWithRetry(() =>
   import("@/pages/portal/PortalInterviewsPage").then((m) => ({ default: m.PortalInterviewsPage })),
 );
 

@@ -1,8 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { isLoggedIn, useAuthStore, extractSSOToken } from "@/lib/auth-store";
 import { apiPost } from "@/api/client";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Layouts (eagerly loaded)
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -19,28 +21,28 @@ import { portalRoutes } from "./routes/portal.routes";
 import { careerRoutes } from "./routes/careers.routes";
 
 // Lazy-loaded pages (kept in App for single-route modules)
-const LoginPage = lazy(() =>
+const LoginPage = lazyWithRetry(() =>
   import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })),
 );
-const DashboardPage = lazy(() =>
+const DashboardPage = lazyWithRetry(() =>
   import("@/pages/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
-const ReferralListPage = lazy(() =>
+const ReferralListPage = lazyWithRetry(() =>
   import("@/pages/referrals/ReferralListPage").then((m) => ({ default: m.ReferralListPage })),
 );
-const AnalyticsPage = lazy(() =>
+const AnalyticsPage = lazyWithRetry(() =>
   import("@/pages/analytics/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
 );
-const SettingsPage = lazy(() =>
+const SettingsPage = lazyWithRetry(() =>
   import("@/pages/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 );
-const ScoreReportPage = lazy(() =>
+const ScoreReportPage = lazyWithRetry(() =>
   import("@/pages/scoring/ScoreReportPage").then((m) => ({ default: m.ScoreReportPage })),
 );
-const ScoringPage = lazy(() =>
+const ScoringPage = lazyWithRetry(() =>
   import("@/pages/scoring/ScoringPage").then((m) => ({ default: m.ScoringPage })),
 );
-const InternalJobsPage = lazy(() =>
+const InternalJobsPage = lazyWithRetry(() =>
   import("@/pages/internal-jobs/InternalJobsPage").then((m) => ({ default: m.InternalJobsPage })),
 );
 
@@ -113,6 +115,7 @@ function SSOGate({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <SSOGate>
+    <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public auth */}
@@ -162,6 +165,7 @@ export default function App() {
         <Route path="*" element={<div className="p-8"><h1 className="text-2xl font-bold text-gray-900">Page Not Found</h1></div>} />
       </Routes>
     </Suspense>
+    </ErrorBoundary>
     </SSOGate>
   );
 }

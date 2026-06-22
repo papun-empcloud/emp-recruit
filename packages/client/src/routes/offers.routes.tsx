@@ -1,19 +1,19 @@
-import { lazy } from "react";
 import { Route } from "react-router-dom";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
-const OfferListPage = lazy(() =>
+const OfferListPage = lazyWithRetry(() =>
   import("@/pages/offers/OfferListPage").then((m) => ({ default: m.OfferListPage })),
 );
-const OfferDetailPage = lazy(() =>
+const OfferDetailPage = lazyWithRetry(() =>
   import("@/pages/offers/OfferDetailPage").then((m) => ({ default: m.OfferDetailPage })),
 );
-const OfferCreatePage = lazy(() =>
+const OfferCreatePage = lazyWithRetry(() =>
   import("@/pages/offers/OfferCreatePage").then((m) => ({ default: m.OfferCreatePage })),
 );
-const OfferEditPage = lazy(() =>
+const OfferEditPage = lazyWithRetry(() =>
   import("@/pages/offers/OfferEditPage").then((m) => ({ default: m.OfferEditPage })),
 );
-const OfferLetterTemplatePage = lazy(() =>
+const OfferLetterTemplatePage = lazyWithRetry(() =>
   import("@/pages/offers/OfferLetterTemplatePage").then((m) => ({ default: m.OfferLetterTemplatePage })),
 );
 
