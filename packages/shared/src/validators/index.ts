@@ -41,7 +41,8 @@ export const idParamSchema = z.object({
 // Jobs
 // ---------------------------------------------------------------------------
 
-export const createJobSchema = z.object({
+// Base object (no refinements) — so both create and update can derive cleanly.
+const jobBaseSchema = z.object({
   title: z.string().min(2).max(200),
   department: z.string().max(100).optional(),
   location: z.string().max(200).optional(),
@@ -69,7 +70,24 @@ export const createJobSchema = z.object({
     .optional(),
 });
 
-export const updateJobSchema = createJobSchema.partial();
+// Min must not exceed Max for the experience and salary ranges (checked only
+// when both ends are present). Applied to both create and update.
+const withRangeChecks = <T extends z.ZodTypeAny>(schema: T) =>
+  schema
+    .refine(
+      (d: any) =>
+        d.experience_min == null ||
+        d.experience_max == null ||
+        d.experience_min <= d.experience_max,
+      { message: "Min experience cannot be greater than max experience", path: ["experience_max"] },
+    )
+    .refine(
+      (d: any) => d.salary_min == null || d.salary_max == null || d.salary_min <= d.salary_max,
+      { message: "Min salary cannot be greater than max salary", path: ["salary_max"] },
+    );
+
+export const createJobSchema = withRangeChecks(jobBaseSchema);
+export const updateJobSchema = withRangeChecks(jobBaseSchema.partial());
 
 export const changeJobStatusSchema = z.object({
   status: z.nativeEnum(JobStatus),
