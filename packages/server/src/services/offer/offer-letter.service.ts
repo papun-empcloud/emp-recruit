@@ -77,6 +77,44 @@ export async function createLetterTemplate(
   } as Partial<OfferLetterTemplate>);
 }
 
+export async function updateLetterTemplate(
+  orgId: number,
+  id: string,
+  data: CreateTemplateData,
+): Promise<OfferLetterTemplate> {
+  const db = getDB();
+
+  const existing = await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    id,
+    organization_id: orgId,
+  });
+  if (!existing) throw new NotFoundError("Offer letter template", id);
+
+  if (!data.name || !data.content_template) {
+    throw new ValidationError("Name and content template are required");
+  }
+
+  // If marking as default, unset other defaults first.
+  if (data.is_default) {
+    await db.updateMany(
+      "offer_letter_templates",
+      { organization_id: orgId, is_default: true },
+      { is_default: false },
+    );
+  }
+
+  await db.update<OfferLetterTemplate>("offer_letter_templates", id, {
+    name: data.name,
+    content_template: data.content_template,
+    is_default: data.is_default ?? false,
+  } as Partial<OfferLetterTemplate>);
+
+  return (await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    id,
+    organization_id: orgId,
+  }))!;
+}
+
 export async function listLetterTemplates(orgId: number): Promise<OfferLetterTemplate[]> {
   const db = getDB();
   const result = await db.findMany<OfferLetterTemplate>("offer_letter_templates", {
@@ -84,7 +122,9 @@ export async function listLetterTemplates(orgId: number): Promise<OfferLetterTem
     sort: { field: "name", order: "asc" },
     limit: 100,
   });
-  return result.data;
+  // MySQL stores booleans as tinyint(1); normalize so the client gets real
+  // booleans (otherwise `0` leaks into the UI via `is_default && <badge>`).
+  return result.data.map((t) => ({ ...t, is_default: Boolean(t.is_default) }));
 }
 
 // ---------------------------------------------------------------------------

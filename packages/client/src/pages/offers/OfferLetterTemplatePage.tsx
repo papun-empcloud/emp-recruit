@@ -9,7 +9,7 @@ import {
   X,
   Info,
 } from "lucide-react";
-import { apiGet, apiPost } from "@/api/client";
+import { apiGet, apiPost, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
 
 interface OfferLetterTemplate {
@@ -43,14 +43,17 @@ export function OfferLetterTemplatePage() {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: typeof form) => apiPost("/offer-letters/templates", data),
+  const saveMutation = useMutation({
+    mutationFn: (data: typeof form) =>
+      editingId
+        ? apiPut(`/offer-letters/templates/${editingId}`, data)
+        : apiPost("/offer-letters/templates", data),
     onSuccess: () => {
-      toast.success("Template created");
+      toast.success(editingId ? "Template updated" : "Template created");
       queryClient.invalidateQueries({ queryKey: ["offer-letter-templates"] });
       resetForm();
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Failed to create template"),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Failed to save template"),
   });
 
   function resetForm() {
@@ -67,7 +70,7 @@ export function OfferLetterTemplatePage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    createMutation.mutate(form);
+    saveMutation.mutate(form);
   }
 
   const templates = templatesQuery.data || [];
@@ -133,11 +136,11 @@ export function OfferLetterTemplatePage() {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={saveMutation.isPending}
                   className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  {createMutation.isPending ? "Saving..." : editingId ? "Update" : "Create"}
+                  {saveMutation.isPending ? "Saving..." : editingId ? "Update" : "Create"}
                 </button>
                 <button
                   type="button"
@@ -208,7 +211,7 @@ export function OfferLetterTemplatePage() {
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-400" />
                   <h3 className="text-sm font-semibold text-gray-900">{t.name}</h3>
-                  {t.is_default && (
+                  {Boolean(t.is_default) && (
                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                       Default
                     </span>
