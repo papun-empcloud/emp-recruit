@@ -18,8 +18,9 @@ import {
   X,
   Loader2,
   GitCompareArrows,
+  Trash2,
 } from "lucide-react";
-import { apiGet, apiPatch, apiPost } from "@/api/client";
+import { apiGet, apiPatch, apiPost, apiDelete } from "@/api/client";
 import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -135,6 +136,7 @@ export function JobDetailPage() {
   const [appScores, setAppScores] = useState<Record<string, number>>({});
   const [compareSelection, setCompareSelection] = useState<Set<string>>(new Set());
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Fetch custom pipeline stages
   const { data: stagesData } = useQuery({
@@ -176,6 +178,25 @@ export function JobDetailPage() {
   const confirmClose = () => {
     statusMutation.mutate("closed", { onSettled: () => setShowCloseConfirm(false) });
   };
+
+  // Deleting permanently removes the job. The server blocks deletion when the
+  // job has applications (to preserve candidate history) — surface that message
+  // and steer the user to Close instead.
+  const deleteMutation = useMutation({
+    mutationFn: () => apiDelete(`/jobs/${id}`),
+    onSuccess: () => {
+      toast.success("Job posting deleted");
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      navigate("/jobs");
+    },
+    onError: (err: any) => {
+      setShowDeleteConfirm(false);
+      toast.error(
+        err?.response?.data?.error?.message ||
+          "Could not delete this job. Close it instead if it has applicants.",
+      );
+    },
+  });
 
   const scoreAppMutation = useMutation({
     mutationFn: (appId: string) => apiPost<any>(`/scoring/applications/${appId}/score`),
@@ -385,6 +406,13 @@ export function JobDetailPage() {
             <Edit className="h-4 w-4" />
             Edit
           </Link>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
         </div>
       </div>
 
@@ -750,6 +778,18 @@ export function JobDetailPage() {
         loading={statusMutation.isPending}
         onConfirm={confirmClose}
         onCancel={() => setShowCloseConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        variant="danger"
+        title="Delete this job posting?"
+        message="This permanently deletes the job. This cannot be undone. Jobs that already have applicants can't be deleted — close them instead to keep candidate history."
+        confirmLabel="Delete job"
+        cancelLabel="Cancel"
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>
   );
