@@ -13,6 +13,7 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
+import { createOfferSchema } from "@emp-recruit/shared";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
 import * as offerService from "../../services/offer/offer.service";
@@ -28,9 +29,12 @@ router.post(
   authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Validate the payload (required fields incl. joining_date/expiry_date)
+      // up front — otherwise a missing NOT NULL field used to surface as a 500.
+      const data = createOfferSchema.parse(req.body);
       const orgId = req.user!.empcloudOrgId;
       const offer = await offerService.createOffer(orgId, {
-        ...req.body,
+        ...data,
         created_by: req.user!.empcloudUserId,
       });
       sendSuccess(res, offer, 201);

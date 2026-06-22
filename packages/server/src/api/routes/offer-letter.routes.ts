@@ -69,6 +69,21 @@ router.put(
   },
 );
 
+// DELETE /templates/:id — Remove a template (admin only)
+router.delete(
+  "/templates/:id",
+  authorize("super_admin", "org_admin", "hr_admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.empcloudOrgId;
+      await offerLetterService.deleteLetterTemplate(orgId, req.params.id as string);
+      sendSuccess(res, { deleted: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // POST /generate/:offerId — Generate letter for an offer
 router.post(
   "/generate/:offerId",
