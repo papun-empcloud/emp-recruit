@@ -23,6 +23,7 @@ import {
   Download,
 } from "lucide-react";
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/api/client";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn, formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
 import type {
@@ -533,6 +534,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
       queryClient.invalidateQueries({ queryKey: ["transcript", interviewId] });
     },
   });
+  const [recToDelete, setRecToDelete] = useState<string | null>(null);
 
   const transcribeMutation = useMutation({
     mutationFn: async (recId: string) => {
@@ -635,11 +637,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
                     {transcribeMutation.isPending ? "Generating..." : "Generate Transcript"}
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm("Delete this recording?")) {
-                        deleteMutation.mutate(rec.id);
-                      }
-                    }}
+                    onClick={() => setRecToDelete(rec.id)}
                     disabled={deleteMutation.isPending}
                     className="inline-flex items-center rounded-md border border-red-200 bg-white p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
                   >
@@ -651,6 +649,22 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={recToDelete !== null}
+        variant="danger"
+        title="Delete this recording?"
+        message="This permanently removes the recording (and any transcript generated from it). This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (recToDelete) {
+            deleteMutation.mutate(recToDelete, { onSettled: () => setRecToDelete(null) });
+          }
+        }}
+        onCancel={() => setRecToDelete(null)}
+      />
     </div>
   );
 }

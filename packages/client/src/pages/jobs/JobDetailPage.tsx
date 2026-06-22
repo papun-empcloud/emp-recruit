@@ -22,6 +22,7 @@ import {
 import { apiGet, apiPatch, apiPost } from "@/api/client";
 import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import toast from "react-hot-toast";
 
 interface PipelineStage {
@@ -133,6 +134,7 @@ export function JobDetailPage() {
   const [scoringAppId, setScoringAppId] = useState<string | null>(null);
   const [appScores, setAppScores] = useState<Record<string, number>>({});
   const [compareSelection, setCompareSelection] = useState<Set<string>>(new Set());
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   // Fetch custom pipeline stages
   const { data: stagesData } = useQuery({
@@ -169,15 +171,10 @@ export function JobDetailPage() {
   });
 
   // Closing a job stops accepting applications and (unlike Pause) is a final
-  // state — confirm before doing it.
-  const handleClose = () => {
-    if (
-      window.confirm(
-        "Close this job posting? It will stop accepting applications. You can reopen it by editing the job, but it won't auto-resume like Pause.",
-      )
-    ) {
-      statusMutation.mutate("closed");
-    }
+  // state — confirm via a styled dialog before doing it.
+  const handleClose = () => setShowCloseConfirm(true);
+  const confirmClose = () => {
+    statusMutation.mutate("closed", { onSettled: () => setShowCloseConfirm(false) });
   };
 
   const scoreAppMutation = useMutation({
@@ -742,6 +739,18 @@ export function JobDetailPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showCloseConfirm}
+        variant="danger"
+        title="Close this job posting?"
+        message="It will stop accepting applications. You can reopen it by editing the job, but it won't auto-resume like Pause."
+        confirmLabel="Close job"
+        cancelLabel="Cancel"
+        loading={statusMutation.isPending}
+        onConfirm={confirmClose}
+        onCancel={() => setShowCloseConfirm(false)}
+      />
     </div>
   );
 }
