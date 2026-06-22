@@ -28,10 +28,13 @@ api.interceptors.response.use(
     const requestUrl = error.config?.url || "";
     const isAuthRequest = AUTH_PATHS.some((p) => requestUrl.includes(p));
     if (error.response?.status === 401 && !isAuthRequest) {
+      // Only flag "session expired" if the user actually had a token — a 401 on
+      // an unauthenticated visit shouldn't claim the session expired.
+      const hadSession = !!localStorage.getItem("access_token");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      window.location.href = hadSession ? "/login?expired=1" : "/login";
     }
     return Promise.reject(error);
   }

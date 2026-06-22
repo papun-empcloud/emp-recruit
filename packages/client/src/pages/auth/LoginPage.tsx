@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Briefcase, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Briefcase, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { useLogin } from "@/api/hooks";
 import { useAuthStore } from "@/lib/auth-store";
 import toast from "react-hot-toast";
@@ -18,14 +18,27 @@ const features = [
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const loginMutation = useLogin();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Surface the "session expired" notice when the auth interceptor redirected
+  // here after a 401 (?expired=1). Strip the param so a refresh doesn't re-show it.
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      setSessionExpired(true);
+      searchParams.delete("expired");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSessionExpired(false);
     try {
       const res = await loginMutation.mutateAsync({ email, password });
       if (res.success) {
@@ -85,6 +98,16 @@ export function LoginPage() {
             <p className="mt-1 text-sm text-gray-500">
               Sign in to manage recruitment
             </p>
+
+            {sessionExpired && (
+              <div
+                role="alert"
+                className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <span>Your session has expired. Please log in again.</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
