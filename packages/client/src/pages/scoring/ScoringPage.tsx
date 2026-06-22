@@ -84,11 +84,14 @@ export function ScoringPage() {
   // Batch score mutation
   const batchScoreMutation = useMutation({
     mutationFn: () =>
-      apiPost<any>(`/scoring/jobs/${selectedJobId}/batch-score`),
+      apiPost<{ scored: number; total: number; skipped: number }>(
+        `/scoring/jobs/${selectedJobId}/batch-score`,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scoring-rankings", selectedJobId] });
     },
   });
+  const batchResult = batchScoreMutation.data?.data;
 
   return (
     <div className="space-y-6">
@@ -144,9 +147,25 @@ export function ScoringPage() {
           )}
         </div>
 
-        {batchScoreMutation.isSuccess && (
-          <p className="mt-3 text-sm text-green-600">
-            Batch scoring complete. Rankings updated below.
+        {batchScoreMutation.isSuccess && batchResult && (
+          <p
+            className={`mt-3 text-sm ${
+              batchResult.scored > 0 ? "text-green-600" : "text-amber-600"
+            }`}
+          >
+            {batchResult.total === 0
+              ? "No applications to score for this job yet."
+              : batchResult.scored === 0
+                ? `No candidates could be scored — none of the ${batchResult.total} applicant${
+                    batchResult.total === 1 ? "" : "s"
+                  } has a resume on file. Upload resumes to enable AI scoring.`
+                : `Scored ${batchResult.scored} of ${batchResult.total} applicant${
+                    batchResult.total === 1 ? "" : "s"
+                  }${
+                    batchResult.skipped > 0
+                      ? ` (${batchResult.skipped} skipped — no resume on file)`
+                      : ""
+                  }. Rankings updated below.`}
           </p>
         )}
         {batchScoreMutation.isError && (

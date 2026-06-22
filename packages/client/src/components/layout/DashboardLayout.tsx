@@ -19,6 +19,7 @@ import {
 import { isLoggedIn, getUser, useAuthStore } from "@/lib/auth-store";
 import { cn, getInitials } from "@/lib/utils";
 import { BackToDashboard } from "@/components/BackToDashboard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 type Role = "super_admin" | "org_admin" | "hr_admin" | "hr_manager" | "employee";
 const ADMIN_ROLES: Role[] = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
@@ -154,9 +155,13 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        {/* Page content */}
+        {/* Page content. The ErrorBoundary is keyed on the path so a crash on one
+            page is isolated (sidebar stays usable) and clears when the user
+            navigates elsewhere, instead of blanking the whole app. */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

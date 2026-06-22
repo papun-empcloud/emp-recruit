@@ -1,19 +1,19 @@
-import { lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Route } from "react-router-dom";
 
-const CandidateListPage = lazy(() =>
+const CandidateListPage = lazyWithRetry(() =>
   import("@/pages/candidates/CandidateListPage").then((m) => ({ default: m.CandidateListPage })),
 );
-const CandidateDetailPage = lazy(() =>
+const CandidateDetailPage = lazyWithRetry(() =>
   import("@/pages/candidates/CandidateDetailPage").then((m) => ({ default: m.CandidateDetailPage })),
 );
-const CandidateCreatePage = lazy(() =>
+const CandidateCreatePage = lazyWithRetry(() =>
   import("@/pages/candidates/CandidateCreatePage").then((m) => ({ default: m.CandidateCreatePage })),
 );
-const CandidateEditPage = lazy(() =>
+const CandidateEditPage = lazyWithRetry(() =>
   import("@/pages/candidates/CandidateEditPage").then((m) => ({ default: m.CandidateEditPage })),
 );
-const ComparisonPage = lazy(() =>
+const ComparisonPage = lazyWithRetry(() =>
   import("@/pages/candidates/ComparisonPage").then((m) => ({ default: m.ComparisonPage })),
 );
 

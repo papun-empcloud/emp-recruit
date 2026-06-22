@@ -197,6 +197,25 @@ export function JobFormPage() {
       }
     }
 
+    // Min must not exceed Max for experience and salary ranges (only check when
+    // both ends are provided).
+    if (
+      form.experience_min !== "" &&
+      form.experience_max !== "" &&
+      Number(form.experience_min) > Number(form.experience_max)
+    ) {
+      toast.error("Min experience cannot be greater than max experience");
+      return;
+    }
+    if (
+      form.salary_min !== "" &&
+      form.salary_max !== "" &&
+      Number(form.salary_min) > Number(form.salary_max)
+    ) {
+      toast.error("Min salary cannot be greater than max salary");
+      return;
+    }
+
     const payload: Record<string, any> = {
       title: form.title,
       description: form.description,

@@ -17,16 +17,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 — redirect to login (but skip for SSO exchange requests)
+// Handle 401 — redirect to login (session expired). Skip for auth endpoints:
+// a 401 from login/register/refresh/SSO is a credential/flow error the calling
+// page must surface (e.g. "wrong password") — hard-redirecting there would wipe
+// the page before its own error toast can render.
+const AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/sso"];
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const requestUrl = error.config?.url || "";
-    if (error.response?.status === 401 && !requestUrl.includes("/auth/sso")) {
+    const isAuthRequest = AUTH_PATHS.some((p) => requestUrl.includes(p));
+    if (error.response?.status === 401 && !isAuthRequest) {
+      // Only flag "session expired" if the user actually had a token — a 401 on
+      // an unauthenticated visit shouldn't claim the session expired.
+      const hadSession = !!localStorage.getItem("access_token");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      window.location.href = hadSession ? "/login?expired=1" : "/login";
     }
     return Promise.reject(error);
   }

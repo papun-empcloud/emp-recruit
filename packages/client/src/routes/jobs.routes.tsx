@@ -1,19 +1,19 @@
-import { lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Route } from "react-router-dom";
 
-const JobListPage = lazy(() =>
+const JobListPage = lazyWithRetry(() =>
   import("@/pages/jobs/JobListPage").then((m) => ({ default: m.JobListPage })),
 );
-const JobDetailPage = lazy(() =>
+const JobDetailPage = lazyWithRetry(() =>
   import("@/pages/jobs/JobDetailPage").then((m) => ({ default: m.JobDetailPage })),
 );
-const JobCreatePage = lazy(() =>
+const JobCreatePage = lazyWithRetry(() =>
   import("@/pages/jobs/JobCreatePage").then((m) => ({ default: m.JobCreatePage })),
 );
-const JobEditPage = lazy(() =>
+const JobEditPage = lazyWithRetry(() =>
   import("@/pages/jobs/JobFormPage").then((m) => ({ default: m.JobFormPage })),
 );
-const JobPipelinePage = lazy(() =>
+const JobPipelinePage = lazyWithRetry(() =>
   import("@/pages/jobs/JobPipelinePage").then((m) => ({ default: m.JobPipelinePage })),
 );
 

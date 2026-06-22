@@ -1,13 +1,13 @@
-import { lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Route } from "react-router-dom";
 
-const OnboardingListPage = lazy(() =>
+const OnboardingListPage = lazyWithRetry(() =>
   import("@/pages/onboarding/OnboardingListPage").then((m) => ({ default: m.OnboardingListPage })),
 );
-const OnboardingDetailPage = lazy(() =>
+const OnboardingDetailPage = lazyWithRetry(() =>
   import("@/pages/onboarding/OnboardingDetailPage").then((m) => ({ default: m.OnboardingDetailPage })),
 );
-const OnboardingTemplatesPage = lazy(() =>
+const OnboardingTemplatesPage = lazyWithRetry(() =>
   import("@/pages/onboarding/OnboardingTemplatesPage").then((m) => ({ default: m.OnboardingTemplatesPage })),
 );
 

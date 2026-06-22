@@ -187,6 +187,18 @@ export async function deleteJob(orgId: number, id: string): Promise<boolean> {
   const db = getDB();
   const existing = await db.findOne<JobPosting>("job_postings", { id, organization_id: orgId });
   if (!existing) throw new NotFoundError("Job", id);
+
+  // Deleting a job CASCADE-deletes its applications (and their interviews,
+  // offers, scores) plus referrals. Refuse if any applicant history exists —
+  // the caller should Close the job instead to preserve that history.
+  const appCount = await db.count("applications", { job_id: id, organization_id: orgId });
+  if (appCount > 0) {
+    throw new ConflictError(
+      `This job has ${appCount} application${appCount === 1 ? "" : "s"} and cannot be deleted. ` +
+        `Close the job instead to stop accepting applications while preserving candidate history.`,
+    );
+  }
+
   return db.delete("job_postings", id);
 }
 
