@@ -76,11 +76,15 @@ export function ReferralListPage() {
     queryFn: () =>
       apiGet<PaginatedResponse<{ id: string; first_name: string; last_name: string; email: string; phone: string | null }>>(
         "/candidates",
-        { perPage: 10, search: debouncedSearch || undefined },
+        { perPage: 10, search: debouncedSearch },
       ),
-    enabled: showForm,
+    // Only search when the user has actually typed something — otherwise an
+    // empty term returns every candidate and the dropdown reopens after a pick.
+    enabled: showForm && debouncedSearch.length > 0,
   });
-  const candidateOptions = candidatesQuery.data?.data?.data ?? [];
+  // Gate on an active search term so a stale cached result (or an empty-term
+  // "all candidates" fetch) can't keep the dropdown open after a pick.
+  const candidateOptions = debouncedSearch.length > 0 ? candidatesQuery.data?.data?.data ?? [] : [];
 
   // Fetch open jobs for the dropdown
   const jobsQuery = useQuery({
@@ -221,7 +225,10 @@ export function ReferralListPage() {
                         email: c.email,
                         phone: c.phone || p.phone,
                       }));
+                      // Clear both so the dropdown closes immediately (and the
+                      // debounced effect doesn't briefly re-open it).
                       setCandidateSearch("");
+                      setDebouncedSearch("");
                     }}
                     className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-brand-50"
                   >
