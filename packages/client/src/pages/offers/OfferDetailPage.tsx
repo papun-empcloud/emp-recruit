@@ -735,8 +735,8 @@ export function OfferDetailPage() {
       {/* #21 — Approver picker modal */}
       {showApproverModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
               <h3 className="text-base font-semibold text-gray-900">Submit for Approval</h3>
               <button
                 onClick={() => {
@@ -748,7 +748,7 @@ export function OfferDetailPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-6 py-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4">
               <p className="mb-3 text-sm text-gray-500">
                 Pick one or more approvers. They'll review this offer before it can be sent.
               </p>
@@ -783,7 +783,7 @@ export function OfferDetailPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4 rounded-b-xl">
+            <div className="flex flex-shrink-0 justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4 rounded-b-xl">
               <button
                 type="button"
                 onClick={() => {
