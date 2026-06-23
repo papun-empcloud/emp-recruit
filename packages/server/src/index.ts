@@ -74,6 +74,13 @@ app.use(
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+// Guarantee req.body is always an object. express.json() only populates it when
+// a JSON content-type is present, so a body-less POST (e.g. POST /accept with no
+// payload) leaves req.body undefined — and any `req.body.x` read then throws.
+app.use((req, _res, next) => {
+  if (req.body == null) req.body = {};
+  next();
+});
 app.use(morgan("combined", { stream: { write: (msg) => logger.info(msg.trim()) } }));
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
+import { toMysqlDateTime } from "../../utils/date";
 import type { Offer, OfferApprover, OfferStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -19,7 +20,7 @@ interface CreateOfferData {
   salary_currency: string;
   joining_date: string;
   expiry_date: string;
-  job_title: string;
+  job_title?: string;
   department?: string;
   benefits?: string;
   notes?: string;
@@ -63,6 +64,18 @@ export async function createOffer(orgId: number, data: CreateOfferData): Promise
   const candidateId = data.candidate_id || application.candidate_id;
   const jobId = data.job_id || application.job_id;
 
+  // Default job_title/department from the actual job so an offer can't silently
+  // drift from the role the candidate applied to (e.g. an Engineering job with a
+  // "Design" department typed on the offer). Explicit values still win.
+  const job = jobId
+    ? await db.findOne<any>("job_postings", { id: jobId, organization_id: orgId })
+    : null;
+
+  const resolvedJobTitle = data.job_title || job?.title;
+  if (!resolvedJobTitle) {
+    throw new ValidationError("Job title is required (and could not be derived from the job)");
+  }
+
   // Check no active offer exists for this application
   const existingOffer = await db.findOne<Offer>("offers", {
     application_id: data.application_id,
@@ -82,8 +95,8 @@ export async function createOffer(orgId: number, data: CreateOfferData): Promise
     salary_currency: data.salary_currency,
     joining_date: data.joining_date,
     expiry_date: data.expiry_date,
-    job_title: data.job_title,
-    department: data.department || null,
+    job_title: resolvedJobTitle,
+    department: data.department || job?.department || null,
     benefits: data.benefits || null,
     notes: data.notes || null,
     created_by: data.created_by,
@@ -109,7 +122,17 @@ export async function updateOffer(orgId: number, id: string, data: UpdateOfferDa
   return db.update<Offer>("offers", id, data);
 }
 
-export async function getOffer(orgId: number, id: string): Promise<Offer & { approvers: OfferApprover[] }> {
+export async function getOffer(
+  orgId: number,
+  id: string,
+): Promise<
+  Offer & {
+    approvers: OfferApprover[];
+    candidate_name: string;
+    candidate_email: string | null;
+    job_title_display: string;
+  }
+> {
   const db = getDB();
 
   const offer = await db.findOne<Offer>("offers", { id, organization_id: orgId });
@@ -123,7 +146,18 @@ export async function getOffer(orgId: number, id: string): Promise<Offer & { app
     limit: 100,
   });
 
-  return { ...offer, approvers: approversResult.data };
+  // Resolve candidate/job so the detail view can show names, not raw UUIDs
+  // (mirrors the enrichment listOffers already does).
+  const candidate = await db.findById<any>("candidates", offer.candidate_id);
+  const job = offer.job_id ? await db.findById<any>("job_postings", offer.job_id) : null;
+
+  return {
+    ...offer,
+    candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
+    candidate_email: candidate?.email ?? null,
+    job_title_display: job?.title || offer.job_title,
+    approvers: approversResult.data,
+  };
 }
 
 export async function listOffers(orgId: number, params: ListOffersParams) {
@@ -232,7 +266,7 @@ export async function approve(
     await db.update("offer_approvers", approver.id, {
       status: "approved",
       notes: comment || null,
-      acted_at: new Date().toISOString(),
+      acted_at: toMysqlDateTime(),
     });
   }
 
@@ -242,7 +276,7 @@ export async function approve(
     await db.updateMany(
       "offer_approvers",
       { offer_id: offerId, status: "pending" },
-      { status: "approved", notes: comment || null, acted_at: new Date().toISOString() },
+      { status: "approved", notes: comment || null, acted_at: toMysqlDateTime() },
     );
   }
 
@@ -256,7 +290,7 @@ export async function approve(
     return db.update<Offer>("offers", offerId, {
       status: "approved" as OfferStatus,
       approved_by: userId,
-      approved_at: new Date().toISOString(),
+      approved_at: toMysqlDateTime(),
     });
   }
 
@@ -295,7 +329,7 @@ export async function reject(
     await db.update("offer_approvers", approver.id, {
       status: "rejected",
       notes: comment || null,
-      acted_at: new Date().toISOString(),
+      acted_at: toMysqlDateTime(),
     });
   }
 
@@ -316,7 +350,7 @@ export async function sendOffer(orgId: number, id: string): Promise<Offer> {
 
   return db.update<Offer>("offers", id, {
     status: "sent" as OfferStatus,
-    sent_at: new Date().toISOString(),
+    sent_at: toMysqlDateTime(),
   });
 }
 
@@ -349,7 +383,7 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
   const updated = await db.update<Offer>("offers", id, {
     status: "accepted" as OfferStatus,
     notes: notes || offer.notes,
-    responded_at: new Date().toISOString(),
+    responded_at: toMysqlDateTime(),
   });
 
   // Move application to hired stage
@@ -403,6 +437,6 @@ export async function declineOffer(orgId: number, id: string, notes?: string): P
   return db.update<Offer>("offers", id, {
     status: "declined" as OfferStatus,
     notes: notes || offer.notes,
-    responded_at: new Date().toISOString(),
+    responded_at: toMysqlDateTime(),
   });
 }

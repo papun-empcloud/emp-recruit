@@ -8,7 +8,11 @@ import type { Application, PaginatedResponse } from "@emp-recruit/shared";
 
 interface DepartmentOption { id: number; name: string }
 
-type ApplicationRow = Application & { candidate_name: string; job_title: string };
+type ApplicationRow = Application & {
+  candidate_name: string;
+  job_title: string;
+  job_department?: string | null;
+};
 
 function todayIso() {
   const d = new Date();
@@ -211,7 +215,10 @@ export function OfferCreatePage() {
                     setForm((p) => ({
                       ...p,
                       application_id: app.id,
+                      // Prefill from the applied job so the offer matches the role
+                      // by default (still editable).
                       job_title: p.job_title || app.job_title || "",
+                      department: p.department || app.job_department || "",
                     }))
                   }
                   className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${

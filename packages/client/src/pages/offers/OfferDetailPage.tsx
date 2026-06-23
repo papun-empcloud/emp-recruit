@@ -23,7 +23,12 @@ import { apiGet, apiPost } from "@/api/client";
 import toast from "react-hot-toast";
 import type { Offer, OfferApprover } from "@emp-recruit/shared";
 
-type OfferDetail = Offer & { approvers: OfferApprover[] };
+type OfferDetail = Offer & {
+  approvers: OfferApprover[];
+  candidate_name?: string;
+  candidate_email?: string | null;
+  job_title_display?: string;
+};
 
 interface OfferLetterTemplate {
   id: string;
@@ -166,9 +171,18 @@ export function OfferDetailPage() {
   });
 
   const acceptOffer = useMutation({
-    mutationFn: () => apiPost(`/offers/${id}/accept`),
-    onSuccess: () => {
+    mutationFn: () => apiPost<Offer>(`/offers/${id}/accept`),
+    onSuccess: (res) => {
       toast.success("Offer accepted");
+      // Seed the cache with the server's new status immediately (merge so we
+      // keep the enriched fields the transition endpoint doesn't return) — this
+      // flips the status-gated buttons right away, then the invalidate refetches
+      // the fully-enriched record.
+      if (res?.data) {
+        queryClient.setQueryData<OfferDetail>(["offer", id], (prev) =>
+          prev ? { ...prev, ...res.data } : prev,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["offer", id] });
     },
     onError: (err: any) => {
@@ -177,9 +191,14 @@ export function OfferDetailPage() {
   });
 
   const declineOffer = useMutation({
-    mutationFn: () => apiPost(`/offers/${id}/decline`),
-    onSuccess: () => {
+    mutationFn: () => apiPost<Offer>(`/offers/${id}/decline`),
+    onSuccess: (res) => {
       toast.success("Offer declined");
+      if (res?.data) {
+        queryClient.setQueryData<OfferDetail>(["offer", id], (prev) =>
+          prev ? { ...prev, ...res.data } : prev,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["offer", id] });
     },
     onError: (err: any) => {
@@ -251,6 +270,10 @@ export function OfferDetailPage() {
   const statusConfig = STATUS_CONFIG[offer.status] || STATUS_CONFIG.draft;
   const StatusIcon = statusConfig.icon;
 
+  // Terminal states — the offer is closed and no further action (generating /
+  // emailing a letter, approving) applies.
+  const isTerminal = ["revoked", "declined", "expired"].includes(offer.status);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -318,10 +341,11 @@ export function OfferDetailPage() {
             <button
               onClick={() => sendOffer.mutate()}
               disabled={sendOffer.isPending}
+              title="Move the offer to 'Sent'. Email the letter from the Offer Letter section below."
               className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
             >
               <Send className="h-4 w-4" />
-              Send to Candidate
+              {sendOffer.isPending ? "Marking..." : "Mark as Sent"}
             </button>
           )}
           {offer.status === "sent" && (
@@ -365,9 +389,14 @@ export function OfferDetailPage() {
             <div className="mt-4 grid grid-cols-2 gap-6">
               <div className="flex items-start gap-3">
                 <User className="mt-0.5 h-5 w-5 text-gray-400" />
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-medium uppercase text-gray-500">Candidate</p>
-                  <p className="text-sm font-medium text-gray-900">{offer.candidate_id}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {offer.candidate_name || offer.candidate_id}
+                  </p>
+                  {offer.candidate_email && (
+                    <p className="text-xs text-gray-500 truncate">{offer.candidate_email}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -445,13 +474,17 @@ export function OfferDetailPage() {
                 Offer Letter
               </h2>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowTemplateSelect(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-                >
-                  <FileText className="h-4 w-4" />
-                  Generate Offer Letter
-                </button>
+                {/* Preview stays available for record-keeping; Generate/Email are
+                    hidden once the offer is in a terminal state (revoked etc.). */}
+                {!isTerminal && (
+                  <button
+                    onClick={() => setShowTemplateSelect(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {generatedLetter ? "Regenerate" : "Generate Offer Letter"}
+                  </button>
+                )}
                 {generatedLetter && (
                   <>
                     <button
@@ -461,23 +494,32 @@ export function OfferDetailPage() {
                       <Eye className="h-4 w-4" />
                       Preview
                     </button>
-                    <button
-                      onClick={() => sendLetter.mutate()}
-                      disabled={sendLetter.isPending}
-                      className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      <Mail className="h-4 w-4" />
-                      {sendLetter.isPending ? "Sending..." : "Send to Candidate"}
-                    </button>
+                    {!isTerminal && (
+                      <button
+                        onClick={() => sendLetter.mutate()}
+                        disabled={sendLetter.isPending}
+                        title="Email the generated offer letter to the candidate"
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        <Mail className="h-4 w-4" />
+                        {sendLetter.isPending ? "Sending..." : "Email Offer Letter"}
+                      </button>
+                    )}
                   </>
                 )}
               </div>
             </div>
 
             {generatedLetter ? (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
-                <p className="text-sm text-green-800">
-                  Offer letter has been generated.
+              <div
+                className={`mt-4 rounded-lg border p-4 ${
+                  isTerminal ? "border-gray-200 bg-gray-50" : "border-green-200 bg-green-50"
+                }`}
+              >
+                <p className={`text-sm ${isTerminal ? "text-gray-600" : "text-green-800"}`}>
+                  {isTerminal
+                    ? `This offer was ${statusConfig.label.toLowerCase()}. The letter below is kept for reference.`
+                    : "Offer letter has been generated."}
                   {generatedLetter.sent_at && (
                     <span className="ml-2 font-medium">
                       Sent on {formatDate(generatedLetter.sent_at)}
@@ -489,7 +531,9 @@ export function OfferDetailPage() {
               <div className="mt-4 flex flex-col items-center justify-center py-8 text-center">
                 <FileText className="h-10 w-10 text-gray-300" />
                 <p className="mt-2 text-sm text-gray-500">
-                  No offer letter generated yet. Click "Generate Offer Letter" to create one from a template.
+                  {isTerminal
+                    ? "No offer letter was generated for this offer."
+                    : 'No offer letter generated yet. Click "Generate Offer Letter" to create one from a template.'}
                 </p>
               </div>
             )}
@@ -574,6 +618,11 @@ export function OfferDetailPage() {
         <div className="space-y-6">
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900">Approval Workflow</h2>
+            {isTerminal && Array.isArray(offer.approvers) && offer.approvers.length > 0 && (
+              <p className="mt-2 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                This offer was {statusConfig.label.toLowerCase()} — the approval workflow no longer applies.
+              </p>
+            )}
             {/* #22 — defensive: if the API ever returns offer without
                 `approvers` (e.g. older row shape), don't crash the render. */}
             {(!Array.isArray(offer.approvers) || offer.approvers.length === 0) ? (
@@ -667,6 +716,17 @@ export function OfferDetailPage() {
                   </div>
                 </div>
               )}
+              {offer.status === "revoked" && (
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Revoked</p>
+                    <p className="text-xs text-gray-500">{formatDate(offer.updated_at)}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -675,8 +735,8 @@ export function OfferDetailPage() {
       {/* #21 — Approver picker modal */}
       {showApproverModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
               <h3 className="text-base font-semibold text-gray-900">Submit for Approval</h3>
               <button
                 onClick={() => {
@@ -688,7 +748,7 @@ export function OfferDetailPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-6 py-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4">
               <p className="mb-3 text-sm text-gray-500">
                 Pick one or more approvers. They'll review this offer before it can be sent.
               </p>
@@ -723,7 +783,7 @@ export function OfferDetailPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4 rounded-b-xl">
+            <div className="flex flex-shrink-0 justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4 rounded-b-xl">
               <button
                 type="button"
                 onClick={() => {

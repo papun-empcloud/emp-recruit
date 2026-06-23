@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
+import { toMysqlDateTime } from "../../utils/date";
 import * as emailService from "../email/email.service";
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,16 @@ export async function createLetterTemplate(
     throw new ValidationError("Name and content template are required");
   }
 
+  // Prevent duplicate template names within an org.
+  const dupe = await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    organization_id: orgId,
+    name: data.name.trim(),
+    is_active: true,
+  });
+  if (dupe) {
+    throw new ValidationError(`A template named "${data.name.trim()}" already exists`);
+  }
+
   // If marking as default, unset other defaults first
   if (data.is_default) {
     await db.updateMany(
@@ -70,10 +81,75 @@ export async function createLetterTemplate(
 
   return db.create<OfferLetterTemplate>("offer_letter_templates", {
     organization_id: orgId,
-    name: data.name,
+    name: data.name.trim(),
     content_template: data.content_template,
     is_default: data.is_default ?? false,
     is_active: true,
+  } as Partial<OfferLetterTemplate>);
+}
+
+export async function updateLetterTemplate(
+  orgId: number,
+  id: string,
+  data: CreateTemplateData,
+): Promise<OfferLetterTemplate> {
+  const db = getDB();
+
+  const existing = await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    id,
+    organization_id: orgId,
+  });
+  if (!existing) throw new NotFoundError("Offer letter template", id);
+
+  if (!data.name || !data.content_template) {
+    throw new ValidationError("Name and content template are required");
+  }
+
+  // Prevent renaming onto another template's name.
+  const dupe = await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    organization_id: orgId,
+    name: data.name.trim(),
+    is_active: true,
+  });
+  if (dupe && dupe.id !== id) {
+    throw new ValidationError(`A template named "${data.name.trim()}" already exists`);
+  }
+
+  // If marking as default, unset other defaults first.
+  if (data.is_default) {
+    await db.updateMany(
+      "offer_letter_templates",
+      { organization_id: orgId, is_default: true },
+      { is_default: false },
+    );
+  }
+
+  await db.update<OfferLetterTemplate>("offer_letter_templates", id, {
+    name: data.name.trim(),
+    content_template: data.content_template,
+    is_default: data.is_default ?? false,
+  } as Partial<OfferLetterTemplate>);
+
+  return (await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    id,
+    organization_id: orgId,
+  }))!;
+}
+
+export async function deleteLetterTemplate(orgId: number, id: string): Promise<void> {
+  const db = getDB();
+  const existing = await db.findOne<OfferLetterTemplate>("offer_letter_templates", {
+    id,
+    organization_id: orgId,
+  });
+  if (!existing) throw new NotFoundError("Offer letter template", id);
+
+  // Soft-delete (is_active=false) rather than a hard delete: generated letters
+  // FK to template_id with ON DELETE CASCADE, so a hard delete would wipe the
+  // history of letters already generated from this template. Soft-delete hides
+  // it from the list while preserving that history.
+  await db.update<OfferLetterTemplate>("offer_letter_templates", id, {
+    is_active: false,
   } as Partial<OfferLetterTemplate>);
 }
 
@@ -84,7 +160,9 @@ export async function listLetterTemplates(orgId: number): Promise<OfferLetterTem
     sort: { field: "name", order: "asc" },
     limit: 100,
   });
-  return result.data;
+  // MySQL stores booleans as tinyint(1); normalize so the client gets real
+  // booleans (otherwise `0` leaks into the UI via `is_default && <badge>`).
+  return result.data.map((t) => ({ ...t, is_default: Boolean(t.is_default) }));
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +319,11 @@ export async function sendOfferLetter(
     throw new NotFoundError("Offer", offerId);
   }
 
+  // Don't email a letter for an offer that's been revoked/declined/expired.
+  if (["revoked", "declined", "expired"].includes(offer.status)) {
+    throw new ValidationError(`Cannot email the letter — this offer is ${offer.status}.`);
+  }
+
   const candidate = await db.findById<any>("candidates", offer.candidate_id);
   if (!candidate) {
     throw new NotFoundError("Candidate", offer.candidate_id);
@@ -253,9 +336,9 @@ export async function sendOfferLetter(
     letter.content,
   );
 
-  // Update sent_at
+  // Update sent_at (MySQL datetime format, not ISO-with-Z which it rejects)
   const updated = await db.update<GeneratedOfferLetter>("generated_offer_letters", letter.id, {
-    sent_at: new Date().toISOString(),
+    sent_at: toMysqlDateTime(),
   } as Partial<GeneratedOfferLetter>);
 
   logger.info(`Offer letter for offer ${offerId} sent to ${candidate.email}`);

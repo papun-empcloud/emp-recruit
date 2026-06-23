@@ -162,7 +162,8 @@ export async function listApplications(
             c.last_name  AS candidate_last_name,
             c.email      AS candidate_email,
             TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) AS candidate_name,
-            j.title      AS job_title
+            j.title      AS job_title,
+            j.department AS job_department
      FROM applications a
      LEFT JOIN candidates c ON c.id = a.candidate_id
      LEFT JOIN job_postings j ON j.id = a.job_id

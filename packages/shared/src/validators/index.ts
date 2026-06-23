@@ -174,7 +174,8 @@ export const createOfferSchema = z.object({
   salary_currency: z.string().length(3).default("INR"),
   joining_date: z.string(),
   expiry_date: z.string(),
-  job_title: z.string().min(2).max(200),
+  // Optional — defaults from the applied job's title/department server-side.
+  job_title: z.string().min(2).max(200).optional(),
   department: z.string().max(100).optional(),
   benefits: z.string().optional(),
   notes: z.string().optional(),
