@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
+import { toMysqlDateTime } from "../../utils/date";
 import * as emailService from "../email/email.service";
 
 // ---------------------------------------------------------------------------
@@ -330,9 +331,9 @@ export async function sendOfferLetter(
     letter.content,
   );
 
-  // Update sent_at
+  // Update sent_at (MySQL datetime format, not ISO-with-Z which it rejects)
   const updated = await db.update<GeneratedOfferLetter>("generated_offer_letters", letter.id, {
-    sent_at: new Date().toISOString(),
+    sent_at: toMysqlDateTime(),
   } as Partial<GeneratedOfferLetter>);
 
   logger.info(`Offer letter for offer ${offerId} sent to ${candidate.email}`);

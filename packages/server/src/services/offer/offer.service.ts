@@ -5,6 +5,7 @@
 
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
+import { toMysqlDateTime } from "../../utils/date";
 import type { Offer, OfferApprover, OfferStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ export async function approve(
     await db.update("offer_approvers", approver.id, {
       status: "approved",
       notes: comment || null,
-      acted_at: new Date().toISOString(),
+      acted_at: toMysqlDateTime(),
     });
   }
 
@@ -242,7 +243,7 @@ export async function approve(
     await db.updateMany(
       "offer_approvers",
       { offer_id: offerId, status: "pending" },
-      { status: "approved", notes: comment || null, acted_at: new Date().toISOString() },
+      { status: "approved", notes: comment || null, acted_at: toMysqlDateTime() },
     );
   }
 
@@ -256,7 +257,7 @@ export async function approve(
     return db.update<Offer>("offers", offerId, {
       status: "approved" as OfferStatus,
       approved_by: userId,
-      approved_at: new Date().toISOString(),
+      approved_at: toMysqlDateTime(),
     });
   }
 
@@ -295,7 +296,7 @@ export async function reject(
     await db.update("offer_approvers", approver.id, {
       status: "rejected",
       notes: comment || null,
-      acted_at: new Date().toISOString(),
+      acted_at: toMysqlDateTime(),
     });
   }
 
@@ -316,7 +317,7 @@ export async function sendOffer(orgId: number, id: string): Promise<Offer> {
 
   return db.update<Offer>("offers", id, {
     status: "sent" as OfferStatus,
-    sent_at: new Date().toISOString(),
+    sent_at: toMysqlDateTime(),
   });
 }
 
@@ -349,7 +350,7 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
   const updated = await db.update<Offer>("offers", id, {
     status: "accepted" as OfferStatus,
     notes: notes || offer.notes,
-    responded_at: new Date().toISOString(),
+    responded_at: toMysqlDateTime(),
   });
 
   // Move application to hired stage
@@ -403,6 +404,6 @@ export async function declineOffer(orgId: number, id: string, notes?: string): P
   return db.update<Offer>("offers", id, {
     status: "declined" as OfferStatus,
     notes: notes || offer.notes,
-    responded_at: new Date().toISOString(),
+    responded_at: toMysqlDateTime(),
   });
 }
