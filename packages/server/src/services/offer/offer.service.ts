@@ -110,7 +110,17 @@ export async function updateOffer(orgId: number, id: string, data: UpdateOfferDa
   return db.update<Offer>("offers", id, data);
 }
 
-export async function getOffer(orgId: number, id: string): Promise<Offer & { approvers: OfferApprover[] }> {
+export async function getOffer(
+  orgId: number,
+  id: string,
+): Promise<
+  Offer & {
+    approvers: OfferApprover[];
+    candidate_name: string;
+    candidate_email: string | null;
+    job_title_display: string;
+  }
+> {
   const db = getDB();
 
   const offer = await db.findOne<Offer>("offers", { id, organization_id: orgId });
@@ -124,7 +134,18 @@ export async function getOffer(orgId: number, id: string): Promise<Offer & { app
     limit: 100,
   });
 
-  return { ...offer, approvers: approversResult.data };
+  // Resolve candidate/job so the detail view can show names, not raw UUIDs
+  // (mirrors the enrichment listOffers already does).
+  const candidate = await db.findById<any>("candidates", offer.candidate_id);
+  const job = offer.job_id ? await db.findById<any>("job_postings", offer.job_id) : null;
+
+  return {
+    ...offer,
+    candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
+    candidate_email: candidate?.email ?? null,
+    job_title_display: job?.title || offer.job_title,
+    approvers: approversResult.data,
+  };
 }
 
 export async function listOffers(orgId: number, params: ListOffersParams) {

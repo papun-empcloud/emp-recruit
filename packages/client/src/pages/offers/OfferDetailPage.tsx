@@ -23,7 +23,12 @@ import { apiGet, apiPost } from "@/api/client";
 import toast from "react-hot-toast";
 import type { Offer, OfferApprover } from "@emp-recruit/shared";
 
-type OfferDetail = Offer & { approvers: OfferApprover[] };
+type OfferDetail = Offer & {
+  approvers: OfferApprover[];
+  candidate_name?: string;
+  candidate_email?: string | null;
+  job_title_display?: string;
+};
 
 interface OfferLetterTemplate {
   id: string;
@@ -365,9 +370,14 @@ export function OfferDetailPage() {
             <div className="mt-4 grid grid-cols-2 gap-6">
               <div className="flex items-start gap-3">
                 <User className="mt-0.5 h-5 w-5 text-gray-400" />
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-medium uppercase text-gray-500">Candidate</p>
-                  <p className="text-sm font-medium text-gray-900">{offer.candidate_id}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {offer.candidate_name || offer.candidate_id}
+                  </p>
+                  {offer.candidate_email && (
+                    <p className="text-xs text-gray-500 truncate">{offer.candidate_email}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-3">
