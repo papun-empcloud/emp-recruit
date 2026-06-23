@@ -171,9 +171,18 @@ export function OfferDetailPage() {
   });
 
   const acceptOffer = useMutation({
-    mutationFn: () => apiPost(`/offers/${id}/accept`),
-    onSuccess: () => {
+    mutationFn: () => apiPost<Offer>(`/offers/${id}/accept`),
+    onSuccess: (res) => {
       toast.success("Offer accepted");
+      // Seed the cache with the server's new status immediately (merge so we
+      // keep the enriched fields the transition endpoint doesn't return) — this
+      // flips the status-gated buttons right away, then the invalidate refetches
+      // the fully-enriched record.
+      if (res?.data) {
+        queryClient.setQueryData<OfferDetail>(["offer", id], (prev) =>
+          prev ? { ...prev, ...res.data } : prev,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["offer", id] });
     },
     onError: (err: any) => {
@@ -182,9 +191,14 @@ export function OfferDetailPage() {
   });
 
   const declineOffer = useMutation({
-    mutationFn: () => apiPost(`/offers/${id}/decline`),
-    onSuccess: () => {
+    mutationFn: () => apiPost<Offer>(`/offers/${id}/decline`),
+    onSuccess: (res) => {
       toast.success("Offer declined");
+      if (res?.data) {
+        queryClient.setQueryData<OfferDetail>(["offer", id], (prev) =>
+          prev ? { ...prev, ...res.data } : prev,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["offer", id] });
     },
     onError: (err: any) => {
