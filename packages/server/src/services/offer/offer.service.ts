@@ -20,7 +20,7 @@ interface CreateOfferData {
   salary_currency: string;
   joining_date: string;
   expiry_date: string;
-  job_title: string;
+  job_title?: string;
   department?: string;
   benefits?: string;
   notes?: string;
@@ -64,6 +64,18 @@ export async function createOffer(orgId: number, data: CreateOfferData): Promise
   const candidateId = data.candidate_id || application.candidate_id;
   const jobId = data.job_id || application.job_id;
 
+  // Default job_title/department from the actual job so an offer can't silently
+  // drift from the role the candidate applied to (e.g. an Engineering job with a
+  // "Design" department typed on the offer). Explicit values still win.
+  const job = jobId
+    ? await db.findOne<any>("job_postings", { id: jobId, organization_id: orgId })
+    : null;
+
+  const resolvedJobTitle = data.job_title || job?.title;
+  if (!resolvedJobTitle) {
+    throw new ValidationError("Job title is required (and could not be derived from the job)");
+  }
+
   // Check no active offer exists for this application
   const existingOffer = await db.findOne<Offer>("offers", {
     application_id: data.application_id,
@@ -83,8 +95,8 @@ export async function createOffer(orgId: number, data: CreateOfferData): Promise
     salary_currency: data.salary_currency,
     joining_date: data.joining_date,
     expiry_date: data.expiry_date,
-    job_title: data.job_title,
-    department: data.department || null,
+    job_title: resolvedJobTitle,
+    department: data.department || job?.department || null,
     benefits: data.benefits || null,
     notes: data.notes || null,
     created_by: data.created_by,
