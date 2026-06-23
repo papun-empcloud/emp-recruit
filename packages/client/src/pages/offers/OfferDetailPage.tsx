@@ -511,9 +511,15 @@ export function OfferDetailPage() {
             </div>
 
             {generatedLetter ? (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
-                <p className="text-sm text-green-800">
-                  Offer letter has been generated.
+              <div
+                className={`mt-4 rounded-lg border p-4 ${
+                  isTerminal ? "border-gray-200 bg-gray-50" : "border-green-200 bg-green-50"
+                }`}
+              >
+                <p className={`text-sm ${isTerminal ? "text-gray-600" : "text-green-800"}`}>
+                  {isTerminal
+                    ? `This offer was ${statusConfig.label.toLowerCase()}. The letter below is kept for reference.`
+                    : "Offer letter has been generated."}
                   {generatedLetter.sent_at && (
                     <span className="ml-2 font-medium">
                       Sent on {formatDate(generatedLetter.sent_at)}
@@ -525,7 +531,9 @@ export function OfferDetailPage() {
               <div className="mt-4 flex flex-col items-center justify-center py-8 text-center">
                 <FileText className="h-10 w-10 text-gray-300" />
                 <p className="mt-2 text-sm text-gray-500">
-                  No offer letter generated yet. Click "Generate Offer Letter" to create one from a template.
+                  {isTerminal
+                    ? "No offer letter was generated for this offer."
+                    : 'No offer letter generated yet. Click "Generate Offer Letter" to create one from a template.'}
                 </p>
               </div>
             )}
