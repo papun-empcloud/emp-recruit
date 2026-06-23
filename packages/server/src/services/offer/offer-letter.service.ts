@@ -319,6 +319,11 @@ export async function sendOfferLetter(
     throw new NotFoundError("Offer", offerId);
   }
 
+  // Don't email a letter for an offer that's been revoked/declined/expired.
+  if (["revoked", "declined", "expired"].includes(offer.status)) {
+    throw new ValidationError(`Cannot email the letter — this offer is ${offer.status}.`);
+  }
+
   const candidate = await db.findById<any>("candidates", offer.candidate_id);
   if (!candidate) {
     throw new NotFoundError("Candidate", offer.candidate_id);

@@ -270,6 +270,10 @@ export function OfferDetailPage() {
   const statusConfig = STATUS_CONFIG[offer.status] || STATUS_CONFIG.draft;
   const StatusIcon = statusConfig.icon;
 
+  // Terminal states — the offer is closed and no further action (generating /
+  // emailing a letter, approving) applies.
+  const isTerminal = ["revoked", "declined", "expired"].includes(offer.status);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -470,13 +474,17 @@ export function OfferDetailPage() {
                 Offer Letter
               </h2>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowTemplateSelect(true)}
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-                >
-                  <FileText className="h-4 w-4" />
-                  Generate Offer Letter
-                </button>
+                {/* Preview stays available for record-keeping; Generate/Email are
+                    hidden once the offer is in a terminal state (revoked etc.). */}
+                {!isTerminal && (
+                  <button
+                    onClick={() => setShowTemplateSelect(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {generatedLetter ? "Regenerate" : "Generate Offer Letter"}
+                  </button>
+                )}
                 {generatedLetter && (
                   <>
                     <button
@@ -486,15 +494,17 @@ export function OfferDetailPage() {
                       <Eye className="h-4 w-4" />
                       Preview
                     </button>
-                    <button
-                      onClick={() => sendLetter.mutate()}
-                      disabled={sendLetter.isPending}
-                      title="Email the generated offer letter to the candidate"
-                      className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      <Mail className="h-4 w-4" />
-                      {sendLetter.isPending ? "Sending..." : "Email Offer Letter"}
-                    </button>
+                    {!isTerminal && (
+                      <button
+                        onClick={() => sendLetter.mutate()}
+                        disabled={sendLetter.isPending}
+                        title="Email the generated offer letter to the candidate"
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        <Mail className="h-4 w-4" />
+                        {sendLetter.isPending ? "Sending..." : "Email Offer Letter"}
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -600,6 +610,11 @@ export function OfferDetailPage() {
         <div className="space-y-6">
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900">Approval Workflow</h2>
+            {isTerminal && Array.isArray(offer.approvers) && offer.approvers.length > 0 && (
+              <p className="mt-2 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                This offer was {statusConfig.label.toLowerCase()} — the approval workflow no longer applies.
+              </p>
+            )}
             {/* #22 — defensive: if the API ever returns offer without
                 `approvers` (e.g. older row shape), don't crash the render. */}
             {(!Array.isArray(offer.approvers) || offer.approvers.length === 0) ? (
@@ -690,6 +705,17 @@ export function OfferDetailPage() {
                       {offer.status === "accepted" ? "Accepted" : "Declined"}
                     </p>
                     <p className="text-xs text-gray-500">{formatDate(offer.responded_at)}</p>
+                  </div>
+                </div>
+              )}
+              {offer.status === "revoked" && (
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Revoked</p>
+                    <p className="text-xs text-gray-500">{formatDate(offer.updated_at)}</p>
                   </div>
                 </div>
               )}
