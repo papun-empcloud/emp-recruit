@@ -176,7 +176,7 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const offer = await offerService.acceptOffer(orgId, String(req.params.id), req.body.notes);
+      const offer = await offerService.acceptOffer(orgId, String(req.params.id), req.body?.notes);
       sendSuccess(res, offer);
     } catch (err) {
       next(err);
@@ -190,7 +190,7 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const offer = await offerService.declineOffer(orgId, String(req.params.id), req.body.notes);
+      const offer = await offerService.declineOffer(orgId, String(req.params.id), req.body?.notes);
       sendSuccess(res, offer);
     } catch (err) {
       next(err);
