@@ -10,6 +10,9 @@ import {
   Mail,
   X,
   GitBranch,
+  ExternalLink,
+  Link2,
+  Briefcase,
 } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
@@ -123,87 +126,167 @@ function CareerPageSettings() {
     );
   }
 
+  const validColor = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(form.primary_color);
+  const previewColor = validColor ? form.primary_color : "#4F46E5";
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Career Page Configuration</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Customize how your career page appears to candidates.
-        {configQuery.data?.slug && (
-          <span className="ml-1">
-            Preview:{" "}
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      {/* ---- Left: the form ---- */}
+      <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Career Page Configuration</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Customize how your public career page appears to candidates.
+        </p>
+
+        <div className="mt-6 space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Page Title</label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              placeholder="e.g. Join Our Team"
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              rows={3}
+              maxLength={300}
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              placeholder="A short description shown on your career page..."
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+            <p className="mt-1 text-right text-xs text-gray-400">{form.description.length}/300</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">URL Slug</label>
+            <div className="mt-1 flex items-center rounded-lg border border-gray-300 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
+              <span className="flex items-center gap-1 border-r border-gray-200 px-3 py-2 text-sm text-gray-400">
+                <Link2 className="h-3.5 w-3.5" />
+                /careers/
+              </span>
+              <input
+                type="text"
+                value={form.slug}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                  }))
+                }
+                placeholder="your-company"
+                className="block flex-1 rounded-r-lg px-3 py-2 text-sm focus:outline-none"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-400">
+              Lowercase letters, numbers and hyphens only.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Brand Color</label>
+            <div className="mt-1 flex items-center gap-3">
+              <input
+                type="color"
+                value={previewColor}
+                onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))}
+                className="h-10 w-14 cursor-pointer rounded border border-gray-300"
+              />
+              <input
+                type="text"
+                value={form.primary_color}
+                onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))}
+                className={`block w-32 rounded-lg border px-3 py-2 text-sm uppercase focus:outline-none focus:ring-1 ${
+                  validColor
+                    ? "border-gray-300 focus:border-brand-500 focus:ring-brand-500"
+                    : "border-red-300 focus:border-red-500 focus:ring-red-500"
+                }`}
+              />
+              {!validColor && <span className="text-xs text-red-500">Enter a hex like #4F46E5</span>}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center gap-3 border-t border-gray-100 pt-5">
+          <button
+            type="submit"
+            disabled={saveMutation.isPending}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saveMutation.isPending ? "Saving..." : "Save Changes"}
+          </button>
+          {configQuery.data?.slug && (
             <a
               href={`/careers/${configQuery.data.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand-600 hover:underline"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              /careers/{configQuery.data.slug}
+              <ExternalLink className="h-4 w-4" />
+              View live page
             </a>
-          </span>
-        )}
-      </p>
+          )}
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4 max-w-lg">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Page Title</label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder="e.g. Join Our Team"
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            rows={3}
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            placeholder="A short description shown on your career page..."
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">URL Slug</label>
-          <div className="mt-1 flex items-center gap-2">
-            <span className="text-sm text-gray-400">/careers/</span>
-            <input
-              type="text"
-              value={form.slug}
-              onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
-              className="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
+      {/* ---- Right: live preview ---- */}
+      <div className="lg:col-span-2">
+        <div className="sticky top-6">
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+            <Eye className="h-3.5 w-3.5" />
+            Live preview
+          </p>
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {/* faux browser chrome */}
+            <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-red-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-green-300" />
+              <span className="ml-2 truncate text-xs text-gray-400">
+                /careers/{form.slug || "your-company"}
+              </span>
+            </div>
+            {/* page body */}
+            <div className="p-5">
+              <h3 className="text-xl font-bold text-gray-900">
+                {form.title || "Your Page Title"}
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                {form.description || "A short description shown on your career page..."}
+              </p>
+              {/* sample job card with the brand color applied (mirrors the public page) */}
+              <div className="mt-4 rounded-lg border border-gray-200 p-3">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-gray-400" />
+                  <p className="text-sm font-semibold text-gray-900">Senior Software Engineer</p>
+                </div>
+                <p className="mt-0.5 text-xs text-gray-400">Engineering · Remote</p>
+                <button
+                  type="button"
+                  style={{ backgroundColor: previewColor }}
+                  className="mt-3 rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                >
+                  Apply Now
+                </button>
+              </div>
+            </div>
           </div>
+          <p className="mt-2 text-xs text-gray-400">
+            Updates as you type. Save to publish your changes.
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Brand Color</label>
-          <div className="mt-1 flex items-center gap-3">
-            <input
-              type="color"
-              value={form.primary_color}
-              onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))}
-              className="h-10 w-14 cursor-pointer rounded border border-gray-300"
-            />
-            <input
-              type="text"
-              value={form.primary_color}
-              onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))}
-              className="block w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={saveMutation.isPending}
-          className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          <Save className="h-4 w-4" />
-          {saveMutation.isPending ? "Saving..." : "Save Changes"}
-        </button>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 }
 
