@@ -323,10 +323,11 @@ export function OfferDetailPage() {
             <button
               onClick={() => sendOffer.mutate()}
               disabled={sendOffer.isPending}
+              title="Move the offer to 'Sent'. Email the letter from the Offer Letter section below."
               className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
             >
               <Send className="h-4 w-4" />
-              Send to Candidate
+              {sendOffer.isPending ? "Marking..." : "Mark as Sent"}
             </button>
           )}
           {offer.status === "sent" && (
@@ -474,10 +475,11 @@ export function OfferDetailPage() {
                     <button
                       onClick={() => sendLetter.mutate()}
                       disabled={sendLetter.isPending}
+                      title="Email the generated offer letter to the candidate"
                       className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                     >
                       <Mail className="h-4 w-4" />
-                      {sendLetter.isPending ? "Sending..." : "Send to Candidate"}
+                      {sendLetter.isPending ? "Sending..." : "Email Offer Letter"}
                     </button>
                   </>
                 )}
