@@ -6,6 +6,7 @@
 
 import knex from "knex";
 import type { Knex } from "knex";
+import crypto from "node:crypto";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 
@@ -233,4 +234,62 @@ export async function createOrganization(data: {
     updated_at: new Date(),
   });
   return findOrgById(id) as Promise<EmpCloudOrganization>;
+}
+
+// ---------------------------------------------------------------------------
+// SHARED API KEYS (cross-module programmatic auth)
+//
+// API keys are minted in EmpCloud and stored (hashed) in the EmpCloud master
+// DB's `api_keys` table. emp-recruit reads that SAME table to validate a key —
+// no shared JWT secret, no callback to the EmpCloud server. A key carries no
+// permissions of its own: we resolve the OWNER user (and their role) on every
+// request, so it mirrors that admin and honours revocation / deactivation.
+//
+// emp-recruit gates by role (authorize()), so we only need the owner's role
+// here; no permission resolution is required. Mirrors EmpCloud's
+// services/auth/api-key.service.ts.
+// ---------------------------------------------------------------------------
+
+// Opaque key format issued by EmpCloud: `empc_live_...`. The prefix is how auth
+// middleware tells an API key apart from a JWT.
+export const API_KEY_PREFIX = "empc_";
+
+export interface EmpCloudApiKey {
+  id: number;
+  organization_id: number;
+  user_id: number;
+  expires_at: Date | null;
+  revoked_at: Date | null;
+}
+
+/**
+ * Validate a raw API key against the shared EmpCloud `api_keys` table. Returns
+ * the row when the key is live (not revoked, not expired) or null otherwise.
+ * Best-effort bumps last_used_at. Degrades to null if the table doesn't exist
+ * yet (EmpCloud migration 078 not applied) so emp-recruit never 500s on auth.
+ */
+export async function findValidApiKey(rawKey: string): Promise<EmpCloudApiKey | null> {
+  if (!rawKey.startsWith(API_KEY_PREFIX)) return null;
+  const db = getEmpCloudDB();
+  const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
+  try {
+    const row = await db("api_keys").where({ key_hash: keyHash }).whereNull("revoked_at").first();
+    if (!row) return null;
+    if (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()) return null;
+    // Usage tracking — never block auth on it.
+    db("api_keys")
+      .where({ id: row.id })
+      .update({ last_used_at: new Date() })
+      .catch(() => {});
+    return {
+      id: row.id,
+      organization_id: row.organization_id,
+      user_id: row.user_id,
+      expires_at: row.expires_at ?? null,
+      revoked_at: row.revoked_at ?? null,
+    };
+  } catch {
+    // Table missing / transient DB error — treat as "no valid key".
+    return null;
+  }
 }
