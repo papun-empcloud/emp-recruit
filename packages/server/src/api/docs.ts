@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { Request, Response } from "express";
+import { discoveredPaths } from "./route-recorder";
 
 const spec = {
   openapi: "3.0.3",
@@ -520,17 +521,77 @@ const spec = {
   },
 };
 
+// Self-hosted Swagger UI — assets served same-origin from /api/docs/ui
+// (express.static of swagger-ui-dist in index.ts) instead of the unpkg CDN,
+// which the proxy/helmet CSP ('self') blocks. A permissive per-response CSP
+// (set here, with /api/docs excluded from the global helmet CSP) lets the
+// inline initializer + Swagger's inline styles run.
 export function swaggerUIHandler(_req: Request, res: Response) {
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+    ].join("; "),
+  );
+  res.setHeader("Content-Type", "text/html");
   res.send(`<!DOCTYPE html>
 <html><head><title>EMP Recruit API</title>
-<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+<link rel="stylesheet" href="/api/docs/ui/swagger-ui.css">
 </head><body>
 <div id="swagger-ui"></div>
-<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-<script>SwaggerUIBundle({ url: '/api/docs/openapi.json', dom_id: '#swagger-ui' })</script>
+<script src="/api/docs/ui/swagger-ui-bundle.js"></script>
+<script>SwaggerUIBundle({ url: '/api/docs/openapi.json', dom_id: '#swagger-ui', deepLinking: true })</script>
 </body></html>`);
 }
 
-export function openapiHandler(_req: Request, res: Response) {
-  res.json(spec);
+// Merge auto-discovered routes into the curated spec (full paths). Any
+// path+method not already hand-documented gets a tagged stub, so the published
+// API surface is complete for integrators; curated operations keep their detail.
+let cachedSpec: unknown = null;
+
+function buildCompleteSpec(): unknown {
+  const merged: any = { ...spec, paths: { ...(spec as any).paths } };
+  for (const { path, methods } of discoveredPaths()) {
+    const node = (merged.paths[path] = merged.paths[path] || {});
+    const seg = path.split("/").filter(Boolean);
+    const tag = seg[2] || seg[1] || seg[0] || "general";
+    for (const method of methods) {
+      if (method === "head" || method === "options" || node[method]) continue;
+      const params = Array.from(path.matchAll(/\{([A-Za-z0-9_]+)\}/g)).map((m) => ({
+        name: m[1],
+        in: "path",
+        required: true,
+        schema: { type: "string" as const },
+      }));
+      node[method] = {
+        tags: [tag],
+        summary: `${method.toUpperCase()} ${path}`,
+        ...(params.length ? { parameters: params } : {}),
+        responses: { "200": { description: "OK" } },
+      };
+    }
+  }
+  return merged;
+}
+
+export function openapiHandler(req: Request, res: Response) {
+  if (!cachedSpec) cachedSpec = buildCompleteSpec();
+  // Primary server = the request's own origin so "Try it out" targets the host
+  // the docs are loaded from (e.g. https://recruit-api.empcloud.com) rather than
+  // localhost. Honors the proxy's X-Forwarded-* headers.
+  const proto =
+    (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0].trim() || req.protocol;
+  const host = (req.headers["x-forwarded-host"] as string | undefined) || req.get("host");
+  const servers = host
+    ? [
+        { url: `${proto}://${host}`, description: "This server" },
+        { url: "http://localhost:3001", description: "Local development" },
+      ]
+    : (cachedSpec as any).servers;
+  res.json({ ...(cachedSpec as any), servers });
 }

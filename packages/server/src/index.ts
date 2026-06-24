@@ -40,13 +40,30 @@ import { organizationRoutes } from "./api/routes/organization.routes";
 import { errorHandler } from "./api/middleware/error.middleware";
 import { apiLimiter, authLimiter } from "./api/middleware/rate-limit.middleware";
 import { swaggerUIHandler, openapiHandler } from "./api/docs";
+import { recordMounts } from "./api/route-recorder";
 
 const app = express();
+
+// Record route mounts for OpenAPI auto-discovery (before any .use mounts).
+recordMounts(app);
+
+// Self-hosted Swagger UI assets — served same-origin from /api/docs/ui so the
+// proxy/helmet CSP ('self') allows them (the old unpkg CDN is blocked).
+const swaggerUiAssetPath = (
+  require("swagger-ui-dist") as { getAbsoluteFSPath(): string }
+).getAbsoluteFSPath();
 
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
-app.use(helmet());
+// Strict helmet everywhere except the Swagger UI page, which needs a relaxed
+// CSP (inline initializer + Swagger's inline styles / eval). swaggerUIHandler
+// sets its own permissive CSP for that route.
+const helmetStrict = helmet();
+const helmetNoCsp = helmet({ contentSecurityPolicy: false });
+app.use((req, res, next) =>
+  req.path.startsWith("/api/docs") ? helmetNoCsp(req, res, next) : helmetStrict(req, res, next),
+);
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -92,6 +109,9 @@ app.use("/health", healthRoutes);
 // API Routes (v1)
 // ---------------------------------------------------------------------------
 const v1 = express.Router();
+// Record v1's sub-mounts (v1.use('/x', routes)) for OpenAPI auto-discovery,
+// prefixed with /api/v1 — must run before the v1.use(...) calls below.
+recordMounts(v1, "/api/v1");
 v1.use(apiLimiter);
 
 // Active routes
@@ -133,6 +153,8 @@ app.use("/api/v1", v1);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // API Documentation
+// Self-hosted Swagger UI assets (swagger-ui-dist) served same-origin.
+app.use("/api/docs/ui", express.static(swaggerUiAssetPath, { maxAge: "7d", immutable: true }));
 app.get("/api/docs", swaggerUIHandler);
 app.get("/api/docs/openapi.json", openapiHandler);
 
