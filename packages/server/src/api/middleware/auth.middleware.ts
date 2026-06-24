@@ -2,6 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "../../config";
 import { AppError } from "../../utils/errors";
+import {
+  API_KEY_PREFIX,
+  findValidApiKey,
+  findUserById,
+  findOrgById,
+} from "../../db/empcloud";
 
 export interface AuthPayload {
   // EmpCloud IDs (source of truth — bigint stored as number)
@@ -55,6 +61,16 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
   }
 
   const token = queryToken || header!.slice(7);
+
+  // Shared API-key path — an `empc_` token is an opaque key minted in EmpCloud,
+  // not a JWT. Validate it against the shared EmpCloud `api_keys` table and
+  // build the same AuthPayload an SSO login would, so the role-based
+  // authorize() checks downstream work unchanged.
+  if (typeof token === "string" && token.startsWith(API_KEY_PREFIX)) {
+    void authenticateApiKey(token, req, next);
+    return;
+  }
+
   try {
     const payload = jwt.verify(token, config.jwt.secret) as AuthPayload;
     req.user = payload;
@@ -64,6 +80,59 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
       return next(new AppError(401, "TOKEN_EXPIRED", "Access token has expired"));
     }
     return next(new AppError(401, "INVALID_TOKEN", "Invalid access token"));
+  }
+}
+
+/**
+ * Map an EmpCloud role string to an emp-recruit role. Mirrors the SSO login
+ * mapping: HR-side admins keep elevated scope, everyone else is an employee.
+ */
+function mapEmpCloudRole(role: string): AuthPayload["role"] {
+  const roleMap: Record<string, AuthPayload["role"]> = {
+    super_admin: "super_admin",
+    org_admin: "org_admin",
+    hr_admin: "hr_admin",
+    admin: "hr_admin",
+    hr_manager: "hr_manager",
+    manager: "employee",
+    employee: "employee",
+  };
+  return roleMap[role?.toLowerCase()] || "employee";
+}
+
+/**
+ * Validate a shared EmpCloud API key and populate req.user. The key mirrors the
+ * owner admin (resolved live from EmpCloud), so deactivating the user or
+ * revoking the key kills access immediately. Any failure resolves to a 401 via
+ * next() — never throws into the event loop.
+ */
+async function authenticateApiKey(rawKey: string, req: Request, next: NextFunction): Promise<void> {
+  try {
+    const key = await findValidApiKey(rawKey);
+    if (!key) {
+      return next(new AppError(401, "INVALID_API_KEY", "Invalid or expired API key"));
+    }
+
+    const ecUser = await findUserById(key.user_id);
+    if (!ecUser || ecUser.status !== 1) {
+      return next(new AppError(401, "INVALID_API_KEY", "API key owner not found or inactive"));
+    }
+
+    const ecOrg = await findOrgById(ecUser.organization_id);
+
+    req.user = {
+      empcloudUserId: ecUser.id,
+      empcloudOrgId: ecUser.organization_id,
+      recruitProfileId: null,
+      role: mapEmpCloudRole(ecUser.role),
+      email: ecUser.email,
+      firstName: ecUser.first_name,
+      lastName: ecUser.last_name,
+      orgName: ecOrg?.name ?? "",
+    };
+    next();
+  } catch {
+    next(new AppError(401, "API_KEY_AUTH_FAILED", "API key validation failed"));
   }
 }
 
