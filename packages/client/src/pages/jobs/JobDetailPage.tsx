@@ -19,11 +19,13 @@ import {
   Loader2,
   GitCompareArrows,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@/api/client";
 import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { BulkUploadModal } from "@/components/BulkUploadModal";
 import toast from "react-hot-toast";
 
 interface PipelineStage {
@@ -137,6 +139,7 @@ export function JobDetailPage() {
   const [compareSelection, setCompareSelection] = useState<Set<string>>(new Set());
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   // Fetch custom pipeline stages
   const { data: stagesData } = useQuery({
@@ -479,6 +482,13 @@ export function JobDetailPage() {
               <Users className="h-4 w-4" />
               Add Candidate
             </Link>
+            <button
+              onClick={() => setShowBulkUpload(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Upload
+            </button>
             {applications.length > 0 && compareSelection.size >= 2 && (
               <Link
                 to={`/candidates/compare?ids=${Array.from(compareSelection).join(",")}`}
@@ -797,6 +807,18 @@ export function JobDetailPage() {
         onConfirm={() => deleteMutation.mutate()}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {id && (
+        <BulkUploadModal
+          jobId={id}
+          open={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          onImported={() => {
+            queryClient.invalidateQueries({ queryKey: ["job-applications", id] });
+            queryClient.invalidateQueries({ queryKey: ["candidates"] });
+          }}
+        />
+      )}
     </div>
   );
 }
