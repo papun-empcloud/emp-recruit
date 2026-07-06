@@ -1,2 +1,12 @@
 packages:
   - "packages/*"
+
+# pnpm 11 runs a verify-deps pre-check before `pnpm run/exec` that aborts with
+# ERR_PNPM_IGNORED_BUILDS whenever a dependency's build script is blocked. These
+# three ship their native binaries as prebuilt optional-dependency packages
+# (e.g. @esbuild/win32-x64), so their install/build scripts are not actually
+# needed — list them here to silence the pre-check and let `pnpm dev` boot.
+ignoredBuiltDependencies:
+  - esbuild
+  - "@scarf/scarf"
+  - msgpackr-extract
