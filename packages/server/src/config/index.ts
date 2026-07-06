@@ -54,4 +54,36 @@ export const config = {
   cors: {
     origin: process.env.CORS_ORIGIN || "http://localhost:5179",
   },
+
+  // AI — pluggable LLM (candidate evaluation, resume scoring) + speech-to-text.
+  // `provider` selects the LLM adapter; leave keys unset to run in heuristic /
+  // placeholder mode. "openai" also drives any OpenAI-compatible endpoint via
+  // OPENAI_BASE_URL (Together, Groq, OpenRouter, local, …).
+  ai: {
+    provider:
+      process.env.AI_PROVIDER ||
+      (process.env.ANTHROPIC_API_KEY
+        ? "anthropic"
+        : process.env.OPENAI_API_KEY
+          ? "openai"
+          : "none"),
+    anthropic: {
+      apiKey: process.env.ANTHROPIC_API_KEY || "",
+      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+    },
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY || "",
+      model: process.env.OPENAI_MODEL || "gpt-4o",
+      baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+    },
+    // Speech-to-text for interview recordings.
+    transcription: {
+      provider:
+        process.env.STT_PROVIDER || (process.env.DEEPGRAM_API_KEY ? "deepgram" : "none"),
+      deepgram: {
+        apiKey: process.env.DEEPGRAM_API_KEY || "",
+        model: process.env.DEEPGRAM_MODEL || "nova-2",
+      },
+    },
+  },
 } as const;
