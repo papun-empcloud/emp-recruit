@@ -4,8 +4,9 @@
 // ============================================================================
 
 import { getDB } from "../../db/adapters";
-import { findOrgById } from "../../db/empcloud";
+import { findOrgById, findUserById } from "../../db/empcloud";
 import { NotFoundError } from "../../utils/errors";
+import { config } from "../../config";
 import type { Interview } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -21,7 +22,12 @@ export function generateCalendarLinks(
   candidateName: string,
   jobTitle: string,
   orgName: string,
+  guests: string[] = [],
 ): { google: string; outlook: string; office365: string } {
+  // Pre-fill attendees: Google uses `add`, Outlook/Office use `to`.
+  const guestList = guests.length ? encodeURIComponent(guests.join(",")) : "";
+  const gAdd = guestList ? `&add=${guestList}` : "";
+  const oTo = guestList ? `&to=${guestList}` : "";
   const title = encodeURIComponent(
     `Interview: ${candidateName} - ${jobTitle} (Round ${interview.round})`,
   );
@@ -45,21 +51,24 @@ export function generateCalendarLinks(
       `&text=${title}` +
       `&dates=${formatGCalDate(startDate)}/${formatGCalDate(endDate)}` +
       `&details=${description}` +
-      `&location=${location}`,
+      `&location=${location}` +
+      gAdd,
     outlook:
       `https://outlook.live.com/calendar/0/action/compose` +
       `?subject=${title}` +
       `&startdt=${startDate.toISOString()}` +
       `&enddt=${endDate.toISOString()}` +
       `&body=${description}` +
-      `&location=${location}`,
+      `&location=${location}` +
+      oTo,
     office365:
       `https://outlook.office.com/calendar/0/action/compose` +
       `?subject=${title}` +
       `&startdt=${startDate.toISOString()}` +
       `&enddt=${endDate.toISOString()}` +
       `&body=${description}` +
-      `&location=${location}`,
+      `&location=${location}` +
+      oTo,
   };
 }
 
@@ -68,6 +77,7 @@ export function generateICSContent(
   candidateName: string,
   jobTitle: string,
   orgName: string,
+  guests: string[] = [],
 ): string {
   const startDate = new Date(interview.scheduled_at);
   const endDate = new Date(startDate.getTime() + (interview.duration_minutes || 60) * 60000);
@@ -99,6 +109,13 @@ export function generateICSContent(
     `DESCRIPTION:${description}`,
     `LOCATION:${location}`,
     ...(url ? [`URL:${url}`] : []),
+    // Organizer + guests so imported events carry the invite list.
+    ...(guests.length && config.email.from
+      ? [`ORGANIZER;CN=${orgName}:mailto:${config.email.from}`]
+      : []),
+    ...guests.map(
+      (email) => `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${email}:mailto:${email}`,
+    ),
     `UID:${interview.id}@emp-recruit`,
     `DTSTAMP:${formatICS(new Date())}`,
     "STATUS:CONFIRMED",
@@ -142,6 +159,36 @@ export async function resolveInterviewContext(
   return { candidateName, jobTitle };
 }
 
+/**
+ * Emails to pre-fill as calendar guests: the candidate plus every panelist.
+ * Best-effort — a panelist that can't be resolved is simply skipped.
+ */
+async function gatherInterviewGuests(interview: Interview): Promise<string[]> {
+  const db = getDB();
+  const emails: string[] = [];
+
+  const app = await db.findById<{ candidate_id: string }>("applications", interview.application_id);
+  if (app?.candidate_id) {
+    const candidate = await db.findById<{ email?: string }>("candidates", app.candidate_id);
+    if (candidate?.email) emails.push(candidate.email);
+  }
+
+  const panelists = await db.findMany<{ user_id: number }>("interview_panelists", {
+    filters: { interview_id: interview.id },
+    limit: 50,
+  });
+  for (const p of panelists.data) {
+    try {
+      const user = await findUserById(p.user_id);
+      if (user?.email) emails.push(user.email);
+    } catch {
+      /* skip unresolved panelist */
+    }
+  }
+
+  return [...new Set(emails.filter(Boolean))];
+}
+
 // ---------------------------------------------------------------------------
 // Public API: get calendar links for an interview
 // ---------------------------------------------------------------------------
@@ -164,8 +211,9 @@ export async function getCalendarLinks(
 
   const org = await findOrgById(orgId);
   const orgName = org?.name || "Our Company";
+  const guests = await gatherInterviewGuests(interview);
 
-  return generateCalendarLinks(interview, candidateName, jobTitle, orgName);
+  return generateCalendarLinks(interview, candidateName, jobTitle, orgName, guests);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +238,7 @@ export async function generateICSFile(
 
   const org = await findOrgById(orgId);
   const orgName = org?.name || "Our Company";
+  const guests = await gatherInterviewGuests(interview);
 
-  return generateICSContent(interview, candidateName, jobTitle, orgName);
+  return generateICSContent(interview, candidateName, jobTitle, orgName, guests);
 }
