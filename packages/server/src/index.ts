@@ -39,6 +39,7 @@ import { assessmentRoutes } from "./api/routes/assessment.routes";
 import { organizationRoutes } from "./api/routes/organization.routes";
 import { jobPublishingRoutes } from "./api/routes/job-publishing.routes";
 import { meetingProviderRoutes } from "./api/routes/meeting-provider.routes";
+import { jobBoardRoutes } from "./api/routes/job-board.routes";
 import { errorHandler } from "./api/middleware/error.middleware";
 import { apiLimiter, authLimiter } from "./api/middleware/rate-limit.middleware";
 import { swaggerUIHandler, openapiHandler } from "./api/docs";
@@ -144,6 +145,7 @@ v1.use("/assessments", assessmentRoutes);
 v1.use("/organizations", organizationRoutes);
 v1.use("/job-publishing", jobPublishingRoutes); // outbound job-board publishing (scaffold)
 v1.use("/meeting-providers", meetingProviderRoutes);
+v1.use("/job-boards", jobBoardRoutes);
 
 // Public routes (no auth required) — career pages, job listings, applications
 app.use("/api/v1/public", publicRoutes);
