@@ -58,7 +58,9 @@ interface ParsedRow {
 }
 
 interface ImportResults {
-  created: number;
+  createdNew: number;
+  linkedExisting: number;
+  skipped: number;
   failed: { name: string; reason: string }[];
 }
 
@@ -178,7 +180,6 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [headerError, setHeaderError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [results, setResults] = useState<ImportResults | null>(null);
 
   if (!open) return null;
@@ -190,7 +191,6 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
     setRows([]);
     setHeaderError(null);
     setResults(null);
-    setProgress({ done: 0, total: 0 });
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -224,53 +224,52 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
 
   async function runImport() {
     setImporting(true);
-    setProgress({ done: 0, total: validRows.length });
-    const failed: ImportResults["failed"] = [];
-    let created = 0;
-
-    for (let i = 0; i < validRows.length; i++) {
-      const row = validRows[i];
-      const name = `${row.first_name} ${row.last_name}`;
-      const payload: Record<string, any> = {
-        first_name: row.first_name,
-        last_name: row.last_name,
-        email: row.email,
-        source: row.source,
-      };
-      if (row.phone) payload.phone = row.phone;
-      if (row.current_title) payload.current_title = row.current_title;
-      if (row.current_company) payload.current_company = row.current_company;
-      if (row.experience_years && Number.isFinite(Number(row.experience_years))) {
-        payload.experience_years = Number(row.experience_years);
-      }
-      if (row.skills.length) payload.skills = row.skills;
-
-      try {
-        const candidate = await apiPost<{ id: string }>("/candidates", payload);
-        const candidateId = candidate.data?.id;
-        if (!candidateId) throw new Error("Candidate was not created");
-        try {
-          await apiPost("/applications", {
-            job_id: jobId,
-            candidate_id: candidateId,
-            source: row.source,
-          });
-          created++;
-        } catch (linkErr: any) {
-          failed.push({
-            name,
-            reason: `Added to candidates but not linked to job — ${errMsg(linkErr)}`,
-          });
+    try {
+      // One request: the server creates candidates + applications and returns a
+      // complete per-row report, instead of the client firing N calls.
+      const candidates = validRows.map((r) => {
+        const c: Record<string, any> = {
+          first_name: r.first_name,
+          last_name: r.last_name,
+          email: r.email,
+          source: r.source,
+        };
+        if (r.phone) c.phone = r.phone;
+        if (r.current_title) c.current_title = r.current_title;
+        if (r.current_company) c.current_company = r.current_company;
+        if (r.experience_years && Number.isFinite(Number(r.experience_years))) {
+          c.experience_years = Number(r.experience_years);
         }
-      } catch (err: any) {
-        failed.push({ name, reason: errMsg(err) });
-      }
-      setProgress({ done: i + 1, total: validRows.length });
-    }
+        if (r.skills.length) c.skills = r.skills;
+        return c;
+      });
 
-    setResults({ created, failed });
+      const res = await apiPost<ImportResults>("/candidates/bulk", {
+        job_id: jobId,
+        candidates,
+      });
+      const d = res.data;
+      const summary: ImportResults = {
+        createdNew: d?.createdNew ?? 0,
+        linkedExisting: d?.linkedExisting ?? 0,
+        skipped: d?.skipped ?? 0,
+        failed: d?.failed ?? [],
+      };
+      setResults(summary);
+      if (summary.createdNew + summary.linkedExisting > 0) onImported();
+    } catch (err: any) {
+      // Whole request failed — surface it against every row we tried to import.
+      setResults({
+        createdNew: 0,
+        linkedExisting: 0,
+        skipped: 0,
+        failed: validRows.map((r) => ({
+          name: `${r.first_name} ${r.last_name}`,
+          reason: errMsg(err),
+        })),
+      });
+    }
     setImporting(false);
-    if (created > 0) onImported();
   }
 
   return (
@@ -306,25 +305,36 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
           {/* Results view */}
           {results ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-green-600" />
-                <div>
-                  <p className="text-sm font-medium text-green-800">
-                    {results.created} candidate{results.created !== 1 ? "s" : ""} added to this job.
-                  </p>
-                  {results.failed.length > 0 && (
-                    <p className="text-xs text-green-700">
-                      {results.failed.length} row{results.failed.length !== 1 ? "s" : ""} could not be
-                      imported.
-                    </p>
-                  )}
-                </div>
-              </div>
+              {(() => {
+                const added = results.createdNew + results.linkedExisting;
+                const bits: string[] = [];
+                if (results.createdNew) bits.push(`${results.createdNew} new`);
+                if (results.linkedExisting) bits.push(`${results.linkedExisting} existing`);
+                return (
+                  <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                    <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        {added} candidate{added !== 1 ? "s" : ""} added to this job
+                        {bits.length ? ` (${bits.join(", ")})` : ""}.
+                      </p>
+                      {(results.skipped > 0 || results.failed.length > 0) && (
+                        <p className="text-xs text-green-700">
+                          {results.skipped > 0 && `${results.skipped} already applied`}
+                          {results.skipped > 0 && results.failed.length > 0 && " · "}
+                          {results.failed.length > 0 &&
+                            `${results.failed.length} could not be imported`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {results.failed.length > 0 && (
                 <div className="rounded-lg border border-gray-200">
                   <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Skipped rows
+                    Failed rows
                   </div>
                   <ul className="max-h-56 divide-y divide-gray-100 overflow-y-auto">
                     {results.failed.map((f, i) => (
@@ -463,7 +473,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
             {importing && (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Importing {progress.done}/{progress.total}…
+                Importing {validRows.length} candidate{validRows.length !== 1 ? "s" : ""}…
               </span>
             )}
           </div>
