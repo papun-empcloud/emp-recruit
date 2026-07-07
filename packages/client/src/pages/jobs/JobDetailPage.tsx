@@ -423,12 +423,18 @@ export function JobDetailPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
         <div>
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Description</h2>
-          <p className="mt-2 text-gray-700 whitespace-pre-line">{job.description}</p>
+          <div
+            className="rte-content mt-2 text-gray-700"
+            dangerouslySetInnerHTML={{ __html: job.description || "" }}
+          />
         </div>
         {job.requirements && (
           <div>
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Requirements</h2>
-            <p className="mt-2 text-gray-700 whitespace-pre-line">{job.requirements}</p>
+            <div
+              className="rte-content mt-2 text-gray-700"
+              dangerouslySetInnerHTML={{ __html: job.requirements || "" }}
+            />
           </div>
         )}
         {skills.length > 0 && (
