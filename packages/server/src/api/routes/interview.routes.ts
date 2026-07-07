@@ -10,6 +10,7 @@ import { sendSuccess, sendPaginated } from "../../utils/response";
 import { ValidationError } from "../../utils/errors";
 import * as interviewService from "../../services/interview/interview.service";
 import * as recordingService from "../../services/interview/recording.service";
+import * as evaluationService from "../../services/ai/evaluation.service";
 import type { InterviewStatus } from "@emp-recruit/shared";
 
 const router = Router();
@@ -477,6 +478,41 @@ router.put(
         summary,
       );
       return sendSuccess(res, transcript);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /:id/ai-evaluate — Generate an AI candidate evaluation from the stored
+// transcript + interviewer feedback (HR/admin only)
+// ---------------------------------------------------------------------------
+router.post(
+  "/:id/ai-evaluate",
+  authorize("org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.empcloudOrgId;
+      const evaluation = await evaluationService.generateEvaluation(orgId, String(req.params.id));
+      return sendSuccess(res, evaluation, 201);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /:id/ai-evaluation — Get the AI evaluation for an interview (HR/admin only)
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id/ai-evaluation",
+  authorize("org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.empcloudOrgId;
+      const evaluation = await evaluationService.getEvaluation(orgId, String(req.params.id));
+      return sendSuccess(res, evaluation);
     } catch (err) {
       next(err);
     }
