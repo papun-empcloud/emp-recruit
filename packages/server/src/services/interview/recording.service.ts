@@ -9,6 +9,7 @@ import path from "path";
 import { getDB } from "../../db/adapters";
 import { NotFoundError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
+import { transcribeFile, isTranscriptionEnabled } from "../ai/transcription";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,6 +81,10 @@ export async function uploadRecording(
   });
 
   logger.info(`Recording uploaded for interview ${interviewId} by user ${uploadedBy}`);
+
+  // Auto-generate the transcript: create a "processing" row now and run
+  // speech-to-text in the background so the upload response stays fast.
+  await autoTranscribe(orgId, interviewId, recordingId);
 
   return recording;
 }
@@ -165,6 +170,105 @@ export async function deleteRecording(
 // Generate transcript from a recording
 // ---------------------------------------------------------------------------
 
+/**
+ * Create a fresh "processing" transcript row for an interview (replacing any
+ * prior one), so the UI can show a transcribing state immediately.
+ */
+async function createProcessingTranscript(
+  orgId: number,
+  interviewId: string,
+  recordingId: string,
+): Promise<InterviewTranscript> {
+  const db = getDB();
+  // One current transcript per interview.
+  await db.deleteMany("interview_transcripts", {
+    organization_id: orgId,
+    interview_id: interviewId,
+  });
+  const now = new Date();
+  return db.create<InterviewTranscript>("interview_transcripts", {
+    id: uuidv4(),
+    organization_id: orgId,
+    interview_id: interviewId,
+    recording_id: recordingId,
+    content: "",
+    summary: null,
+    status: "processing",
+    generated_at: null,
+    created_at: now,
+    updated_at: now,
+  });
+}
+
+/**
+ * Run speech-to-text on a recording and fill in the transcript row. Deepgram
+ * when configured; otherwise a placeholder so the flow works without a key.
+ */
+async function runTranscription(
+  orgId: number,
+  recordingId: string,
+  transcriptId: string,
+): Promise<InterviewTranscript> {
+  const db = getDB();
+  const recording = await db.findOne<InterviewRecording>("interview_recordings", {
+    id: recordingId,
+    organization_id: orgId,
+  });
+
+  let content: string;
+  let status: InterviewTranscript["status"] = "completed";
+
+  if (recording && isTranscriptionEnabled()) {
+    try {
+      const filePath = path.resolve(recording.file_path);
+      const result = await transcribeFile(filePath, recording.mime_type);
+      content = result.text || "(no speech detected)";
+      // Backfill the media duration we now know from the transcription.
+      if (result.durationSeconds != null && recording.duration_seconds == null) {
+        await db.update("interview_recordings", recordingId, {
+          duration_seconds: result.durationSeconds,
+        });
+      }
+    } catch (err) {
+      logger.error(`Transcription failed for recording ${recordingId}:`, err);
+      content = "Transcription failed. Please retry.";
+      status = "failed";
+    }
+  } else {
+    content = generatePlaceholderTranscript();
+  }
+
+  logger.info(`Transcript ${status} for recording ${recordingId}`);
+  return db.update<InterviewTranscript>("interview_transcripts", transcriptId, {
+    content,
+    status,
+    generated_at: new Date(),
+    updated_at: new Date(),
+  });
+}
+
+/**
+ * Kick off transcription in the background (used right after an upload). Creates
+ * the processing row synchronously and returns it; STT runs after.
+ */
+export async function autoTranscribe(
+  orgId: number,
+  interviewId: string,
+  recordingId: string,
+): Promise<InterviewTranscript> {
+  const transcript = await createProcessingTranscript(orgId, interviewId, recordingId);
+  void runTranscription(orgId, recordingId, transcript.id).catch((err) =>
+    logger.error(`Auto-transcription failed for recording ${recordingId}:`, err),
+  );
+  return transcript;
+}
+
+/**
+ * Manual (re)generate for a specific recording. Non-blocking: returns a
+ * "processing" transcript immediately and runs speech-to-text in the background
+ * (a long video would otherwise block the HTTP request for minutes). The client
+ * polls the transcript until it completes.
+ */
 export async function generateTranscript(
   orgId: number,
   interviewId: string,
@@ -172,7 +276,6 @@ export async function generateTranscript(
 ): Promise<InterviewTranscript> {
   const db = getDB();
 
-  // Verify recording belongs to org and interview
   const recording = await db.findOne<InterviewRecording>("interview_recordings", {
     id: recordingId,
     organization_id: orgId,
@@ -182,29 +285,10 @@ export async function generateTranscript(
     throw new NotFoundError("Recording", recordingId);
   }
 
-  // TODO: In production, use OpenAI Whisper API or Google Speech-to-Text
-  // to transcribe the recording file at recording.file_path.
-  // For MVP, we generate a realistic placeholder transcript with timestamps.
-  const placeholderTranscript = generatePlaceholderTranscript();
-
-  const now = new Date();
-  const transcriptId = uuidv4();
-
-  const transcript = await db.create<InterviewTranscript>("interview_transcripts", {
-    id: transcriptId,
-    organization_id: orgId,
-    interview_id: interviewId,
-    recording_id: recordingId,
-    content: placeholderTranscript,
-    summary: null,
-    status: "completed",
-    generated_at: now,
-    created_at: now,
-    updated_at: now,
-  });
-
-  logger.info(`Transcript generated for recording ${recordingId} (interview ${interviewId})`);
-
+  const transcript = await createProcessingTranscript(orgId, interviewId, recordingId);
+  void runTranscription(orgId, recordingId, transcript.id).catch((err) =>
+    logger.error(`Transcription failed for recording ${recordingId}:`, err),
+  );
   return transcript;
 }
 
