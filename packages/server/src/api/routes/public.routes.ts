@@ -166,4 +166,53 @@ router.get("/careers/:slug/feed.json", async (req: Request, res: Response, next:
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /feeds/indeed/:token.xml — public Indeed XML job feed (no auth).
+// Indeed's crawler fetches this URL; the token scopes it to one org.
+// ---------------------------------------------------------------------------
+router.get(
+  "/feeds/indeed/:token.xml",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { buildIndeedFeed, resolveOrgByFeedToken } = await import(
+        "../../services/publishing/indeed-feed.service"
+      );
+      const token = String(req.params.token);
+      const orgId = await resolveOrgByFeedToken(token);
+      if (orgId == null) {
+        res.status(404).type("application/xml").send("<!-- unknown feed -->");
+        return;
+      }
+      const xml = await buildIndeedFeed(orgId);
+      res.type("application/xml").send(xml);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /feeds/linkedin/:token.xml — public LinkedIn XML job feed (no auth).
+// ---------------------------------------------------------------------------
+router.get(
+  "/feeds/linkedin/:token.xml",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { buildLinkedInFeed, resolveOrgByLinkedInToken } = await import(
+        "../../services/publishing/linkedin-feed.service"
+      );
+      const token = String(req.params.token);
+      const orgId = await resolveOrgByLinkedInToken(token);
+      if (orgId == null) {
+        res.status(404).type("application/xml").send("<!-- unknown feed -->");
+        return;
+      }
+      const xml = await buildLinkedInFeed(orgId);
+      res.type("application/xml").send(xml);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 export { router as publicRoutes };

@@ -55,6 +55,16 @@ export const config = {
     origin: process.env.CORS_ORIGIN || "http://localhost:5179",
   },
 
+  // Public URLs used when building crawlable job feeds (Indeed, etc.).
+  // - apiBaseUrl: where the XML feed itself is served (this server).
+  // - siteBaseUrl: the public career-page site candidates apply on (the client),
+  //   used to build each job's apply URL in the feed.
+  publicUrls: {
+    apiBaseUrl:
+      process.env.PUBLIC_API_BASE_URL || `http://localhost:${parseInt(process.env.PORT || "4500")}`,
+    siteBaseUrl: process.env.PUBLIC_SITE_BASE_URL || process.env.CORS_ORIGIN || "http://localhost:5179",
+  },
+
   // Public client URL — used to build join links for embedded interview rooms
   // (the <InterviewRoom> page lives in the client app, not this server).
   clientUrl: process.env.CLIENT_URL || "http://localhost:5179",

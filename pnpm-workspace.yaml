@@ -2,10 +2,13 @@ packages:
   - "packages/*"
 
 # Skip pnpm 11's pre-run deps verification so `pnpm dev` never aborts on build
-# scripts. Node 20 runtime line for @types/node (a transitive @xenova bump to
-# @types/node@25 broke existing Buffer/fs typings).
+# scripts.
 verifyDepsBeforeRun: false
 
+# Pin the Node 20 runtime typings — a transitive @xenova bump to @types/node@25
+# broke existing Buffer/fs typings. Declared here for pnpm 10+ (which reads
+# overrides from this file) AND in the root package.json `pnpm.overrides` for
+# pnpm 9 on CI (which only reads it from package.json).
 overrides:
   "@types/node": "^20.19.9"
 
