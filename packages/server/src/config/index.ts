@@ -121,13 +121,30 @@ export const config = {
       model: process.env.OPENAI_MODEL || "gpt-4o",
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     },
-    // Speech-to-text for interview recordings.
+    // Speech-to-text for interview recordings. Pluggable: local Whisper (on
+    // device, no key — the default) upgrades to Deepgram or OpenAI Whisper the
+    // moment those keys are present.
     transcription: {
       provider:
-        process.env.STT_PROVIDER || (process.env.DEEPGRAM_API_KEY ? "deepgram" : "none"),
+        process.env.STT_PROVIDER ||
+        (process.env.DEEPGRAM_API_KEY
+          ? "deepgram"
+          : process.env.OPENAI_API_KEY
+            ? "openai"
+            : "local"),
       deepgram: {
         apiKey: process.env.DEEPGRAM_API_KEY || "",
         model: process.env.DEEPGRAM_MODEL || "nova-2",
+      },
+      openai: {
+        apiKey: process.env.OPENAI_API_KEY || "",
+        model: process.env.OPENAI_WHISPER_MODEL || "whisper-1",
+        baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+      },
+      // On-device Whisper via @xenova/transformers. base.en is a good CPU
+      // balance; use whisper-tiny.en for speed or whisper-small.en for accuracy.
+      local: {
+        model: process.env.WHISPER_MODEL || "Xenova/whisper-base.en",
       },
     },
   },

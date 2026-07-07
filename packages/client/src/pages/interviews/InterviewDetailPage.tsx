@@ -21,9 +21,11 @@ import {
   Copy,
   CheckCircle,
   Download,
+  Loader2,
 } from "lucide-react";
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { AiAnalysisCard } from "@/components/AiAnalysisCard";
 import { cn, formatDate } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
 import type {
@@ -551,6 +553,9 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recordings", interviewId] });
+      // Upload auto-starts transcription — refetch so the Transcript section
+      // picks up the new "processing" row and polls until it completes.
+      queryClient.invalidateQueries({ queryKey: ["transcript", interviewId] });
       setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
@@ -707,6 +712,73 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
 // Transcript Section
 // ---------------------------------------------------------------------------
 function TranscriptSection({ interviewId }: { interviewId: string }) {
+  const { data: transcript } = useQuery({
+    queryKey: ["transcript", interviewId],
+    queryFn: async () => {
+      const res = await apiGet<Transcript | null>(`/interviews/${interviewId}/transcript`);
+      return res.data ?? null;
+    },
+    // While transcription runs in the background, poll until it's done.
+    refetchInterval: (query) =>
+      (query.state.data as Transcript | null)?.status === "processing" ? 4000 : false,
+  });
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-5">
+      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+        <FileText className="h-5 w-5 text-gray-400" /> Transcript
+      </h3>
+
+      {!transcript ? (
+        <p className="text-sm text-gray-500">
+          Upload a recording — the transcript is generated automatically and appears here.
+        </p>
+      ) : transcript.status === "processing" ? (
+        <div className="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3">
+          <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
+          <p className="text-sm text-yellow-800">
+            Transcribing your recording… this appears here automatically when it's done.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Status badge */}
+          {transcript.status !== "completed" && (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                "bg-red-100 text-red-800",
+              )}
+            >
+              {transcript.status}
+            </span>
+          )}
+
+          {/* Transcript content */}
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+              {transcript.content}
+            </pre>
+          </div>
+
+          {transcript.generated_at && (
+            <p className="text-xs text-gray-400">
+              Generated {formatDate(transcript.generated_at)}
+            </p>
+          )}
+
+          {/* AI Analysis — score + feedback generated from this transcript */}
+          <AiAnalysisCard interviewId={interviewId} embedded />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Summary (HR notes) — standalone card
+// ---------------------------------------------------------------------------
+function InterviewSummaryCard({ interviewId }: { interviewId: string }) {
   const queryClient = useQueryClient();
   const [summary, setSummary] = useState<string>("");
   const [summaryInitialized, setSummaryInitialized] = useState(false);
@@ -741,74 +813,37 @@ function TranscriptSection({ interviewId }: { interviewId: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-        <FileText className="h-5 w-5 text-gray-400" /> Transcript
+        <FileText className="h-5 w-5 text-gray-400" /> Summary (HR notes)
       </h3>
-
-      {!transcript ? (
-        <p className="text-sm text-gray-500">
-          Upload a recording and generate a transcript to view it here.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {/* Status badge */}
-          {transcript.status !== "completed" && (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                transcript.status === "processing"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-red-100 text-red-800",
-              )}
-            >
-              {transcript.status}
-            </span>
-          )}
-
-          {/* Transcript content */}
-          <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-              {transcript.content}
-            </pre>
-          </div>
-
-          {transcript.generated_at && (
-            <p className="text-xs text-gray-400">
-              Generated {formatDate(transcript.generated_at)}
-            </p>
-          )}
-
-          {/* Summary section */}
-          <div className="border-t border-gray-200 pt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Summary (HR notes)
-            </label>
-            <textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="Add a summary of the interview transcript..."
-            />
-            <div className="mt-2 flex items-center gap-3">
-              <button
-                onClick={() => saveSummaryMutation.mutate()}
-                disabled={saveSummaryMutation.isPending}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
-              >
-                {saveSummaryMutation.isPending ? "Saving..." : "Save Summary"}
-              </button>
-              {saveSummarySuccess && (
-                <span className="flex items-center gap-1 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" /> Saved
-                </span>
-              )}
-              {saveSummaryMutation.isError && (
-                <span className="text-sm text-red-600">Failed to save summary.</span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <textarea
+        value={summary}
+        onChange={(e) => setSummary(e.target.value)}
+        rows={4}
+        disabled={!transcript}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+        placeholder={
+          transcript
+            ? "Add a summary of the interview transcript..."
+            : "Generate a transcript first to add HR notes."
+        }
+      />
+      <div className="mt-2 flex items-center gap-3">
+        <button
+          onClick={() => saveSummaryMutation.mutate()}
+          disabled={saveSummaryMutation.isPending || !transcript}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
+        >
+          {saveSummaryMutation.isPending ? "Saving..." : "Save Summary"}
+        </button>
+        {saveSummarySuccess && (
+          <span className="flex items-center gap-1 text-sm text-green-600">
+            <CheckCircle className="h-4 w-4" /> Saved
+          </span>
+        )}
+        {saveSummaryMutation.isError && (
+          <span className="text-sm text-red-600">Failed to save summary.</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -1007,7 +1042,7 @@ export function InterviewDetailPage() {
       {/* Recording Section */}
       <RecordingSection interviewId={interview.id} />
 
-      {/* Transcript Section */}
+      {/* Transcript Section (includes Summary + AI Analysis) */}
       <TranscriptSection interviewId={interview.id} />
 
       {/* Feedback form (if current user is panelist and hasn't submitted) */}
@@ -1122,6 +1157,9 @@ export function InterviewDetailPage() {
           </Link>
         </div>
       )}
+
+      {/* Summary (HR notes) — standalone card, last */}
+      <InterviewSummaryCard interviewId={interview.id} />
     </div>
   );
 }
