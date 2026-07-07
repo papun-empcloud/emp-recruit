@@ -25,6 +25,13 @@ jobs:
           password: ${{ secrets.DEPLOY_PASSWORD }}
           script: |
             source ~/.nvm/nvm.sh
+            corepack enable
             cd /home/empcloud-development/empcloud-projects/emp-recruit
             git stash; git pull origin main
+            # Install new deps and REBUILD both packages. Without this the client
+            # bundle (and new server deps like ffmpeg-static / @xenova) are never
+            # updated, so new UI/features don't appear on the test server.
+            pnpm install --frozen-lockfile
+            pnpm build
+            # The server runs its DB migrations automatically on boot.
             pm2 restart emp-recruit
