@@ -1,10 +1,24 @@
 packages:
   - "packages/*"
 
-# Allow these dependencies to run their install/build scripts.
-# esbuild ships a native binary that tsx (server) and vite (client) require;
-# without its postinstall neither app can start.
+# Skip pnpm 11's pre-run deps verification so `pnpm dev` never aborts on build
+# scripts.
+verifyDepsBeforeRun: false
+
+# Pin the Node 20 runtime typings — a transitive @xenova bump to @types/node@25
+# broke existing Buffer/fs typings. Declared here for pnpm 10+ (which reads
+# overrides from this file) AND in the root package.json `pnpm.overrides` for
+# pnpm 9 on CI (which only reads it from package.json).
+overrides:
+  "@types/node": "^20.19.9"
+
+# Allow these to run install/build scripts — all download PREBUILT binaries
+# (no source compilation, safe on Windows without build tools): esbuild, sharp,
+# ffmpeg-static, msgpackr-extract; @scarf is a no-op; protobufjs a codegen no-op.
 onlyBuiltDependencies:
   - esbuild
   - "@scarf/scarf"
   - msgpackr-extract
+  - protobufjs
+  - ffmpeg-static
+  - sharp
