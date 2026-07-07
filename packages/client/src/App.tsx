@@ -44,10 +44,6 @@ const ScoreReportPage = lazyWithRetry(() =>
 const ScoringPage = lazyWithRetry(() =>
   import("@/pages/scoring/ScoringPage").then((m) => ({ default: m.ScoringPage })),
 );
-const InternalJobsPage = lazyWithRetry(() =>
-  import("@/pages/internal-jobs/InternalJobsPage").then((m) => ({ default: m.InternalJobsPage })),
-);
-
 function PageLoader() {
   return (
     <div className="flex h-64 items-center justify-center">
@@ -130,8 +126,6 @@ export default function App() {
         <Route element={<DashboardLayout />}>
           {/* Available to every signed-in user, including employees */}
           <Route path="/dashboard" element={<DashboardPage />} />
-          {/* Internal Job Board (employee self-service) */}
-          <Route path="/internal-jobs" element={<InternalJobsPage />} />
           {/* Referrals */}
           <Route path="/referrals" element={<ReferralListPage />} />
 
