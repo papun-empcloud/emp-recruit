@@ -13,6 +13,8 @@ import {
   transcribeFile,
   isTranscriptionEnabled,
 } from "../ai/transcription/deepgram.service";
+import { getLLM } from "../ai/llm";
+import { generateEvaluation } from "../ai/evaluation.service";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,7 +87,48 @@ export async function uploadRecording(
 
   logger.info(`Recording uploaded for interview ${interviewId} by user ${uploadedBy}`);
 
+  // Auto-process an uploaded recording: transcribe it, then (once a real
+  // transcript exists) generate the AI evaluation — no manual steps. Runs in
+  // the background so the upload response stays fast; best-effort.
+  void autoProcess(orgId, interviewId, recordingId);
+
   return recording;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-processing: transcribe an uploaded recording, then AI-evaluate it.
+// ---------------------------------------------------------------------------
+
+/** True when a transcript has enough real speech to be worth evaluating. */
+function isMeaningfulTranscript(content: string): boolean {
+  const t = content.trim();
+  return t.length > 20 && t !== "(no speech detected)";
+}
+
+/**
+ * Background pipeline for a freshly uploaded recording: generate the transcript
+ * (STT), then generate the AI candidate evaluation. Best-effort — the evaluation
+ * is skipped when no LLM provider is configured or the transcript has no real
+ * speech.
+ */
+async function autoProcess(
+  orgId: number,
+  interviewId: string,
+  recordingId: string,
+): Promise<void> {
+  try {
+    const transcript = await generateTranscript(orgId, interviewId, recordingId);
+    if (
+      getLLM() &&
+      transcript.status === "completed" &&
+      isMeaningfulTranscript(transcript.content)
+    ) {
+      await generateEvaluation(orgId, interviewId);
+      logger.info(`Auto AI evaluation generated for interview ${interviewId}`);
+    }
+  } catch (err) {
+    logger.error(`Auto-processing failed for interview ${interviewId}:`, err);
+  }
 }
 
 // ---------------------------------------------------------------------------
