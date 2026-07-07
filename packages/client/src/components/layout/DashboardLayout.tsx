@@ -48,12 +48,13 @@ export function DashboardLayout() {
   const location = useLocation();
   const logout = useAuthStore((s) => s.logout);
 
-  if (!isLoggedIn()) return <Navigate to="/login" replace />;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // Close the mobile drawer on navigation. Must run before any early return so
+  // hooks are called unconditionally on every render (rules of hooks).
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
 
   const user = getUser();
   const displayName = user ? `${user.firstName} ${user.lastName}` : "User";
