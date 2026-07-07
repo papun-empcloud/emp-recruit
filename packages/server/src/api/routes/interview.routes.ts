@@ -87,6 +87,41 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
+// GET /meeting-config — Org's default meeting provider + available providers
+// PUT /meeting-config — Update the org's default provider / settings
+// NOTE: declared before "/:id" so the literal path isn't captured as an id.
+// ---------------------------------------------------------------------------
+router.get(
+  "/meeting-config",
+  authorize("org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const cfg = await interviewService.getMeetingConfig(req.user!.empcloudOrgId);
+      return sendSuccess(res, cfg);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.put(
+  "/meeting-config",
+  authorize("org_admin", "hr_admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { default_provider, settings } = req.body ?? {};
+      const cfg = await interviewService.setMeetingConfig(req.user!.empcloudOrgId, {
+        default_provider,
+        settings,
+      });
+      return sendSuccess(res, cfg);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
 // GET /:id — Get interview detail with panelists + feedback (HR/admin only)
 // ---------------------------------------------------------------------------
 router.get("/:id", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
@@ -268,7 +303,9 @@ router.get("/:id/feedback", async (req: Request, res: Response, next: NextFuncti
 });
 
 // ---------------------------------------------------------------------------
-// POST /:id/generate-meet — Generate Google Meet link
+// POST /:id/generate-meet — Provision a meeting via the configured provider.
+// Optional body { provider } overrides the org default (jitsi, google_meet,
+// teams, zoom). Returns the full meeting record, not just the link.
 // ---------------------------------------------------------------------------
 router.post(
   "/:id/generate-meet",
@@ -276,8 +313,34 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const meetingLink = await interviewService.generateMeetingLink(orgId, String(req.params.id));
-      return sendSuccess(res, { meeting_link: meetingLink });
+      const provider = req.body?.provider as string | undefined;
+      const meeting = await interviewService.createMeeting(orgId, String(req.params.id), provider);
+      // `meeting_link` kept in the response for backward compatibility.
+      return sendSuccess(res, { ...meeting, meeting_link: meeting.joinUrl });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// POST /:id/meeting-token — Mint short-lived join credentials for the embedded
+// room (<InterviewRoom>). HR/panelists join as moderators.
+// ---------------------------------------------------------------------------
+router.post(
+  "/:id/meeting-token",
+  authorize("org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.empcloudOrgId;
+      const u = req.user!;
+      const token = await interviewService.getInterviewRoomToken(orgId, String(req.params.id), {
+        userId: u.empcloudUserId,
+        name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email,
+        email: u.email,
+        moderator: true,
+      });
+      return sendSuccess(res, token);
     } catch (err) {
       next(err);
     }
