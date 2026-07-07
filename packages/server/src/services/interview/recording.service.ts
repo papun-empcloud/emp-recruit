@@ -10,6 +10,8 @@ import { getDB } from "../../db/adapters";
 import { NotFoundError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { transcribeFile, isTranscriptionEnabled } from "../ai/transcription";
+import { getLLM } from "../ai/llm";
+import { generateEvaluation } from "../ai/evaluation.service";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -239,12 +241,41 @@ async function runTranscription(
   }
 
   logger.info(`Transcript ${status} for recording ${recordingId}`);
-  return db.update<InterviewTranscript>("interview_transcripts", transcriptId, {
+  const updated = await db.update<InterviewTranscript>("interview_transcripts", transcriptId, {
     content,
     status,
     generated_at: new Date(),
     updated_at: new Date(),
   });
+
+  // Once a real transcript exists, generate the AI candidate evaluation
+  // automatically — no manual "Run AI Analysis" click needed. Best-effort and
+  // non-blocking; silently skipped when no LLM provider is configured.
+  if (recording && status === "completed" && isMeaningfulTranscript(content)) {
+    void autoEvaluate(orgId, recording.interview_id);
+  }
+
+  return updated;
+}
+
+/** True when a transcript has enough real speech to be worth evaluating. */
+function isMeaningfulTranscript(content: string): boolean {
+  const t = content.trim();
+  return t.length > 20 && t !== "(no speech detected)";
+}
+
+/**
+ * Fire-and-forget AI evaluation for an interview right after its transcript is
+ * ready. Skipped when no LLM provider is configured (leaves it for a manual run).
+ */
+async function autoEvaluate(orgId: number, interviewId: string): Promise<void> {
+  if (!getLLM()) return;
+  try {
+    await generateEvaluation(orgId, interviewId);
+    logger.info(`Auto AI evaluation generated for interview ${interviewId}`);
+  } catch (err) {
+    logger.error(`Auto AI evaluation failed for interview ${interviewId}:`, err);
+  }
 }
 
 /**

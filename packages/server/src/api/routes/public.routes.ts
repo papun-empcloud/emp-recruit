@@ -9,6 +9,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import * as careerPageService from "../../services/career-page/career-page.service";
+import * as feedService from "../../services/job-board/feed.service";
 import { sendSuccess } from "../../utils/response";
 import { ValidationError } from "../../utils/errors";
 
@@ -140,6 +141,30 @@ router.post(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// Job feed — crawlable by external boards (Indeed, Google Jobs, …).
+// GET /careers/:slug/feed.xml  (Indeed XML format)
+// GET /careers/:slug/feed.json
+// ---------------------------------------------------------------------------
+router.get("/careers/:slug/feed.xml", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const xml = await feedService.getFeedXml(String(req.params.slug));
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    return res.send(xml);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/careers/:slug/feed.json", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await feedService.getFeedJson(String(req.params.slug));
+    return sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ---------------------------------------------------------------------------
 // GET /feeds/indeed/:token.xml — public Indeed XML job feed (no auth).
