@@ -13,14 +13,16 @@ import {
   ExternalLink,
   Link2,
   Briefcase,
+  Share2,
 } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
 import type { CareerPage, EmailTemplate } from "@emp-recruit/shared";
 import { PipelineSettingsPage } from "./PipelineSettingsPage";
+import { JobBoardSettings } from "./JobBoardSettings";
 
 export function SettingsPage() {
-  const [tab, setTab] = useState<"career" | "email" | "pipeline">("career");
+  const [tab, setTab] = useState<"career" | "email" | "pipeline" | "boards">("career");
 
   return (
     <div>
@@ -56,10 +58,27 @@ export function SettingsPage() {
           <GitBranch className="h-4 w-4" />
           Pipeline
         </button>
+        <button
+          onClick={() => setTab("boards")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            tab === "boards" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Share2 className="h-4 w-4" />
+          Job Boards
+        </button>
       </div>
 
       <div className="mt-6">
-        {tab === "career" ? <CareerPageSettings /> : tab === "email" ? <EmailTemplateSettings /> : <PipelineSettingsPage />}
+        {tab === "career" ? (
+          <CareerPageSettings />
+        ) : tab === "email" ? (
+          <EmailTemplateSettings />
+        ) : tab === "pipeline" ? (
+          <PipelineSettingsPage />
+        ) : (
+          <JobBoardSettings />
+        )}
       </div>
     </div>
   );

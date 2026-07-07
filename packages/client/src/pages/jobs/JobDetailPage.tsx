@@ -26,6 +26,7 @@ import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } 
 import { cn, formatDate } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
+import { JobBoardsCard } from "@/components/JobBoardsCard";
 import toast from "react-hot-toast";
 
 interface PipelineStage {
@@ -466,6 +467,9 @@ export function JobDetailPage() {
           {job.closes_at && <span>Closes: {formatDate(job.closes_at)}</span>}
         </div>
       </div>
+
+      {/* Job boards — publishing status per board */}
+      {id && <JobBoardsCard jobId={id} />}
 
       {/* Kanban Pipeline */}
       <div>
