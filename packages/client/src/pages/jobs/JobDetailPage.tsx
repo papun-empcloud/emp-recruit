@@ -30,6 +30,7 @@ import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } 
 import { cn, formatDate } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
+import { JobBoardsCard } from "@/components/JobBoardsCard";
 import toast from "react-hot-toast";
 
 interface PipelineStage {
@@ -473,6 +474,9 @@ export function JobDetailPage() {
 
       {/* Publish to job boards */}
       <JobPublishingPanel jobId={job.id} />
+
+      {/* Job boards — publishing status per board (board-config manager) */}
+      {id && <JobBoardsCard jobId={id} />}
 
       {/* Kanban Pipeline */}
       <div>
