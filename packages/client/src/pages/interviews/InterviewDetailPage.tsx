@@ -745,18 +745,22 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
                   </div>
                 </div>
 
-                {/* Inline preview player */}
+                {/* Inline preview player. No autoPlay: Chrome blocks autoplay
+                    with sound, which would leave the <video> paused on a black
+                    frame. preload="auto" paints the first frame; the user hits
+                    play for video + audio. */}
                 {isOpen && (
                   <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-black">
                     {isVideo ? (
                       <video
                         src={fileUrl}
                         controls
-                        autoPlay
+                        playsInline
+                        preload="auto"
                         className="max-h-96 w-full bg-black"
                       />
                     ) : (
-                      <audio src={fileUrl} controls autoPlay className="w-full" />
+                      <audio src={fileUrl} controls preload="auto" className="w-full" />
                     )}
                   </div>
                 )}
