@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ConflictError } from "../../utils/errors";
+import { logger } from "../../utils/logger";
+import { publishJobToBoards } from "../job-board/job-board.service";
 import type { JobPosting, JobStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -182,7 +184,18 @@ export async function changeStatus(
     updates.published_at = new Date();
   }
 
-  return db.update<JobPosting>("job_postings", id, updates);
+  const updated = await db.update<JobPosting>("job_postings", id, updates);
+
+  // Publishing a job auto-pushes it to the org's configured job boards
+  // (LinkedIn/Naukri via API, Indeed via feed). Best-effort and non-blocking —
+  // each board's outcome is recorded in job_board_postings.
+  if (status === "open") {
+    void publishJobToBoards(orgId, id, { auto: true }).catch((err) =>
+      logger.warn(`Auto-publish failed for job ${id}: ${err?.message}`),
+    );
+  }
+
+  return updated;
 }
 
 export async function deleteJob(orgId: number, id: string): Promise<boolean> {
