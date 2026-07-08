@@ -12,6 +12,7 @@ import type {
   ScoringRecommendation,
 } from "@emp-recruit/shared";
 import { logger } from "../../utils/logger";
+import { getLLM } from "../ai/llm";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,12 +39,9 @@ interface ScoreResult {
  */
 export async function parseResumeText(filePath: string): Promise<string> {
   const ext = path.extname(filePath).toLowerCase();
-  // resume_path is stored app-relative (e.g. "/uploads/resumes/x.pdf"). A leading
-  // "/" makes path.isAbsolute() true on Linux and resolves to the filesystem root
-  // (file-not-found), so career-page / public résumés never parsed on the server
-  // and those resume-only applicants scored 0. Strip leading separators and always
-  // resolve against the server's working directory.
-  const absolutePath = path.join(process.cwd(), filePath.replace(/^[/\\]+/, ""));
+  const absolutePath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(process.cwd(), filePath);
 
   try {
     await fs.access(absolutePath);
@@ -178,6 +176,88 @@ export function extractSkills(resumeText: string): ExtractedSkill[] {
 }
 
 // ---------------------------------------------------------------------------
+// LLM scoring (real AI) — used when an AI provider is configured (config.ai).
+// Provider-agnostic: OpenAI/OpenRouter/compatible today, Claude etc. later.
+// Returns null when no provider or on any error, so scoreCandidate() falls
+// back to the deterministic heuristic.
+// ---------------------------------------------------------------------------
+
+const LLM_SCORING_SYSTEM = `You are an expert technical recruiter. Score how well a candidate fits a job using ONLY the data provided — never invent facts. Reply with ONLY a JSON object (no prose, no markdown) with exactly these keys:
+{
+  "overall_score": integer 0-100,
+  "skills_score": integer 0-100,
+  "experience_score": integer 0-100,
+  "matched_skills": array of the job's required skills the candidate clearly has,
+  "missing_skills": array of the job's required skills the candidate lacks,
+  "recommendation": one of "strong_match" | "good_match" | "partial_match" | "weak_match"
+}`;
+
+function clampScore100(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0;
+}
+
+/** Pull a JSON object out of an LLM response that may include fences/prose. */
+function parseJsonObject(raw: string): any {
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const c = fenced ? fenced[1] : raw;
+  const s = c.indexOf("{");
+  const e = c.lastIndexOf("}");
+  if (s === -1 || e === -1) throw new Error("No JSON object in LLM response");
+  return JSON.parse(c.slice(s, e + 1));
+}
+
+async function computeLlmScore(
+  job: JobPosting,
+  candidate: Candidate,
+  candidateSkills: string[],
+  resumeText: string,
+  jobSkills: string[],
+): Promise<ScoreResult | null> {
+  const llm = getLLM();
+  if (!llm) return null;
+
+  const prompt = [
+    "JOB",
+    `Title: ${job.title ?? ""}`,
+    `Description: ${(job.description ?? "").slice(0, 2000)}`,
+    `Requirements: ${(job.requirements ?? "").slice(0, 2000)}`,
+    `Required skills: ${jobSkills.join(", ") || "(none listed)"}`,
+    `Experience wanted: ${job.experience_min ?? "?"}-${job.experience_max ?? "?"} years`,
+    "",
+    "CANDIDATE",
+    `Current title: ${candidate.current_title ?? ""}`,
+    `Current company: ${candidate.current_company ?? ""}`,
+    `Experience: ${candidate.experience_years ?? "unknown"} years`,
+    `Skills: ${candidateSkills.join(", ") || "(none listed)"}`,
+    resumeText ? `Resume excerpt:\n${resumeText.slice(0, 4000)}` : "",
+  ].join("\n");
+
+  try {
+    const raw = await llm.complete({ system: LLM_SCORING_SYSTEM, prompt, maxTokens: 800 });
+    const p = parseJsonObject(raw);
+    const overallScore = clampScore100(p.overall_score);
+    const recommendation = ["strong_match", "good_match", "partial_match", "weak_match"].includes(
+      p.recommendation,
+    )
+      ? (p.recommendation as ScoringRecommendation)
+      : getRecommendation(overallScore);
+    logger.info(`Resume scored via LLM ${llm.key} (${llm.model()}): ${overallScore}/100`);
+    return {
+      overallScore,
+      skillsScore: clampScore100(p.skills_score),
+      experienceScore: clampScore100(p.experience_score),
+      matchedSkills: Array.isArray(p.matched_skills) ? p.matched_skills.map(String) : [],
+      missingSkills: Array.isArray(p.missing_skills) ? p.missing_skills.map(String) : [],
+      recommendation,
+    };
+  } catch (err) {
+    logger.warn("LLM resume scoring failed; using heuristic:", err);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Scoring Logic
 // ---------------------------------------------------------------------------
 
@@ -220,11 +300,13 @@ export async function scoreCandidate(
     ? (typeof candidate.skills === "string" ? JSON.parse(candidate.skills) : candidate.skills)
     : [];
 
-  // If candidate has a resume, extract skills from it too
+  // If candidate has a resume, extract skills from it too — and keep the text
+  // so the LLM scorer can read it.
   let resumeSkills: string[] = [];
+  let resumeText = "";
   if (candidate.resume_path) {
     try {
-      const resumeText = await parseResumeText(candidate.resume_path);
+      resumeText = await parseResumeText(candidate.resume_path);
       const extracted = extractSkills(resumeText);
       resumeSkills = extracted.map((e) => e.skill);
     } catch (err) {
@@ -246,25 +328,35 @@ export async function scoreCandidate(
     : [];
   const jobSkillsLower = jobSkills.map((s) => s.toLowerCase());
 
-  // Calculate skills score
-  const { skillsScore, matchedSkills, missingSkills } = calculateSkillsScore(
-    allCandidateSkills,
-    jobSkillsLower,
-    jobSkills,
-  );
+  // Real AI scoring when a provider is configured; deterministic heuristic
+  // (60% skills + 40% experience) otherwise or if the LLM call fails.
+  function heuristicScore(): ScoreResult {
+    const { skillsScore, matchedSkills, missingSkills } = calculateSkillsScore(
+      allCandidateSkills,
+      jobSkillsLower,
+      jobSkills,
+    );
+    const experienceScore = calculateExperienceScore(
+      candidate!.experience_years,
+      job!.experience_min,
+      job!.experience_max,
+    );
+    const overallScore = Math.round(skillsScore * 0.6 + experienceScore * 0.4);
+    return {
+      overallScore,
+      skillsScore,
+      experienceScore,
+      matchedSkills,
+      missingSkills,
+      recommendation: getRecommendation(overallScore),
+    };
+  }
 
-  // Calculate experience score
-  const experienceScore = calculateExperienceScore(
-    candidate.experience_years,
-    job.experience_min,
-    job.experience_max,
-  );
-
-  // Overall score: 60% skills + 40% experience
-  const overallScore = Math.round(skillsScore * 0.6 + experienceScore * 0.4);
-
-  // Determine recommendation
-  const recommendation = getRecommendation(overallScore);
+  const result =
+    (await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)) ??
+    heuristicScore();
+  const { overallScore, skillsScore, experienceScore, matchedSkills, missingSkills, recommendation } =
+    result;
 
   // Upsert score record (delete existing if any, then create new)
   const existingScore = await db.findOne<CandidateScore>("candidate_scores", {
