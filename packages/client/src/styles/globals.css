@@ -6,7 +6,142 @@
   body {
     @apply bg-gray-50 text-gray-900 font-sans;
   }
+  .dark body {
+    background-color: #0a1020;
+    color: #e6eaf2;
+  }
 }
+
+/* ---------------------------------------------------------------------------
+   Dark theme (class strategy). The app uses a consistent gray/white palette,
+   so instead of adding dark: variants to every one of the 25+ pages we remap
+   the common surface / text / border utilities under .dark. `.dark .x` has
+   higher specificity than `.x`, so these win without !important. Components can
+   still add explicit dark: variants where they need something bespoke.
+--------------------------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+}
+
+/* Surfaces — clear elevation: deep page < raised cards. */
+.dark .bg-white { background-color: #141c31; }
+.dark .bg-gray-50 { background-color: #0a1020; }
+.dark .bg-gray-100 { background-color: #1a2440; }
+.dark .bg-gray-200 { background-color: #26324f; }
+
+/* Give cards a real sense of lift (shadows are otherwise invisible on dark). */
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.dark .shadow,
+.dark .shadow-md { box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.55); }
+.dark .shadow-lg,
+.dark .shadow-xl { box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.65); }
+
+/* Text */
+.dark .text-gray-900 { color: #f6f8fc; }
+.dark .text-gray-800 { color: #e6ecf5; }
+.dark .text-gray-700 { color: #cdd8e8; }
+.dark .text-gray-600 { color: #aab8cd; }
+.dark .text-gray-500 { color: #8a99b2; }
+.dark .text-gray-400 { color: #6a7994; }
+
+/* Borders + dividers — visible hairlines that define cards. */
+.dark .border-gray-100 { border-color: #1d2947; }
+.dark .border-gray-200 { border-color: #2b3a58; }
+.dark .border-gray-300 { border-color: #3b4b6d; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1d2947; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: #2b3a58; }
+
+/* Form controls — most inputs/selects carry no bg class, so without this they
+   render as the browser's default gray in dark mode. */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0f1830;
+  border-color: #2b3a58;
+  color: #e6eaf2;
+}
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark .placeholder\:text-gray-400::placeholder {
+  color: #6b7891;
+}
+/* Native dropdown popup + its options. */
+.dark select option,
+.dark select optgroup {
+  background-color: #141c31;
+  color: #e6eaf2;
+}
+/* Focused control gets a clear brand edge (works with the app's focus:ring). */
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #6366f1;
+}
+/* Disabled controls — disabled:bg-gray-50/white otherwise render near-white. */
+.dark .disabled\:bg-gray-50:disabled { background-color: #0d1526; }
+.dark .disabled\:bg-gray-100:disabled { background-color: #162039; }
+.dark .disabled\:bg-white:disabled { background-color: #101830; }
+.dark .disabled\:text-gray-400:disabled { color: #5c6b83; }
+.dark .disabled\:text-gray-500:disabled { color: #647089; }
+
+/* Hover surfaces */
+.dark .hover\:bg-gray-50:hover { background-color: #1c2748; }
+.dark .hover\:bg-gray-100:hover { background-color: #212e52; }
+.dark .hover\:bg-gray-200:hover { background-color: #2a3a5c; }
+.dark .hover\:bg-white:hover { background-color: #141c31; }
+
+/* Hover TEXT variants — these fell back to near-black and vanished on hover. */
+.dark .hover\:text-gray-900:hover { color: #f6f8fc; }
+.dark .hover\:text-gray-800:hover { color: #e6ecf5; }
+.dark .hover\:text-gray-700:hover { color: #cdd8e8; }
+.dark .hover\:text-gray-600:hover { color: #aab8cd; }
+.dark .hover\:text-gray-500:hover { color: #8a99b2; }
+
+/* --- Accent chips: soft translucent tints instead of glaring light pills --- */
+.dark .bg-brand-50 { background-color: rgba(99, 102, 241, 0.15); }
+.dark .bg-brand-100 { background-color: rgba(99, 102, 241, 0.22); }
+.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.15); }
+.dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.22); }
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.14); }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.22); }
+.dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15); }
+.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.22); }
+.dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.14); }
+.dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.22); }
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.15); }
+.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.22); }
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.15); }
+.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.22); }
+.dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.15); }
+.dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.22); }
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.14); }
+.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.22); }
+
+/* Accent text — lighten so it reads on dark tints/surfaces. */
+.dark .text-brand-600, .dark .text-brand-700 { color: #aeb8fd; }
+.dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800 { color: #aeb8fd; }
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
+.dark .text-purple-600, .dark .text-purple-700, .dark .text-purple-800 { color: #d6b4fe; }
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800 { color: #86efac; }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800 { color: #6ee7b7; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800 { color: #fcd34d; }
+.dark .text-yellow-600, .dark .text-yellow-700, .dark .text-yellow-800 { color: #fde047; }
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #fca5a5; }
+
+/* Opacity-modifier accent fills (bg-*-50/40 etc.). The base color is light, so
+   without this they wash out to pale blobs on dark. */
+.dark .bg-brand-50\/30,
+.dark .bg-brand-50\/40,
+.dark .bg-brand-50\/70 { background-color: rgba(99, 102, 241, 0.12); }
+.dark .bg-green-50\/50 { background-color: rgba(34, 197, 94, 0.12); }
+.dark .bg-red-50\/50,
+.dark .bg-red-50\/60 { background-color: rgba(239, 68, 68, 0.12); }
+.dark .bg-gray-50\/50 { background-color: rgba(255, 255, 255, 0.035); }
+
+/* Brand-tinted borders + brand hover fills. */
+.dark .border-brand-200 { border-color: rgba(99, 102, 241, 0.30); }
+.dark .border-brand-300 { border-color: rgba(99, 102, 241, 0.42); }
+.dark .hover\:bg-brand-50:hover { background-color: rgba(99, 102, 241, 0.18); }
 
 /* Rich-text content — shared by the RichTextEditor's editable area and any
    place a stored HTML description/requirements is rendered. Tailwind's

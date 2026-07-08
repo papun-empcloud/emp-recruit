@@ -19,6 +19,7 @@ import {
 import { isLoggedIn, getUser, useAuthStore } from "@/lib/auth-store";
 import { cn, getInitials } from "@/lib/utils";
 import { BackToDashboard } from "@/components/BackToDashboard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAdminRole } from "@/lib/roles";
 
@@ -146,6 +147,7 @@ export function DashboardLayout() {
           <BackToDashboard />
           <div className="flex-1" />
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-semibold">
               {getInitials(displayName)}
             </div>
