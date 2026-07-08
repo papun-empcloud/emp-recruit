@@ -144,6 +144,7 @@ export interface JobPosting {
   updated_at: string;
   remote_policy: string; // onsite | remote | hybrid (#30, #32)
   is_internal: boolean; // internal-only job — hidden from the public career page
+  show_on_career_page: boolean; // curate which open jobs appear on the public career page
 }
 
 export interface Candidate {

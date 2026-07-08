@@ -89,6 +89,7 @@ const RECOMMENDATION_BADGE: Record<string, { label: string; className: string }>
 
 interface AppWithCandidate {
   id: string;
+  candidate_id: string;
   stage: string;
   rating: number | null;
   applied_at: string;
@@ -665,7 +666,7 @@ export function JobDetailPage() {
                           )}
                         >
                           <div className="flex items-start justify-between">
-                            <Link to={`/candidates/${app.id}`} draggable={false} className="flex-1 min-w-0">
+                            <Link to={`/candidates/${app.candidate_id}`} draggable={false} className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900">
                                 {app.candidate_first_name} {app.candidate_last_name}
                               </p>

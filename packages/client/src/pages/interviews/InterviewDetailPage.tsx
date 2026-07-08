@@ -1032,25 +1032,24 @@ export function InterviewDetailPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <ExternalLink className="h-4 w-4" /> Meeting Link
             </div>
-            <div className="flex items-center gap-3">
-              {/* Embedded room (Jitsi/LiveKit) — join with the record/AI features. */}
-              {interview.meeting_embeddable && (
-                <Link
-                  to={`/interviews/${interview.id}/room`}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-800"
-                >
-                  <Video className="h-4 w-4" /> Join Room
-                </Link>
-              )}
+            {interview.meeting_embeddable ? (
+              /* Embedded providers (Jitsi/LiveKit): join in-app. */
+              <Link
+                to={`/interviews/${interview.id}/room`}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800"
+              >
+                <Video className="h-4 w-4" /> Join Room
+              </Link>
+            ) : (
               <a
                 href={interview.meeting_link}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-medium text-brand-600 hover:text-brand-800 break-all"
               >
-                {interview.meeting_embeddable ? "Open externally" : "Join Meeting"}
+                Join Meeting
               </a>
-            </div>
+            )}
           </div>
         )}
       </div>

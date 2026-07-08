@@ -39,9 +39,12 @@ interface ScoreResult {
  */
 export async function parseResumeText(filePath: string): Promise<string> {
   const ext = path.extname(filePath).toLowerCase();
-  const absolutePath = path.isAbsolute(filePath)
-    ? filePath
-    : path.join(process.cwd(), filePath);
+  // resume_path is stored app-relative (e.g. "/uploads/resumes/x.pdf"). A leading
+  // "/" makes path.isAbsolute() true on Linux and resolves to the filesystem root
+  // (file-not-found), so career-page / public résumés never parsed on the server
+  // and those resume-only applicants scored 0. Strip leading separators and always
+  // resolve against the server's working directory.
+  const absolutePath = path.join(process.cwd(), filePath.replace(/^[/\\]+/, ""));
 
   try {
     await fs.access(absolutePath);
