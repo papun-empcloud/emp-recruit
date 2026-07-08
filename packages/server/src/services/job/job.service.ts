@@ -109,6 +109,12 @@ export async function updateJob(
   if (data.skills && Array.isArray(data.skills)) {
     updates.skills = JSON.stringify(data.skills);
   }
+  // The client sends dates as ISO strings ("2026-07-16T00:00:00.000Z"), which
+  // MySQL's DATETIME column rejects. Convert to a Date so the driver formats it
+  // (createJob already does this; updateJob was passing the raw string through).
+  if (data.closes_at !== undefined) {
+    updates.closes_at = data.closes_at ? new Date(data.closes_at) : null;
+  }
   if (data.title && data.title !== existing.title) {
     updates.slug = await ensureUniqueSlug(orgId, generateSlug(data.title), id);
   }
