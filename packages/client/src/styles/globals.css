@@ -119,6 +119,11 @@
 
 /* Accent text — lighten so it reads on dark tints/surfaces. */
 .dark .text-brand-500, .dark .text-brand-600, .dark .text-brand-700, .dark .text-brand-800 { color: #aeb8fd; }
+/* Brand hover text (e.g. list "View" links) — otherwise hover:text-brand-800
+   falls back to near-black purple and vanishes on hover. Brighten on hover. */
+.dark .hover\:text-brand-600:hover,
+.dark .hover\:text-brand-700:hover,
+.dark .hover\:text-brand-800:hover { color: #c7ceff; }
 .dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800 { color: #aeb8fd; }
 .dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
 .dark .text-purple-600, .dark .text-purple-700, .dark .text-purple-800 { color: #d6b4fe; }
