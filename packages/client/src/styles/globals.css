@@ -118,7 +118,7 @@
 .dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.22); }
 
 /* Accent text — lighten so it reads on dark tints/surfaces. */
-.dark .text-brand-600, .dark .text-brand-700 { color: #aeb8fd; }
+.dark .text-brand-500, .dark .text-brand-600, .dark .text-brand-700, .dark .text-brand-800 { color: #aeb8fd; }
 .dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800 { color: #aeb8fd; }
 .dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
 .dark .text-purple-600, .dark .text-purple-700, .dark .text-purple-800 { color: #d6b4fe; }
