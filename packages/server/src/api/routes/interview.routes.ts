@@ -3,11 +3,13 @@
 // All interview scheduling, panelist management, and feedback endpoints.
 // ============================================================================
 
+import fs from "fs";
+import path from "path";
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { recordingUpload } from "../middleware/upload.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
-import { ValidationError } from "../../utils/errors";
+import { ValidationError, NotFoundError } from "../../utils/errors";
 import * as interviewService from "../../services/interview/interview.service";
 import * as recordingService from "../../services/interview/recording.service";
 import * as evaluationService from "../../services/ai/evaluation.service";
@@ -405,6 +407,61 @@ router.get("/:id/recordings", authorize("org_admin", "hr_admin", "hr_manager"), 
     next(err);
   }
 });
+
+// ---------------------------------------------------------------------------
+// GET /:id/recordings/:recId/file — Stream a recording for in-app preview.
+// Supports HTTP Range so the <video>/<audio> element can seek without pulling
+// the whole file. A native media element can't send an Authorization header,
+// so this route also accepts the access token via ?token= (handled in
+// authenticate()). Declared before the "/:recId" DELETE so "file" isn't
+// swallowed as a recording id.
+// ---------------------------------------------------------------------------
+router.get(
+  "/:id/recordings/:recId/file",
+  authorize("org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.empcloudOrgId;
+      const recording = await recordingService.getRecording(orgId, String(req.params.recId));
+      if (recording.interview_id !== String(req.params.id)) {
+        throw new NotFoundError("Recording", String(req.params.recId));
+      }
+
+      const filePath = path.resolve(recording.file_path);
+      if (!fs.existsSync(filePath)) {
+        throw new NotFoundError("Recording file", recording.id);
+      }
+
+      const total = fs.statSync(filePath).size;
+      const mime = recording.mime_type || "video/webm";
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Content-Type", mime);
+      res.setHeader("Cache-Control", "private, max-age=3600");
+
+      const range = req.headers.range;
+      if (range) {
+        const match = /bytes=(\d*)-(\d*)/.exec(range);
+        let start = match?.[1] ? parseInt(match[1], 10) : 0;
+        let end = match?.[2] ? parseInt(match[2], 10) : total - 1;
+        if (!Number.isFinite(start) || start < 0) start = 0;
+        if (!Number.isFinite(end) || end >= total) end = total - 1;
+        if (start > end) {
+          res.status(416).setHeader("Content-Range", `bytes */${total}`);
+          return res.end();
+        }
+        res.status(206);
+        res.setHeader("Content-Range", `bytes ${start}-${end}/${total}`);
+        res.setHeader("Content-Length", String(end - start + 1));
+        return fs.createReadStream(filePath, { start, end }).pipe(res);
+      }
+
+      res.setHeader("Content-Length", String(total));
+      return fs.createReadStream(filePath).pipe(res);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ---------------------------------------------------------------------------
 // DELETE /:id/recordings/:recId — Delete a recording
