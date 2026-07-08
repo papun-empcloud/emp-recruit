@@ -31,6 +31,7 @@ interface ScoredApplication {
 interface JobOption {
   id: string;
   title: string;
+  status: string;
   application_count: number;
 }
 
@@ -63,13 +64,14 @@ export function ScoringPage() {
     }
   }, [selectedJobId, searchParams, setSearchParams]);
 
-  // Fetch jobs that have applications
+  // Fetch jobs, then show only PUBLISHED ones (any status except draft) —
+  // internal OR public/external. Draft postings aren't scored.
   const { data: jobsData } = useQuery({
     queryKey: ["scoring-jobs"],
-    queryFn: () => apiGet<PaginatedResponse<JobOption>>("/jobs", { limit: 100, status: "open" }),
+    queryFn: () => apiGet<PaginatedResponse<JobOption>>("/jobs", { limit: 100 }),
   });
 
-  const jobs = jobsData?.data?.data ?? [];
+  const jobs = (jobsData?.data?.data ?? []).filter((j) => j.status !== "draft");
 
   // Fetch ranked scores for the selected job
   const { data: rankingsData, isLoading: loadingRankings } = useQuery({
@@ -126,6 +128,7 @@ export function ScoringPage() {
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
                   {job.title}
+                  {job.status && job.status !== "open" ? ` (${job.status})` : ""}
                 </option>
               ))}
             </select>
