@@ -6,6 +6,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import * as careerPageService from "../../services/career-page/career-page.service";
@@ -20,7 +21,12 @@ const router = Router();
 // ---------------------------------------------------------------------------
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(process.cwd(), "uploads", "resumes"));
+    // Create the target dir if it doesn't exist yet — a public applicant may be
+    // the first resume uploaded on a fresh deploy, so this dir won't exist and
+    // multer's write would fail with ENOENT.
+    const dir = path.join(process.cwd(), "uploads", "resumes");
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
   },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
