@@ -83,8 +83,15 @@ router.get("/career-page/:slug", async (req: Request, res: Response, next: NextF
 // ---------------------------------------------------------------------------
 router.get("/careers/:slug/jobs", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const jobs = await careerPageService.getPublicJobs(String(req.params.slug));
-    sendSuccess(res, jobs);
+    const { page, perPage, search, department, location } = req.query;
+    const result = await careerPageService.getPublicJobs(String(req.params.slug), {
+      page: page ? Number(page) : undefined,
+      perPage: perPage ? Number(perPage) : undefined,
+      search: search ? String(search) : undefined,
+      department: department ? String(department) : undefined,
+      location: location ? String(location) : undefined,
+    });
+    sendSuccess(res, result);
   } catch (err) {
     next(err);
   }

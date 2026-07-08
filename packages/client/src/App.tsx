@@ -44,6 +44,9 @@ const ScoreReportPage = lazyWithRetry(() =>
 const ScoringPage = lazyWithRetry(() =>
   import("@/pages/scoring/ScoringPage").then((m) => ({ default: m.ScoringPage })),
 );
+const CareerPage = lazyWithRetry(() =>
+  import("@/pages/career/CareerPage").then((m) => ({ default: m.CareerPage })),
+);
 function PageLoader() {
   return (
     <div className="flex h-64 items-center justify-center">
@@ -142,6 +145,9 @@ export default function App() {
             {/* Scoring / AI Resume */}
             <Route path="/scoring" element={<ScoringPage />} />
             <Route path="/scoring/:appId" element={<ScoreReportPage />} />
+
+            {/* Public career page management */}
+            <Route path="/career-page" element={<CareerPage />} />
 
             {/* Analytics */}
             <Route path="/analytics" element={<AnalyticsPage />} />
