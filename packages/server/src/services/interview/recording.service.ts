@@ -231,6 +231,13 @@ async function runTranscription(
           duration_seconds: result.durationSeconds,
         });
       }
+      // Local Whisper returns one flat block with no speaker turns. Post-process
+      // with the LLM (best-effort) to split it into "Interviewer:"/"Candidate:"
+      // lines so the transcript reads as a dialogue. Without an LLM configured
+      // (or if it fails) the raw text is kept unchanged.
+      if (isMeaningfulTranscript(content)) {
+        content = await labelSpeakers(content);
+      }
     } catch (err) {
       logger.error(`Transcription failed for recording ${recordingId}:`, err);
       content = "Transcription failed. Please retry.";
@@ -262,6 +269,60 @@ async function runTranscription(
 function isMeaningfulTranscript(content: string): boolean {
   const t = content.trim();
   return t.length > 20 && t !== "(no speech detected)";
+}
+
+/**
+ * Split a flat interview transcript into labelled speaker turns
+ * ("Interviewer:" / "Candidate:") using the configured LLM. Best-effort: if no
+ * provider is set or the call fails, the original text is returned unchanged.
+ * The model only re-segments and labels — it must not add, drop, or reword
+ * anything.
+ */
+async function labelSpeakers(rawText: string): Promise<string> {
+  const llm = getLLM();
+  if (!llm) return rawText;
+
+  const system =
+    "You format raw interview transcripts. The input is the unstructured " +
+    "transcript of a one-on-one job interview between two people: an Interviewer " +
+    "(who greets, asks the questions, and wraps up) and a Candidate (who answers). " +
+    "Rewrite it as a dialogue split into speaker turns.\n" +
+    "Rules:\n" +
+    "1. Prefix every turn with either 'Interviewer:' or 'Candidate:'.\n" +
+    "2. Put each turn on its own line, with a blank line between turns.\n" +
+    "3. Do NOT add, remove, summarise, translate, or reword any content — only " +
+    "insert the labels and line breaks and keep the original wording verbatim.\n" +
+    "4. The interviewer usually speaks first. Use the question/answer flow to " +
+    "decide who is speaking.\n" +
+    "5. Keep any markers like '(speaking in foreign language)' with the turn " +
+    "they belong to.\n" +
+    "Return only the formatted transcript, nothing else.";
+
+  // Retry on transient rate-limits (free OpenRouter tiers 429 often) with a
+  // short backoff, then give up and keep the raw text.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const out = await llm.complete({
+        system,
+        prompt: `Transcript:\n\n${rawText}`,
+        maxTokens: 2048,
+      });
+      const cleaned = out.trim();
+      // Guard against an empty/garbage response — only accept it if the model
+      // actually produced labelled turns.
+      return /Interviewer:|Candidate:/.test(cleaned) ? cleaned : rawText;
+    } catch (err) {
+      const msg = (err as Error)?.message || "";
+      const rateLimited = /\b429\b|rate.?limit/i.test(msg);
+      if (rateLimited && attempt < 3) {
+        await new Promise((r) => setTimeout(r, attempt * 4000));
+        continue;
+      }
+      logger.warn(`Speaker labelling failed; keeping the raw transcript: ${msg}`);
+      return rawText;
+    }
+  }
+  return rawText;
 }
 
 /**
