@@ -141,6 +141,9 @@ export function JobListPage() {
                   Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Visibility
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -176,6 +179,18 @@ export function JobListPage() {
                         {(job as any).remote_policy === "onsite" ? "On-site" : (job as any).remote_policy}
                       </span>
                     )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                        (job as any).is_internal
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-green-100 text-green-800",
+                      )}
+                    >
+                      {(job as any).is_internal ? "Internal" : "Public"}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span

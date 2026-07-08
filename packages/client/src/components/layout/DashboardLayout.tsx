@@ -31,7 +31,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/internal-jobs", label: "Internal Jobs", icon: Briefcase },
   { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
   { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
   { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },

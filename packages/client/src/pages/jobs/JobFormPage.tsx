@@ -434,7 +434,8 @@ export function JobFormPage() {
             <span className="text-sm">
               <span className="font-medium text-gray-800">Internal only</span>
               <span className="block text-xs text-gray-500">
-                Show this job on the Internal Jobs page for employees, but hide it from the public career page.
+                Keep this job internal — hide it from the public career page. It shows as
+                “Internal” in the job list.
               </span>
             </span>
           </label>

@@ -349,21 +349,6 @@ function EmployeeDashboard() {
       {/* Quick actions */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Link
-          to="/internal-jobs"
-          className="group flex items-center justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
-        >
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-brand-50 p-3 text-brand-600">
-              <Briefcase className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">Browse Internal Jobs</p>
-              <p className="text-xs text-gray-500">See openings for employees</p>
-            </div>
-          </div>
-          <ArrowUpRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-brand-500" />
-        </Link>
-        <Link
           to="/referrals"
           className="group flex items-center justify-between rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
         >
