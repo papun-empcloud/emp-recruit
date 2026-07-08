@@ -6,7 +6,9 @@
 // resume scoring. Selected via config.ai.provider.
 // ============================================================================
 
-export type LLMProviderKey = "anthropic" | "openai" | "none";
+// "compatible" is an alias for the OpenAI-compatible adapter (OpenRouter,
+// Together, Groq, local, …) — same wire format, just a different base URL.
+export type LLMProviderKey = "anthropic" | "openai" | "compatible" | "none";
 
 export interface LLMCompletionRequest {
   system: string;

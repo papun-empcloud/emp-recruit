@@ -14,6 +14,9 @@ import { openaiProvider } from "./openai.adapter";
 const registry: Record<Exclude<LLMProviderKey, "none">, LLMProvider> = {
   anthropic: anthropicProvider,
   openai: openaiProvider,
+  // OpenAI-compatible endpoints (OpenRouter, Together, Groq, local…) reuse the
+  // openai adapter — it just points at OPENAI_BASE_URL.
+  compatible: openaiProvider,
 };
 
 /** The active LLM provider, or null when none is configured. */
