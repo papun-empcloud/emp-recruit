@@ -104,14 +104,21 @@ export function AiAnalysisCard({
         </button>
       </div>
 
-      {/* Provider-not-configured guidance */}
-      {errMsg && errMsg.toLowerCase().includes("provider") && (
+      {/* Error guidance — distinguish "no model configured" from real errors
+          (rate limits, upstream failures) so we don't wrongly tell the user to
+          add a key that's already set. */}
+      {errMsg && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-          <p className="text-sm text-amber-800">
-            AI analysis needs a language model. Add <code>ANTHROPIC_API_KEY</code> (Claude) or{" "}
-            <code>OPENAI_API_KEY</code> to <code>.env</code> and restart, then run again.
-          </p>
+          {/no ai provider|not configured/i.test(errMsg) ? (
+            <p className="text-sm text-amber-800">
+              AI analysis needs a language model. Add <code>ANTHROPIC_API_KEY</code> (Claude),{" "}
+              <code>OPENAI_API_KEY</code>, or an OpenAI-compatible key (with{" "}
+              <code>AI_PROVIDER=compatible</code>) to <code>.env</code> and restart.
+            </p>
+          ) : (
+            <p className="text-sm text-amber-800">{errMsg}</p>
+          )}
         </div>
       )}
 

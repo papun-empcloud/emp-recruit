@@ -144,6 +144,7 @@ export interface JobPosting {
   updated_at: string;
   remote_policy: string; // onsite | remote | hybrid (#30, #32)
   is_internal: boolean; // internal-only job — hidden from the public career page
+  show_on_career_page: boolean; // curate which open jobs appear on the public career page
 }
 
 export interface Candidate {
@@ -213,6 +214,7 @@ export interface Interview {
   meeting_embeddable: boolean;
   status: InterviewStatus;
   notes: string | null;
+  summary: string | null; // HR notes/summary — editable independently of the transcript
   created_by: number;
   created_at: string;
   updated_at: string;

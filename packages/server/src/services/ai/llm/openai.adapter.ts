@@ -45,7 +45,12 @@ export const openaiProvider: LLMProvider = {
 
     const json: any = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new AppError(502, "LLM_ERROR", json?.error?.message || `LLM request failed (${res.status})`);
+      const e = json?.error ?? {};
+      // Surface the upstream reason (e.g. OpenRouter's "rate-limited upstream")
+      // instead of a generic "Provider returned error".
+      const detail = e.metadata?.raw || e.message || `request failed (${res.status})`;
+      const code = e.code || res.status;
+      throw new AppError(502, "LLM_ERROR", `LLM provider error (${code}): ${detail}`);
     }
     return (json.choices?.[0]?.message?.content ?? "").trim();
   },

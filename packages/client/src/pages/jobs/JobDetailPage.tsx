@@ -89,6 +89,7 @@ const RECOMMENDATION_BADGE: Record<string, { label: string; className: string }>
 
 interface AppWithCandidate {
   id: string;
+  candidate_id: string;
   stage: string;
   rating: number | null;
   applied_at: string;
@@ -145,6 +146,9 @@ export function JobDetailPage() {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  // Kanban drag-and-drop
+  const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
 
   // Fetch custom pipeline stages
   const { data: stagesData } = useQuery({
@@ -257,6 +261,46 @@ export function JobDetailPage() {
     if (grouped[app.stage]) {
       grouped[app.stage].push(app);
     }
+  }
+
+  // Drag-and-drop between pipeline stages. Optimistic: the card jumps to the new
+  // column immediately, then rolls back + toasts if the server rejects the move.
+  const moveStageMutation = useMutation({
+    mutationFn: ({ appId, stage }: { appId: string; stage: string }) =>
+      apiPatch(`/applications/${appId}/stage`, { stage }),
+    onMutate: async ({ appId, stage }) => {
+      await queryClient.cancelQueries({ queryKey: ["job-applications", id] });
+      const prev = queryClient.getQueryData(["job-applications", id]);
+      queryClient.setQueryData(["job-applications", id], (old: any) => {
+        if (!old?.data?.data) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            data: old.data.data.map((a: AppWithCandidate) =>
+              a.id === appId ? { ...a, stage } : a,
+            ),
+          },
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx: any) => {
+      if (ctx?.prev) queryClient.setQueryData(["job-applications", id], ctx.prev);
+      toast.error("Couldn't move the candidate to that stage.");
+    },
+    onSuccess: () => toast.success("Candidate moved"),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["job-applications", id] }),
+  });
+
+  function onCardDrop(stageSlug: string) {
+    const appId = draggingAppId;
+    setDraggingAppId(null);
+    setDragOverStage(null);
+    if (!appId) return;
+    const app = applications.find((a) => a.id === appId);
+    if (!app || app.stage === stageSlug) return; // no-op when dropped on same stage
+    moveStageMutation.mutate({ appId, stage: stageSlug });
   }
 
   // Compare toggle
@@ -481,9 +525,14 @@ export function JobDetailPage() {
       {/* Kanban Pipeline */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Application Pipeline ({applications.length} applicant{applications.length !== 1 ? "s" : ""})
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Application Pipeline ({applications.length} applicant{applications.length !== 1 ? "s" : ""})
+            </h2>
+            {applications.length > 0 && (
+              <p className="mt-0.5 text-xs text-gray-400">Drag a card to move a candidate between stages.</p>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <Link
@@ -569,11 +618,29 @@ export function JobDetailPage() {
                     {stage.name} ({cards.length})
                   </div>
 
-                  {/* Cards */}
+                  {/* Cards — drop target */}
                   <div
+                    onDragOver={(e) => {
+                      if (!draggingAppId) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dragOverStage !== stage.slug) setDragOverStage(stage.slug);
+                    }}
+                    onDragLeave={(e) => {
+                      // Only clear when the pointer actually leaves the column,
+                      // not when it moves onto a child card.
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        setDragOverStage((s) => (s === stage.slug ? null : s));
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      onCardDrop(stage.slug);
+                    }}
                     className={cn(
-                      "min-h-[120px] rounded-b-lg border p-2 space-y-2",
+                      "min-h-[120px] rounded-b-lg border p-2 space-y-2 transition-colors",
                       STAGE_COLORS[stage.slug] ?? "bg-gray-50 border-gray-200",
+                      dragOverStage === stage.slug && "ring-2 ring-inset ring-brand-400 bg-brand-50/70",
                     )}
                   >
                     {cards.length === 0 ? (
@@ -582,13 +649,24 @@ export function JobDetailPage() {
                       cards.map((app) => (
                         <div
                           key={app.id}
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggingAppId(app.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", app.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingAppId(null);
+                            setDragOverStage(null);
+                          }}
                           className={cn(
-                            "rounded-lg bg-white border p-3 shadow-sm hover:shadow-md transition-shadow",
+                            "rounded-lg bg-white border p-3 shadow-sm transition-shadow cursor-grab active:cursor-grabbing hover:shadow-md",
                             compareSelection.has(app.id) ? "border-indigo-400 ring-1 ring-indigo-200" : "border-gray-200",
+                            draggingAppId === app.id && "opacity-50",
                           )}
                         >
                           <div className="flex items-start justify-between">
-                            <Link to={`/candidates/${app.id}`} className="flex-1 min-w-0">
+                            <Link to={`/candidates/${app.candidate_id}`} draggable={false} className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900">
                                 {app.candidate_first_name} {app.candidate_last_name}
                               </p>

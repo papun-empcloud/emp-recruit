@@ -15,10 +15,13 @@ import {
   X,
   ClipboardList,
   Brain,
+  Globe,
+  Inbox,
 } from "lucide-react";
 import { isLoggedIn, getUser, useAuthStore } from "@/lib/auth-store";
 import { cn, getInitials } from "@/lib/utils";
 import { BackToDashboard } from "@/components/BackToDashboard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAdminRole } from "@/lib/roles";
 
@@ -33,12 +36,14 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
   { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
+  { to: "/applications", label: "Applications", icon: Inbox, adminOnly: true },
   { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },
   { to: "/offers", label: "Offers", icon: FileText, adminOnly: true },
   { to: "/onboarding", label: "Onboarding", icon: ClipboardList, adminOnly: true },
   { to: "/scoring", label: "AI Scoring", icon: Brain, adminOnly: true },
   { to: "/referrals", label: "Referrals", icon: Gift },
   { to: "/analytics", label: "Analytics", icon: BarChart3, adminOnly: true },
+  { to: "/career-page", label: "Career Page", icon: Globe, adminOnly: true },
   { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
 ];
 
@@ -146,6 +151,7 @@ export function DashboardLayout() {
           <BackToDashboard />
           <div className="flex-1" />
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-semibold">
               {getInitials(displayName)}
             </div>

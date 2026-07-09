@@ -22,6 +22,8 @@ import {
   CheckCircle,
   Download,
   Loader2,
+  Play,
+  X,
 } from "lucide-react";
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -522,10 +524,20 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
 // ---------------------------------------------------------------------------
 // Recording Section
 // ---------------------------------------------------------------------------
+// Build a same-origin/API-anchored URL to stream a recording. A native media
+// element can't send an auth header, so the access token rides in the query
+// string (authenticate() accepts ?token=).
+function recordingFileUrl(interviewId: string, recId: string): string {
+  const apiBase = (import.meta.env.VITE_API_URL as string | undefined) || "/api/v1";
+  const token = localStorage.getItem("access_token") || "";
+  return `${apiBase}/interviews/${interviewId}/recordings/${recId}/file?token=${encodeURIComponent(token)}`;
+}
+
 function RecordingSection({ interviewId }: { interviewId: string }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const { data: recordings = [] } = useQuery({
     queryKey: ["recordings", interviewId],
@@ -533,6 +545,18 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
       const res = await apiGet<Recording[]>(`/interviews/${interviewId}/recordings`);
       return res.data || [];
     },
+  });
+
+  // The interview's current transcript — used to show per-recording status
+  // (transcribing / ready / failed) right on the row. Polls while processing.
+  const { data: transcript } = useQuery({
+    queryKey: ["transcript", interviewId],
+    queryFn: async () => {
+      const res = await apiGet<Transcript | null>(`/interviews/${interviewId}/transcript`);
+      return res.data ?? null;
+    },
+    refetchInterval: (query) =>
+      (query.state.data as Transcript | null)?.status === "processing" ? 4000 : false,
   });
 
   const uploadMutation = useMutation({
@@ -646,43 +670,100 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
         <div className="divide-y divide-gray-100">
           {recordings.map((rec) => {
             const fileName = rec.file_path.split("/").pop() || "recording";
+            const isVideo = rec.mime_type?.startsWith("video/") ?? true;
+            const isOpen = previewId === rec.id;
+            const fileUrl = recordingFileUrl(interviewId, rec.id);
             return (
-              <div key={rec.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50">
-                    {rec.mime_type?.startsWith("video/") ? (
-                      <Video className="h-4 w-4 text-purple-600" />
+              <div key={rec.id} className="py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50">
+                      {isVideo ? (
+                        <Video className="h-4 w-4 text-purple-600" />
+                      ) : (
+                        <Mic className="h-4 w-4 text-purple-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{fileName}</p>
+                      <p className="text-xs text-gray-500">
+                        {formatFileSize(rec.file_size)}
+                        {rec.duration_seconds ? ` \u00b7 ${Math.floor(rec.duration_seconds / 60)}m ${rec.duration_seconds % 60}s` : ""}
+                        {" \u00b7 "}
+                        {formatDate(rec.uploaded_at)}
+                      </p>
+                      {transcript?.recording_id === rec.id && (
+                        <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium">
+                          {transcript.status === "processing" && (
+                            <span className="inline-flex items-center gap-1 text-yellow-700">
+                              <Loader2 className="h-3 w-3 animate-spin" /> Transcribing\u2026
+                            </span>
+                          )}
+                          {transcript.status === "completed" && (
+                            <span className="inline-flex items-center gap-1 text-green-700">
+                              <CheckCircle className="h-3 w-3" /> Transcript ready
+                            </span>
+                          )}
+                          {transcript.status === "failed" && (
+                            <span className="text-red-600">Transcription failed \u2014 retry below</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPreviewId(isOpen ? null : rec.id)}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      {isOpen ? <X className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                      {isOpen ? "Close" : "Preview"}
+                    </button>
+                    <a
+                      href={fileUrl}
+                      download={fileName}
+                      className="inline-flex items-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-600 hover:bg-gray-50 transition-colors"
+                      title="Download recording"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </a>
+                    <button
+                      onClick={() => transcribeMutation.mutate(rec.id)}
+                      disabled={transcribeMutation.isPending}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {transcribeMutation.isPending ? "Generating..." : "Generate Transcript"}
+                    </button>
+                    <button
+                      onClick={() => setRecToDelete(rec.id)}
+                      disabled={deleteMutation.isPending}
+                      className="inline-flex items-center rounded-md border border-red-200 bg-white p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Inline preview player. No autoPlay: Chrome blocks autoplay
+                    with sound, which would leave the <video> paused on a black
+                    frame. preload="auto" paints the first frame; the user hits
+                    play for video + audio. */}
+                {isOpen && (
+                  <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-black">
+                    {isVideo ? (
+                      <video
+                        src={fileUrl}
+                        controls
+                        playsInline
+                        preload="auto"
+                        className="max-h-96 w-full bg-black"
+                      />
                     ) : (
-                      <Mic className="h-4 w-4 text-purple-600" />
+                      <audio src={fileUrl} controls preload="auto" className="w-full" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{fileName}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(rec.file_size)}
-                      {rec.duration_seconds ? ` \u00b7 ${Math.floor(rec.duration_seconds / 60)}m ${rec.duration_seconds % 60}s` : ""}
-                      {" \u00b7 "}
-                      {formatDate(rec.uploaded_at)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => transcribeMutation.mutate(rec.id)}
-                    disabled={transcribeMutation.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    {transcribeMutation.isPending ? "Generating..." : "Generate Transcript"}
-                  </button>
-                  <button
-                    onClick={() => setRecToDelete(rec.id)}
-                    disabled={deleteMutation.isPending}
-                    className="inline-flex items-center rounded-md border border-red-200 bg-white p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                )}
               </div>
             );
           })}
@@ -778,33 +859,17 @@ function TranscriptSection({ interviewId }: { interviewId: string }) {
 // ---------------------------------------------------------------------------
 // Summary (HR notes) — standalone card
 // ---------------------------------------------------------------------------
-function InterviewSummaryCard({ interviewId }: { interviewId: string }) {
+function InterviewSummaryCard({ interview }: { interview: InterviewDetail }) {
   const queryClient = useQueryClient();
-  const [summary, setSummary] = useState<string>("");
-  const [summaryInitialized, setSummaryInitialized] = useState(false);
+  const [summary, setSummary] = useState<string>(interview.summary || "");
   const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
 
-  const { data: transcript } = useQuery({
-    queryKey: ["transcript", interviewId],
-    queryFn: async () => {
-      const res = await apiGet<Transcript | null>(`/interviews/${interviewId}/transcript`);
-      return res.data ?? null;
-    },
-  });
-
-  // Initialize summary from fetched transcript
-  if (transcript && !summaryInitialized) {
-    setSummary(transcript.summary || "");
-    setSummaryInitialized(true);
-  }
-
   const saveSummaryMutation = useMutation({
-    mutationFn: async () => {
-      if (!transcript) return;
-      return apiPut(`/interviews/${interviewId}/transcript/${transcript.id}`, { summary });
-    },
+    // HR notes live on the interview, so they can be saved before (or without)
+    // any recording/transcript.
+    mutationFn: async () => apiPut(`/interviews/${interview.id}/summary`, { summary }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transcript", interviewId] });
+      queryClient.invalidateQueries({ queryKey: ["interview", interview.id] });
       setSaveSummarySuccess(true);
       setTimeout(() => setSaveSummarySuccess(false), 3000);
     },
@@ -819,18 +884,13 @@ function InterviewSummaryCard({ interviewId }: { interviewId: string }) {
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
         rows={4}
-        disabled={!transcript}
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
-        placeholder={
-          transcript
-            ? "Add a summary of the interview transcript..."
-            : "Generate a transcript first to add HR notes."
-        }
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        placeholder="Add HR notes about this interview…"
       />
       <div className="mt-2 flex items-center gap-3">
         <button
           onClick={() => saveSummaryMutation.mutate()}
-          disabled={saveSummaryMutation.isPending || !transcript}
+          disabled={saveSummaryMutation.isPending}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
         >
           {saveSummaryMutation.isPending ? "Saving..." : "Save Summary"}
@@ -951,14 +1011,24 @@ export function InterviewDetailPage() {
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <ExternalLink className="h-4 w-4" /> Meeting Link
             </div>
-            <a
-              href={interview.meeting_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-brand-600 hover:text-brand-800 break-all"
-            >
-              Join Meeting
-            </a>
+            {interview.meeting_embeddable ? (
+              /* Embedded providers (Jitsi/LiveKit): join in-app. */
+              <Link
+                to={`/interviews/${interview.id}/room`}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800"
+              >
+                <Video className="h-4 w-4" /> Join Room
+              </Link>
+            ) : (
+              <a
+                href={interview.meeting_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-brand-600 hover:text-brand-800 break-all"
+              >
+                Join Meeting
+              </a>
+            )}
           </div>
         )}
       </div>
@@ -1159,7 +1229,7 @@ export function InterviewDetailPage() {
       )}
 
       {/* Summary (HR notes) — standalone card, last */}
-      <InterviewSummaryCard interviewId={interview.id} />
+      <InterviewSummaryCard interview={interview} />
     </div>
   );
 }

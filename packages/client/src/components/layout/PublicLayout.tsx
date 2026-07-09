@@ -2,13 +2,13 @@ import { Outlet } from "react-router-dom";
 
 export function PublicLayout() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center px-4">
           <span className="text-lg font-bold text-gray-900">Careers</span>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         <Outlet />
       </main>
       <footer className="border-t border-gray-200 bg-white py-6">

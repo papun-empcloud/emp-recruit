@@ -124,11 +124,12 @@ export const config = {
           : "none"),
     anthropic: {
       apiKey: process.env.ANTHROPIC_API_KEY || "",
-      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-8",
+      // AI_MODEL applies to whichever provider is active (keeps switching easy).
+      model: process.env.ANTHROPIC_MODEL || process.env.AI_MODEL || "claude-opus-4-8",
     },
     openai: {
       apiKey: process.env.OPENAI_API_KEY || "",
-      model: process.env.OPENAI_MODEL || "gpt-4o",
+      model: process.env.OPENAI_MODEL || process.env.AI_MODEL || "gpt-4o",
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     },
     // Speech-to-text for interview recordings. Pluggable: local Whisper (on

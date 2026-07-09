@@ -105,6 +105,10 @@ export async function listApplications(
     stage?: string;
     candidate_id?: string;
     search?: string;
+    department?: string;
+    location?: string;
+    date_from?: string;
+    date_to?: string;
     sort?: string;
     order?: "asc" | "desc";
   },
@@ -137,6 +141,23 @@ export async function listApplications(
       "(c.first_name LIKE ? OR c.last_name LIKE ? OR c.email LIKE ? OR CONCAT(c.first_name, ' ', c.last_name) LIKE ? OR j.title LIKE ?)"
     );
     queryParams.push(like, like, like, like, like);
+  }
+  if (params.department) {
+    conditions.push("j.department = ?");
+    queryParams.push(params.department);
+  }
+  if (params.location) {
+    conditions.push("j.location = ?");
+    queryParams.push(params.location);
+  }
+  // Date range on the application's applied date (inclusive, date-only).
+  if (params.date_from) {
+    conditions.push("DATE(a.applied_at) >= ?");
+    queryParams.push(params.date_from);
+  }
+  if (params.date_to) {
+    conditions.push("DATE(a.applied_at) <= ?");
+    queryParams.push(params.date_to);
   }
 
   const whereClause = conditions.join(" AND ");

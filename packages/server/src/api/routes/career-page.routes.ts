@@ -68,4 +68,32 @@ router.post("/publish", async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
+// GET /jobs — open, public jobs eligible for the career page (with their flag)
+router.get("/jobs", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const jobs = await careerPageService.getManagedJobs(req.user!.empcloudOrgId);
+    sendSuccess(res, jobs);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /jobs — set the exact set of jobs shown on the career page
+const setJobsSchema = z.object({ jobIds: z.array(z.string()) });
+router.put("/jobs", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const parsed = setJobsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new ValidationError("`jobIds` (array of job ids) is required");
+    }
+    const jobs = await careerPageService.setCareerJobs(
+      req.user!.empcloudOrgId,
+      parsed.data.jobIds,
+    );
+    sendSuccess(res, jobs);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export { router as careerPageRoutes };

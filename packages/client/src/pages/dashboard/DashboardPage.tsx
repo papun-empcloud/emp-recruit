@@ -138,10 +138,7 @@ function AdminDashboard() {
       value: totalApplications,
       icon: FileText,
       color: "bg-blue-50 text-blue-600",
-      // #10 — was `/jobs`, which dropped the user on the Job Posting tab.
-      // Applications are browsed through candidates until a dedicated
-      // /applications list page ships.
-      link: "/candidates",
+      link: "/applications",
     },
     {
       label: "Total Jobs",
@@ -217,10 +214,8 @@ function AdminDashboard() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Recent Applications</h2>
-            {/* #11 — was `/jobs`; Candidates is the closest list view for
-                applications until a dedicated `/applications` page exists. */}
             <Link
-              to="/candidates"
+              to="/applications"
               className="text-sm text-brand-600 hover:text-brand-700 inline-flex items-center gap-1"
             >
               View all <ChevronRight className="h-4 w-4" />

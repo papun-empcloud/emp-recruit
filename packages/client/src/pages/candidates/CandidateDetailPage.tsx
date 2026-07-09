@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Mail,
@@ -12,10 +13,14 @@ import {
   FileText,
   ExternalLink,
   Pencil,
+  Plus,
+  X,
+  Loader2,
 } from "lucide-react";
-import { apiGet } from "@/api/client";
+import { apiGet, apiPost } from "@/api/client";
 import { resolveUploadUrl } from "@/lib/utils";
-import type { Candidate, Application } from "@emp-recruit/shared";
+import toast from "react-hot-toast";
+import type { Candidate, Application, JobPosting, PaginatedResponse } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 
 const STAGE_BADGE: Record<string, string> = {
@@ -52,6 +57,38 @@ export function CandidateDetailPage() {
   const candidate = candidateData?.data;
   const applications = appsData?.data ?? [];
 
+  const queryClient = useQueryClient();
+  const [showApply, setShowApply] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState("");
+
+  // Open jobs to apply this candidate to (loaded when the dialog opens).
+  const { data: jobsData } = useQuery({
+    queryKey: ["open-jobs-for-apply"],
+    queryFn: () => apiGet<PaginatedResponse<JobPosting>>("/jobs", { status: "open", perPage: 100 }),
+    enabled: showApply,
+  });
+
+  const applyMutation = useMutation({
+    mutationFn: () =>
+      apiPost("/applications", {
+        job_id: selectedJobId,
+        candidate_id: id,
+        source: candidate?.source || "direct",
+      }),
+    onSuccess: () => {
+      toast.success("Candidate applied to the job");
+      queryClient.invalidateQueries({ queryKey: ["candidate-applications", id] });
+      setShowApply(false);
+      setSelectedJobId("");
+    },
+    onError: (err: any) => {
+      toast.error(
+        err.response?.data?.error?.message ||
+          "Failed to apply — the candidate may already be on this job.",
+      );
+    },
+  });
+
   if (loadingCandidate) {
     return (
       <div className="flex justify-center py-12">
@@ -86,6 +123,12 @@ export function CandidateDetailPage() {
   };
   const skills = parseJsonArray(candidate.skills);
   const tags = parseJsonArray(candidate.tags);
+
+  // Open jobs the candidate hasn't already applied to.
+  const appliedJobIds = new Set(applications.map((a: any) => a.job_id));
+  const availableJobs = ((jobsData?.data?.data ?? []) as JobPosting[]).filter(
+    (j) => !appliedJobIds.has(j.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -251,9 +294,17 @@ export function CandidateDetailPage() {
 
         {/* Applications */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Applications ({applications.length})
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Applications ({applications.length})
+            </h2>
+            <button
+              onClick={() => setShowApply(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              <Plus className="h-4 w-4" /> Apply to Job
+            </button>
+          </div>
 
           {loadingApps ? (
             <div className="flex justify-center py-8">
@@ -314,6 +365,72 @@ export function CandidateDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Apply-to-job dialog */}
+      {showApply && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowApply(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Apply to a Job</h3>
+              <button
+                onClick={() => setShowApply(false)}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mb-3 text-sm text-gray-500">
+              Add {candidate.first_name} {candidate.last_name} to an open position.
+            </p>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Open positions</label>
+            <select
+              value={selectedJobId}
+              onChange={(e) => setSelectedJobId(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="">Select a job…</option>
+              {availableJobs.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.title}
+                  {j.department ? ` — ${j.department}` : ""}
+                </option>
+              ))}
+            </select>
+            {availableJobs.length === 0 && (
+              <p className="mt-2 text-xs text-gray-400">
+                No open jobs available (or this candidate has already applied to all of them).
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={() => setShowApply(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => applyMutation.mutate()}
+                disabled={!selectedJobId || applyMutation.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              >
+                {applyMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
