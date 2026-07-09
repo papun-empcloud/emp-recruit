@@ -41,11 +41,19 @@ export const idParamSchema = z.object({
 // Jobs
 // ---------------------------------------------------------------------------
 
+// Strip HTML/script markup from plain-text fields so raw tags (e.g. a
+// "<script>alert(1)</script>" job title) are never stored. Tags are removed and
+// whitespace collapsed *before* the length checks, so "<script></script>" fails
+// the min-length requirement rather than being stored as an empty string.
+const stripTags = (s: string) => s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+const plainText = (schema: z.ZodString) =>
+  z.preprocess((v) => (typeof v === "string" ? stripTags(v) : v), schema);
+
 // Base object (no refinements) — so both create and update can derive cleanly.
 const jobBaseSchema = z.object({
-  title: z.string().min(2).max(200),
-  department: z.string().max(100).optional(),
-  location: z.string().max(200).optional(),
+  title: plainText(z.string().min(2).max(200)),
+  department: plainText(z.string().max(100)).optional(),
+  location: plainText(z.string().max(200)).optional(),
   employment_type: z.string().max(50).default("full_time"),
   experience_min: z.number().int().min(0).optional(),
   experience_max: z.number().int().min(0).optional(),
