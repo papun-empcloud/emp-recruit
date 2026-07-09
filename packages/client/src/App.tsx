@@ -47,6 +47,9 @@ const ScoringPage = lazyWithRetry(() =>
 const CareerPage = lazyWithRetry(() =>
   import("@/pages/career/CareerPage").then((m) => ({ default: m.CareerPage })),
 );
+const ApplicationsListPage = lazyWithRetry(() =>
+  import("@/pages/applications/ApplicationsListPage").then((m) => ({ default: m.ApplicationsListPage })),
+);
 function PageLoader() {
   return (
     <div className="flex h-64 items-center justify-center">
@@ -148,6 +151,9 @@ export default function App() {
 
             {/* Public career page management */}
             <Route path="/career-page" element={<CareerPage />} />
+
+            {/* All applications */}
+            <Route path="/applications" element={<ApplicationsListPage />} />
 
             {/* Analytics */}
             <Route path="/analytics" element={<AnalyticsPage />} />

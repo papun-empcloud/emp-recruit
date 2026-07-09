@@ -53,12 +53,18 @@
 
 /* Form controls — most inputs/selects carry no bg class, so without this they
    render as the browser's default gray in dark mode. */
-.dark input,
+.dark input:not([type="checkbox"]):not([type="radio"]),
 .dark select,
 .dark textarea {
   background-color: #0f1830;
   border-color: #2b3a58;
   color: #e6eaf2;
+}
+/* Checkboxes/radios must NOT get the forced input background (it turns them into
+   an empty gray box). Let them render as native dark controls with a brand tick. */
+.dark input[type="checkbox"],
+.dark input[type="radio"] {
+  accent-color: #6366f1;
 }
 .dark input::placeholder,
 .dark textarea::placeholder,

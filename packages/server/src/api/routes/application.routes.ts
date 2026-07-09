@@ -24,6 +24,10 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
     const stage = req.query.stage as string | undefined;
     const candidate_id = req.query.candidate_id as string | undefined;
     const search = req.query.search as string | undefined;
+    const department = req.query.department as string | undefined;
+    const location = req.query.location as string | undefined;
+    const date_from = req.query.date_from as string | undefined;
+    const date_to = req.query.date_to as string | undefined;
     const orgId = req.user!.empcloudOrgId;
 
     const result = await applicationService.listApplications(orgId, {
@@ -33,6 +37,10 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
       stage,
       candidate_id,
       search,
+      department,
+      location,
+      date_from,
+      date_to,
       sort: query.sort,
       order: query.order,
     });

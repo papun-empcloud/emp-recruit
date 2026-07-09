@@ -203,6 +203,23 @@ router.put("/:id", authorize("org_admin", "hr_admin", "hr_manager"), async (req:
 });
 
 // ---------------------------------------------------------------------------
+// PUT /:id/summary — Save HR summary/notes (independent of the transcript)
+// ---------------------------------------------------------------------------
+router.put("/:id/summary", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const orgId = req.user!.empcloudOrgId;
+    const { summary } = req.body ?? {};
+    if (typeof summary !== "string") {
+      throw new ValidationError("`summary` (string) is required");
+    }
+    const interview = await interviewService.updateSummary(orgId, String(req.params.id), summary);
+    return sendSuccess(res, interview);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // PATCH /:id/status — Change interview status (HR/admin only)
 // ---------------------------------------------------------------------------
 router.patch("/:id/status", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {

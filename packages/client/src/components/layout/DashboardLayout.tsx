@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Brain,
   Globe,
+  Inbox,
 } from "lucide-react";
 import { isLoggedIn, getUser, useAuthStore } from "@/lib/auth-store";
 import { cn, getInitials } from "@/lib/utils";
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
   { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
+  { to: "/applications", label: "Applications", icon: Inbox, adminOnly: true },
   { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },
   { to: "/offers", label: "Offers", icon: FileText, adminOnly: true },
   { to: "/onboarding", label: "Onboarding", icon: ClipboardList, adminOnly: true },

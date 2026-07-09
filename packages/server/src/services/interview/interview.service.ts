@@ -170,6 +170,23 @@ export async function updateInterview(
   return updated;
 }
 
+/**
+ * Update just the HR summary/notes for an interview. Independent of the
+ * transcript, so HR can jot notes before (or without) any recording.
+ */
+export async function updateSummary(
+  orgId: number,
+  id: string,
+  summary: string,
+): Promise<Interview> {
+  const db = getDB();
+  const existing = await db.findOne<Interview>("interviews", { id, organization_id: orgId });
+  if (!existing) {
+    throw new NotFoundError("Interview", id);
+  }
+  return db.update<Interview>("interviews", id, { summary } as Partial<Interview>);
+}
+
 // ---------------------------------------------------------------------------
 // List interviews with pagination and filters
 // ---------------------------------------------------------------------------

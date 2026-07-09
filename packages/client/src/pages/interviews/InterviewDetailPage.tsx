@@ -859,33 +859,17 @@ function TranscriptSection({ interviewId }: { interviewId: string }) {
 // ---------------------------------------------------------------------------
 // Summary (HR notes) — standalone card
 // ---------------------------------------------------------------------------
-function InterviewSummaryCard({ interviewId }: { interviewId: string }) {
+function InterviewSummaryCard({ interview }: { interview: InterviewDetail }) {
   const queryClient = useQueryClient();
-  const [summary, setSummary] = useState<string>("");
-  const [summaryInitialized, setSummaryInitialized] = useState(false);
+  const [summary, setSummary] = useState<string>(interview.summary || "");
   const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
 
-  const { data: transcript } = useQuery({
-    queryKey: ["transcript", interviewId],
-    queryFn: async () => {
-      const res = await apiGet<Transcript | null>(`/interviews/${interviewId}/transcript`);
-      return res.data ?? null;
-    },
-  });
-
-  // Initialize summary from fetched transcript
-  if (transcript && !summaryInitialized) {
-    setSummary(transcript.summary || "");
-    setSummaryInitialized(true);
-  }
-
   const saveSummaryMutation = useMutation({
-    mutationFn: async () => {
-      if (!transcript) return;
-      return apiPut(`/interviews/${interviewId}/transcript/${transcript.id}`, { summary });
-    },
+    // HR notes live on the interview, so they can be saved before (or without)
+    // any recording/transcript.
+    mutationFn: async () => apiPut(`/interviews/${interview.id}/summary`, { summary }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transcript", interviewId] });
+      queryClient.invalidateQueries({ queryKey: ["interview", interview.id] });
       setSaveSummarySuccess(true);
       setTimeout(() => setSaveSummarySuccess(false), 3000);
     },
@@ -900,18 +884,13 @@ function InterviewSummaryCard({ interviewId }: { interviewId: string }) {
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
         rows={4}
-        disabled={!transcript}
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
-        placeholder={
-          transcript
-            ? "Add a summary of the interview transcript..."
-            : "Generate a transcript first to add HR notes."
-        }
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        placeholder="Add HR notes about this interview…"
       />
       <div className="mt-2 flex items-center gap-3">
         <button
           onClick={() => saveSummaryMutation.mutate()}
-          disabled={saveSummaryMutation.isPending || !transcript}
+          disabled={saveSummaryMutation.isPending}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
         >
           {saveSummaryMutation.isPending ? "Saving..." : "Save Summary"}
@@ -1250,7 +1229,7 @@ export function InterviewDetailPage() {
       )}
 
       {/* Summary (HR notes) — standalone card, last */}
-      <InterviewSummaryCard interviewId={interview.id} />
+      <InterviewSummaryCard interview={interview} />
     </div>
   );
 }

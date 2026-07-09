@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { apiPost } from "@/api/client";
+import { ArrowLeft, Save, Loader2, Upload, FileText, X } from "lucide-react";
+import { api, apiPost } from "@/api/client";
 import type { Candidate } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
 
@@ -58,15 +58,31 @@ export function CandidateCreatePage() {
   // candidate we POST an application to link them to that job.
   const targetJobId = searchParams.get("job_id") || "";
   const [form, setForm] = useState<FormData>(INITIAL);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
       const created = await apiPost<Candidate>("/candidates", data);
-      if (targetJobId && created.data?.id) {
+      const candId = created.data?.id;
+
+      // Optional résumé upload — enables AI resume scoring later.
+      if (candId && resumeFile) {
+        try {
+          const fd = new FormData();
+          fd.append("resume", resumeFile);
+          await api.post(`/candidates/${candId}/resume`, fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        } catch {
+          toast.error("Candidate created, but the résumé upload failed. Add it from the candidate page.");
+        }
+      }
+
+      if (targetJobId && candId) {
         try {
           await apiPost("/applications", {
             job_id: targetJobId,
-            candidate_id: created.data.id,
+            candidate_id: candId,
             source: data.source || "direct",
           });
         } catch {
@@ -226,6 +242,44 @@ export function CandidateCreatePage() {
           {field("Portfolio URL", "portfolio_url", "url", { placeholder: "https://..." })}
           {field("Skills (comma separated)", "skills", "text", { placeholder: "React, TypeScript, Node.js" })}
           {field("Tags (comma separated)", "tags", "text", { placeholder: "senior, frontend, remote" })}
+        </div>
+
+        {/* Resume (optional) */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-3">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Resume <span className="text-sm font-normal text-gray-400">(optional)</span>
+          </h2>
+          {resumeFile ? (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+              <span className="flex min-w-0 items-center gap-2 text-sm text-gray-700">
+                <FileText className="h-4 w-4 flex-shrink-0 text-purple-600" />
+                <span className="truncate">{resumeFile.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setResumeFile(null)}
+                className="rounded p-1 text-gray-400 hover:text-gray-600"
+                aria-label="Remove resume"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 hover:border-brand-400 hover:bg-gray-50">
+              <Upload className="h-5 w-5" />
+              <span>Click to upload a resume</span>
+              <span className="text-xs text-gray-400">PDF, DOC, or DOCX</span>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+              />
+            </label>
+          )}
+          <p className="text-xs text-gray-400">
+            Optional — enables AI resume scoring. You can also add it later from the candidate page.
+          </p>
         </div>
 
         {/* Notes */}

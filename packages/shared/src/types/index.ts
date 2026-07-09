@@ -214,6 +214,7 @@ export interface Interview {
   meeting_embeddable: boolean;
   status: InterviewStatus;
   notes: string | null;
+  summary: string | null; // HR notes/summary — editable independently of the transcript
   created_by: number;
   created_at: string;
   updated_at: string;
