@@ -102,8 +102,9 @@ export function OfferEditPage() {
       toast.error("Expiry date cannot be in the past");
       return;
     }
-    if (form.joining_date && form.expiry_date && form.expiry_date < form.joining_date) {
-      toast.error("Expiry date cannot be before joining date");
+    // Expiry (accept-by deadline) must be on or before the joining date.
+    if (form.joining_date && form.expiry_date && form.expiry_date > form.joining_date) {
+      toast.error("Offer expiry date must be on or before the joining date");
       return;
     }
     const payload: Record<string, any> = {
@@ -238,7 +239,8 @@ export function OfferEditPage() {
                 type="date"
                 required
                 value={form.expiry_date}
-                min={form.joining_date || minDate}
+                min={minDate}
+                max={form.joining_date || undefined}
                 onChange={(e) => setForm((p) => ({ ...p, expiry_date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
