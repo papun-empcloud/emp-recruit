@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useBlocker } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -122,28 +121,54 @@ function CareerPageSettings() {
     (initialized && JSON.stringify(form) !== JSON.stringify(savedForm)) ||
     (jobsInitialized && jobsDirty);
 
-  // Warn before leaving with unsaved changes — in-app navigation (React Router)
-  // and browser close/refresh (beforeunload).
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      isDirty && currentLocation.pathname !== nextLocation.pathname,
-  );
-  useEffect(() => {
-    if (blocker.state !== "blocked") return;
-    if (window.confirm("You have unsaved changes on the Career Page. Leave without saving?")) {
-      blocker.proceed();
-    } else {
-      blocker.reset();
-    }
-  }, [blocker]);
+  // Warn before leaving with unsaved changes. The app uses BrowserRouter, not a
+  // data router, so React Router's useBlocker is unavailable (it throws). Guard
+  // in-app navigation with a capture-phase click listener on internal links, and
+  // browser close/refresh with beforeunload.
   useEffect(() => {
     if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
+    const onClick = (e: MouseEvent) => {
+      // Ignore modified clicks (new tab, etc.) and already-handled events.
+      if (
+        e.defaultPrevented ||
+        e.button !== 0 ||
+        e.metaKey ||
+        e.ctrlKey ||
+        e.shiftKey ||
+        e.altKey
+      ) {
+        return;
+      }
+      const anchor = (e.target as HTMLElement | null)?.closest("a");
+      const href = anchor?.getAttribute("href");
+      if (
+        !anchor ||
+        !href ||
+        anchor.target === "_blank" ||
+        anchor.hasAttribute("download") ||
+        href.startsWith("http") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("#")
+      ) {
+        return;
+      }
+      if (!window.confirm("You have unsaved changes on the Career Page. Leave without saving?")) {
+        // Capture phase runs before React Router's link handler, so stopping
+        // propagation here cancels the SPA navigation entirely.
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    document.addEventListener("click", onClick, true);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
   }, [isDirty]);
 
   if (configQuery.isLoading) {
