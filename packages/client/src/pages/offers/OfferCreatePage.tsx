@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
 import type { Application, PaginatedResponse } from "@emp-recruit/shared";
 
@@ -354,8 +355,7 @@ export function OfferCreatePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Joining Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <DateInput
                 required
                 value={form.joining_date}
                 min={minDate}
@@ -368,8 +368,7 @@ export function OfferCreatePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Offer Expiry Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <DateInput
                 required
                 value={form.expiry_date}
                 min={minDate}

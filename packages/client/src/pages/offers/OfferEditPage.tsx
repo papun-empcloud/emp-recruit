@@ -9,6 +9,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { apiGet, apiPut } from "@/api/client";
+import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
 import type { Offer } from "@emp-recruit/shared";
 
@@ -224,8 +225,7 @@ export function OfferEditPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date *</label>
-              <input
-                type="date"
+              <DateInput
                 required
                 value={form.joining_date}
                 min={minDate}
@@ -236,8 +236,7 @@ export function OfferEditPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
-              <input
-                type="date"
+              <DateInput
                 required
                 value={form.expiry_date}
                 min={minDate}
