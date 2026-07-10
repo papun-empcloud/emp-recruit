@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate } from "react-router-dom";
 import { Calendar, Users, Plus, Search, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
@@ -58,16 +58,29 @@ export function InterviewListPage() {
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const perPage = 20;
 
+  // Debounce the search box so we don't fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["interviews", page, statusFilter],
+    queryKey: ["interviews", page, statusFilter, search],
     queryFn: async () => {
       const params: Record<string, any> = { page, limit: perPage };
       if (statusFilter) params.status = statusFilter;
+      if (search) params.search = search;
       const res = await apiGet<PaginatedResponse<InterviewRow>>("/interviews", params);
       return res.data!;
     },
+    placeholderData: (prev) => prev,
   });
 
   return (
@@ -90,16 +103,25 @@ export function InterviewListPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search candidate or job…"
+            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+        <div>
           <select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="h-10 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
