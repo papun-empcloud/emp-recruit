@@ -243,11 +243,13 @@ export async function removeTemplateTask(
 // ---------------------------------------------------------------------------
 
 /**
- * Auto-generate an onboarding checklist when an offer is accepted, using the
- * org's default template (department-specific when one matches the role, else an
- * org-wide default). Best-effort: returns null and does nothing if there's no
- * default template or a checklist already exists — it must never block the offer
- * acceptance that triggers it.
+ * Auto-generate an onboarding checklist when an offer is accepted. Picks the
+ * most appropriate template for the new hire, preferring a department-specific
+ * default, then an org-wide default, then — so a misconfigured org that never
+ * flagged a template as default still gets a checklist — any template for the
+ * department, and finally any template at all. Best-effort: returns null and
+ * does nothing if there are no templates or a checklist already exists — it
+ * must never block the offer acceptance that triggers it.
  */
 export async function autoGenerateOnAcceptance(
   orgId: number,
@@ -264,17 +266,26 @@ export async function autoGenerateOnAcceptance(
   });
   if (existing) return null;
 
-  // Pick a default template: a department-specific default first, then any
-  // org-wide default.
-  const defaults = await db.findMany<OnboardingTemplate>("onboarding_templates", {
-    filters: { organization_id: orgId, is_default: true },
-    limit: 50,
+  const all = await db.findMany<OnboardingTemplate>("onboarding_templates", {
+    filters: { organization_id: orgId },
+    limit: 100,
   });
+  const templates = all.data;
+  if (templates.length === 0) return null; // nothing configured — nothing to do
+
+  const dept = department || null;
   const template =
-    (department ? defaults.data.find((t) => t.department === department) : undefined) ||
-    defaults.data.find((t) => !t.department) ||
-    defaults.data[0];
-  if (!template) return null; // no default template configured — nothing to do
+    // a department-specific default is the best match
+    (dept ? templates.find((t) => t.is_default && t.department === dept) : undefined) ||
+    // then an org-wide (department-less) default
+    templates.find((t) => t.is_default && !t.department) ||
+    // then any default
+    templates.find((t) => t.is_default) ||
+    // then a department match even if it isn't flagged default
+    (dept ? templates.find((t) => t.department === dept) : undefined) ||
+    // finally, any template so a checklist is still generated
+    templates[0];
+  if (!template) return null;
 
   return generateChecklist(orgId, applicationId, template.id, joiningDate);
 }
