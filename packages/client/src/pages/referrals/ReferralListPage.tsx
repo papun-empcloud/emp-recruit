@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Gift, Plus, X, Pencil, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Gift, Plus, X, Pencil, Search } from "lucide-react";
 import { api, apiGet, apiPost } from "@/api/client";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { formatDate } from "@/lib/utils";
 import { getUser } from "@/lib/auth-store";
 import toast from "react-hot-toast";
@@ -56,7 +58,6 @@ export function ReferralListPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [listSearchInput, setListSearchInput] = useState("");
   const [listSearch, setListSearch] = useState("");
-  const perPage = 20;
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -111,17 +112,16 @@ export function ReferralListPage() {
   });
   const openJobs: JobPosting[] = jobsQuery.data || [];
 
-  const referralsQuery = useQuery({
-    queryKey: ["referrals", listPage, statusFilter, listSearch],
-    queryFn: async () => {
-      const params: Record<string, any> = { page: listPage, limit: perPage };
-      if (statusFilter) params.status = statusFilter;
-      if (listSearch) params.search = listSearch;
-      const res = await apiGet<any>("/referrals", params);
-      return res.data;
-    },
-    placeholderData: (prev) => prev,
-  });
+  const {
+    rows: referrals,
+    total: refTotal,
+    isLoading: referralsLoading,
+  } = usePaginatedList<ReferralRow>(
+    ["referrals"],
+    "/referrals",
+    { status: statusFilter, search: listSearch },
+    listPage,
+  );
 
   const submitMutation = useMutation({
     mutationFn: (data: typeof form) => apiPost("/referrals", data),
@@ -198,9 +198,6 @@ export function ReferralListPage() {
     submitMutation.mutate(form);
   }
 
-  const referrals: ReferralRow[] = referralsQuery.data?.data || [];
-  const refTotal: number = referralsQuery.data?.total ?? 0;
-  const refTotalPages: number = referralsQuery.data?.totalPages ?? 1;
   const filtersActive = Boolean(statusFilter || listSearch);
 
   return (
@@ -414,7 +411,7 @@ export function ReferralListPage() {
 
       {/* Table */}
       <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {referralsQuery.isLoading ? (
+        {referralsLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
           </div>
@@ -476,26 +473,14 @@ export function ReferralListPage() {
       </div>
 
       {/* Pagination */}
-      {refTotalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between">
-          <button
-            onClick={() => setListPage((p) => Math.max(1, p - 1))}
-            disabled={listPage <= 1}
-            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" /> Previous
-          </button>
-          <span className="text-sm text-gray-500">
-            Page {listPage} of {refTotalPages}
-          </span>
-          <button
-            onClick={() => setListPage((p) => Math.min(refTotalPages, p + 1))}
-            disabled={listPage >= refTotalPages}
-            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Next <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+      {!referralsLoading && referrals.length > 0 && (
+        <Pagination
+          className="mt-4"
+          page={listPage}
+          perPage={DEFAULT_PAGE_SIZE}
+          total={refTotal}
+          onPageChange={setListPage}
+        />
       )}
 
       {editingRef && (
