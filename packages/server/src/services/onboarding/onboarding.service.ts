@@ -242,6 +242,43 @@ export async function removeTemplateTask(
 // Checklist Generation & Management
 // ---------------------------------------------------------------------------
 
+/**
+ * Auto-generate an onboarding checklist when an offer is accepted, using the
+ * org's default template (department-specific when one matches the role, else an
+ * org-wide default). Best-effort: returns null and does nothing if there's no
+ * default template or a checklist already exists — it must never block the offer
+ * acceptance that triggers it.
+ */
+export async function autoGenerateOnAcceptance(
+  orgId: number,
+  applicationId: string,
+  joiningDate: string,
+  department: string | null,
+): Promise<(OnboardingChecklist & { tasks: OnboardingTask[] }) | null> {
+  const db = getDB();
+
+  // Don't duplicate a checklist that already exists for this application.
+  const existing = await db.findOne<OnboardingChecklist>("onboarding_checklists", {
+    application_id: applicationId,
+    organization_id: orgId,
+  });
+  if (existing) return null;
+
+  // Pick a default template: a department-specific default first, then any
+  // org-wide default.
+  const defaults = await db.findMany<OnboardingTemplate>("onboarding_templates", {
+    filters: { organization_id: orgId, is_default: true },
+    limit: 50,
+  });
+  const template =
+    (department ? defaults.data.find((t) => t.department === department) : undefined) ||
+    defaults.data.find((t) => !t.department) ||
+    defaults.data[0];
+  if (!template) return null; // no default template configured — nothing to do
+
+  return generateChecklist(orgId, applicationId, template.id, joiningDate);
+}
+
 export async function generateChecklist(
   orgId: number,
   applicationId: string,

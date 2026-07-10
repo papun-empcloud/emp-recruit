@@ -6,6 +6,8 @@
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
 import { toMysqlDateTime } from "../../utils/date";
+import { logger } from "../../utils/logger";
+import * as onboardingService from "../onboarding/onboarding.service";
 import type { Offer, OfferApprover, OfferStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -413,14 +415,38 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
 
   // Mark the underlying job posting as "filled" so HR sees it in the Filled
   // tab on the job listings page.
+  let department: string | null = null;
   if (offer.job_id) {
-    const job = await db.findOne<{ id: string; status: string }>("job_postings", {
-      id: offer.job_id,
-      organization_id: orgId,
-    });
+    const job = await db.findOne<{ id: string; status: string; department: string | null }>(
+      "job_postings",
+      { id: offer.job_id, organization_id: orgId },
+    );
+    department = job?.department ?? null;
     if (job && job.status !== "closed") {
       await db.update("job_postings", offer.job_id, { status: "filled" });
     }
+  }
+
+  // Auto-generate the onboarding checklist for the new hire (the offer-to-
+  // onboarding handoff the UI advertises). Best-effort — a missing default
+  // template or any error must never fail the acceptance itself.
+  try {
+    const joining = offer.joining_date
+      ? String(offer.joining_date).slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    const checklist = await onboardingService.autoGenerateOnAcceptance(
+      orgId,
+      offer.application_id,
+      joining,
+      department,
+    );
+    if (checklist) {
+      logger.info(`Onboarding checklist auto-generated for accepted offer ${id}`);
+    } else {
+      logger.info(`Offer ${id} accepted but no default onboarding template — checklist skipped`);
+    }
+  } catch (err) {
+    logger.error(`Onboarding auto-generation failed for offer ${id}:`, err);
   }
 
   // Notify EMP Cloud about the hire (non-blocking)
