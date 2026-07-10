@@ -43,6 +43,7 @@ interface UpdateOfferData {
 
 interface ListOffersParams {
   status?: OfferStatus;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -197,24 +198,64 @@ export async function getOffer(
 
 export async function listOffers(orgId: number, params: ListOffersParams) {
   const db = getDB();
+  const page = params.page || 1;
+  const limit = params.limit || 20;
 
-  const filters: Record<string, any> = { organization_id: orgId };
-  if (params.status) {
-    filters.status = params.status;
+  let rows: Offer[];
+  let total: number;
+  let totalPages: number;
+
+  const search = params.search?.trim();
+  if (search) {
+    // Search the candidate name and job title (both the stored offer title and
+    // the linked posting's title), so the filtered total is accurate rather than
+    // filtering a single page client-side.
+    const like = `%${search}%`;
+    const offset = (page - 1) * limit;
+    const statusClause = params.status ? "AND o.status = ? " : "";
+    const statusArgs: any[] = params.status ? [params.status] : [];
+    const searchArgs = [like, like, like, like, like];
+
+    const joinWhere = `FROM offers o
+        LEFT JOIN candidates c ON c.id = o.candidate_id
+        LEFT JOIN job_postings j ON j.id = o.job_id
+       WHERE o.organization_id = ? ${statusClause}
+         AND (c.first_name LIKE ? OR c.last_name LIKE ?
+              OR CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,'')) LIKE ?
+              OR o.job_title LIKE ? OR j.title LIKE ?)`;
+
+    const countRows = await db.raw<any[][]>(
+      `SELECT COUNT(*) as total ${joinWhere}`,
+      [orgId, ...statusArgs, ...searchArgs],
+    );
+    total = Number(countRows[0]?.[0]?.total ?? 0);
+
+    const dataRows = await db.raw<any[][]>(
+      `SELECT o.* ${joinWhere} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
+      [orgId, ...statusArgs, ...searchArgs, limit, offset],
+    );
+    rows = dataRows[0] as Offer[];
+    totalPages = Math.max(1, Math.ceil(total / limit));
+  } else {
+    const filters: Record<string, any> = { organization_id: orgId };
+    if (params.status) filters.status = params.status;
+
+    const result = await db.findMany<Offer>("offers", {
+      filters,
+      page,
+      limit,
+      sort: { field: "created_at", order: "desc" },
+    });
+    rows = result.data;
+    total = result.total;
+    totalPages = result.totalPages;
   }
-
-  const result = await db.findMany<Offer>("offers", {
-    filters,
-    page: params.page || 1,
-    limit: params.limit || 20,
-    sort: { field: "created_at", order: "desc" },
-  });
 
   // Enrich with candidate and job info
   const enriched = await Promise.all(
-    result.data.map(async (offer) => {
+    rows.map(async (offer) => {
       const candidate = await db.findById<any>("candidates", offer.candidate_id);
-      const job = await db.findById<any>("job_postings", offer.job_id);
+      const job = offer.job_id ? await db.findById<any>("job_postings", offer.job_id) : null;
       return {
         ...offer,
         candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
@@ -225,10 +266,10 @@ export async function listOffers(orgId: number, params: ListOffersParams) {
 
   return {
     data: enriched,
-    total: result.total,
-    page: result.page,
-    limit: result.limit,
-    totalPages: result.totalPages,
+    total,
+    page,
+    limit,
+    totalPages,
   };
 }
 
