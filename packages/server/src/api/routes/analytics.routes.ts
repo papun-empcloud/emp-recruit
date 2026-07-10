@@ -57,4 +57,25 @@ router.get("/sources", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
+// GET /metrics — hire rate + offer outcome stats
+router.get("/metrics", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await analyticsService.getKpiMetrics(req.user!.empcloudOrgId);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /trend — weekly application volume
+router.get("/trend", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const weeks = req.query.weeks ? Math.min(26, Math.max(4, parseInt(req.query.weeks as string, 10))) : 8;
+    const data = await analyticsService.getApplicationsTrend(req.user!.empcloudOrgId, weeks);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+});
+
 export { router as analyticsRoutes };
