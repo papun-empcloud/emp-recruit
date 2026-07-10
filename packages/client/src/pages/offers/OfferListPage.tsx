@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   FileText,
@@ -11,8 +10,9 @@ import {
   AlertCircle,
   Search,
 } from "lucide-react";
-import { apiGet } from "@/api/client";
-import type { Offer, OfferStatus, PaginatedResponse } from "@emp-recruit/shared";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import type { Offer } from "@emp-recruit/shared";
 
 type EnrichedOffer = Offer & { candidate_name: string; job_title_display: string };
 
@@ -68,26 +68,23 @@ function formatDate(dateStr: string) {
 export function OfferListPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["offers", activeTab, page],
-    queryFn: () =>
-      apiGet<PaginatedResponse<EnrichedOffer>>("/offers", {
-        ...(activeTab !== "all" && { status: activeTab }),
-        page,
-        limit: 20,
-      }),
-  });
+  // Debounce the search box and reset to page 1 when the term changes.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
-  const offers = data?.data;
-  const filtered = offers?.data?.filter(
-    (o) =>
-      !search ||
-      o.candidate_name.toLowerCase().includes(search.toLowerCase()) ||
-      // Match the title actually shown in the row (job_title_display), falling
-      // back to the stored offer title.
-      (o.job_title_display || o.job_title || "").toLowerCase().includes(search.toLowerCase()),
+  const { rows: offers, total, isLoading } = usePaginatedList<EnrichedOffer>(
+    ["offers"],
+    "/offers",
+    { status: activeTab !== "all" ? activeTab : "", search },
+    page,
   );
 
   return (
@@ -113,8 +110,8 @@ export function OfferListPage() {
         <input
           type="text"
           placeholder="Search by candidate or job title..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
       </div>
@@ -143,12 +140,16 @@ export function OfferListPage() {
         <div className="flex h-64 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
         </div>
-      ) : !filtered || filtered.length === 0 ? (
+      ) : offers.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white">
           <FileText className="h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-sm font-medium text-gray-900">No offers found</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {activeTab === "all" ? "Create your first offer to get started." : `No ${activeTab.replace("_", " ")} offers.`}
+            {search
+              ? "No offers match your search."
+              : activeTab === "all"
+                ? "Create your first offer to get started."
+                : `No ${activeTab.replace("_", " ")} offers.`}
           </p>
         </div>
       ) : (
@@ -164,7 +165,7 @@ export function OfferListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filtered.map((offer) => (
+              {offers.map((offer) => (
                 <tr key={offer.id} className="hover:bg-gray-50 transition-colors">
                   <td className="whitespace-nowrap px-6 py-4">
                     <Link to={`/offers/${offer.id}`} className="font-medium text-gray-900 hover:text-brand-600">
@@ -191,30 +192,14 @@ export function OfferListPage() {
             </tbody>
           </table>
 
-          {/* Pagination */}
-          {offers && offers.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
-              <p className="text-sm text-gray-500">
-                Page {offers.page} of {offers.totalPages} ({offers.total} total)
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page >= (offers?.totalPages || 1)}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="border-t border-gray-200 bg-white px-6 py-3">
+            <Pagination
+              page={page}
+              perPage={DEFAULT_PAGE_SIZE}
+              total={total}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       )}
     </div>
