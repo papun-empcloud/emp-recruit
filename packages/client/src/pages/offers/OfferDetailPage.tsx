@@ -403,7 +403,12 @@ export function OfferDetailPage() {
                 <Briefcase className="mt-0.5 h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-xs font-medium uppercase text-gray-500">Job Title</p>
-                  <p className="text-sm font-medium text-gray-900">{offer.job_title}</p>
+                  {/* Use job_title_display (live job title, falling back to the
+                      stored offer title) so this matches the Offers list, which
+                      shows the same field. */}
+                  <p className="text-sm font-medium text-gray-900">
+                    {offer.job_title_display || offer.job_title}
+                  </p>
                   {offer.department && <p className="text-xs text-gray-500">{offer.department}</p>}
                 </div>
               </div>

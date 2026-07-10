@@ -85,7 +85,9 @@ export function OfferListPage() {
     (o) =>
       !search ||
       o.candidate_name.toLowerCase().includes(search.toLowerCase()) ||
-      o.job_title.toLowerCase().includes(search.toLowerCase()),
+      // Match the title actually shown in the row (job_title_display), falling
+      // back to the stored offer title.
+      (o.job_title_display || o.job_title || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
