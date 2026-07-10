@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate } from "react-router-dom";
-import { Calendar, Users, Plus, Search, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
-import { apiGet } from "@/api/client";
+import { Calendar, Users, Plus, Search, ShieldAlert } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
 import { cn, formatDate } from "@/lib/utils";
-import type { InterviewStatus, InterviewType, PaginatedResponse } from "@emp-recruit/shared";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import type { InterviewStatus, InterviewType } from "@emp-recruit/shared";
 
 interface InterviewRow {
   id: string;
@@ -60,7 +60,6 @@ export function InterviewListPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const perPage = 20;
 
   // Debounce the search box so we don't fire a request per keystroke.
   useEffect(() => {
@@ -71,17 +70,12 @@ export function InterviewListPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["interviews", page, statusFilter, search],
-    queryFn: async () => {
-      const params: Record<string, any> = { page, limit: perPage };
-      if (statusFilter) params.status = statusFilter;
-      if (search) params.search = search;
-      const res = await apiGet<PaginatedResponse<InterviewRow>>("/interviews", params);
-      return res.data!;
-    },
-    placeholderData: (prev) => prev,
-  });
+  const { rows, total, isLoading, isError } = usePaginatedList<InterviewRow>(
+    ["interviews"],
+    "/interviews",
+    { status: statusFilter, search },
+    page,
+  );
 
   return (
     <div className="space-y-6">
@@ -175,14 +169,14 @@ export function InterviewListPage() {
                 </td>
               </tr>
             )}
-            {data && data.data.length === 0 && (
+            {!isLoading && !isError && rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
                   No interviews found.
                 </td>
               </tr>
             )}
-            {data?.data.map((interview) => (
+            {rows.map((interview) => (
               <tr key={interview.id} className="hover:bg-gray-50 transition-colors">
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="text-sm font-medium text-gray-900">
@@ -236,27 +230,14 @@ export function InterviewListPage() {
         </table>
 
         {/* Pagination */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
-            <p className="text-sm text-gray-700">
-              Page {data.page} of {data.totalPages} ({data.total} total)
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                disabled={page >= data.totalPages}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+        {!isLoading && rows.length > 0 && (
+          <div className="border-t border-gray-200 bg-white px-6 py-3">
+            <Pagination
+              page={page}
+              perPage={DEFAULT_PAGE_SIZE}
+              total={total}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </div>
