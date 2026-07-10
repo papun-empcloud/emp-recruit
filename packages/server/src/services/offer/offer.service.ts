@@ -76,13 +76,35 @@ export async function createOffer(orgId: number, data: CreateOfferData): Promise
     throw new ValidationError("Job title is required (and could not be derived from the job)");
   }
 
+  // Offers that are still "live" — anything not terminally closed. A new offer
+  // is only a duplicate against one of these; a candidate can be re-offered
+  // after a prior offer was declined/revoked/expired.
+  const TERMINAL = ["declined", "revoked", "expired"];
+
   // Check no active offer exists for this application
   const existingOffer = await db.findOne<Offer>("offers", {
     application_id: data.application_id,
     organization_id: orgId,
   });
-  if (existingOffer && !["declined", "revoked", "expired"].includes(existingOffer.status)) {
+  if (existingOffer && !TERMINAL.includes(existingOffer.status)) {
     throw new ValidationError("An active offer already exists for this application");
+  }
+
+  // Guard against a duplicate offer for the same candidate + role reached via a
+  // DIFFERENT application (e.g. the candidate applied to the same job twice, or
+  // an offer was raised on each application). The per-application check above
+  // misses that, which let two live offers for one candidate/role slip through.
+  if (candidateId && jobId) {
+    const sameRoleOffers = await db.findMany<Offer>("offers", {
+      filters: { organization_id: orgId, candidate_id: candidateId, job_id: jobId },
+      limit: 100,
+    });
+    const activeDuplicate = sameRoleOffers.data.find((o) => !TERMINAL.includes(o.status));
+    if (activeDuplicate) {
+      throw new ValidationError(
+        "An active offer already exists for this candidate and role. Revoke or close the existing offer before creating a new one.",
+      );
+    }
   }
 
   const offer = await db.create<Offer>("offers", {
