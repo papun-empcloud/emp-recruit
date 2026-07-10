@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { getDB } from "../../db/adapters";
+import { findUserById } from "../../db/empcloud";
 import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
 import { toMysqlDateTime } from "../../utils/date";
 import { logger } from "../../utils/logger";
@@ -170,6 +171,16 @@ export async function getOffer(
     limit: 100,
   });
 
+  // Resolve each approver's name from EmpCloud so the approval trail shows a
+  // person, not a raw "User #480".
+  const approvers = await Promise.all(
+    approversResult.data.map(async (a) => {
+      const u = await findUserById(a.user_id).catch(() => null);
+      const name = u ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : "";
+      return { ...a, approver_name: name || null, approver_email: u?.email ?? null };
+    }),
+  );
+
   // Resolve candidate/job so the detail view can show names, not raw UUIDs
   // (mirrors the enrichment listOffers already does).
   const candidate = await db.findById<any>("candidates", offer.candidate_id);
@@ -180,7 +191,7 @@ export async function getOffer(
     candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
     candidate_email: candidate?.email ?? null,
     job_title_display: job?.title || offer.job_title,
-    approvers: approversResult.data,
+    approvers,
   };
 }
 

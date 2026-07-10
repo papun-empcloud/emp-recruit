@@ -651,7 +651,7 @@ export function OfferDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          User #{approver.user_id}
+                          {(approver as any).approver_name || `User #${approver.user_id}`}
                         </p>
                         {approver.notes && (
                           <p className="text-xs text-gray-500 truncate">{approver.notes}</p>
