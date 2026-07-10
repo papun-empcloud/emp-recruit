@@ -1,27 +1,50 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import {
   Loader2,
-  Briefcase,
-  Users,
-  UserCheck,
   TrendingUp,
+  CheckCircle2,
+  UserCheck,
+  Send,
   Clock,
   BarChart3,
+  LineChart as LineIcon,
   PieChart as PieIcon,
+  FileText,
 } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  Tooltip,
+} from "recharts";
 import { apiGet } from "@/api/client";
 
-interface OverviewData {
-  openJobs: number;
-  totalCandidates: number;
-  activeApplications: number;
-  recentHires: number;
+// The Analytics page intentionally does NOT repeat the Dashboard's entity counts
+// (open jobs / candidates / applications) or its pipeline-stage distribution.
+// It focuses on analytical rates and outcomes the Dashboard doesn't surface:
+// hire rate, offer acceptance, application volume trend, offer outcomes, time to
+// hire, and source effectiveness.
+
+interface KpiMetrics {
+  totalApplications: number;
+  hired: number;
+  hireRate: number;
+  offers: {
+    total: number;
+    accepted: number;
+    declined: number;
+    pending: number;
+    expired: number;
+    acceptanceRate: number;
+  };
 }
 
-interface PipelineStage {
-  stage: string;
+interface TrendPoint {
+  weekStart: string;
   count: number;
 }
 
@@ -37,37 +60,29 @@ interface SourceData {
   hireRate: number;
 }
 
-const STAGE_COLORS: Record<string, string> = {
-  applied: "from-blue-400 to-blue-500",
-  screened: "from-cyan-400 to-cyan-500",
-  interview: "from-yellow-400 to-yellow-500",
-  offer: "from-purple-400 to-purple-500",
-  hired: "from-green-400 to-green-500",
-  rejected: "from-red-300 to-red-400",
-  withdrawn: "from-gray-300 to-gray-400",
-};
-
-const STAGE_LABELS: Record<string, string> = {
-  applied: "Applied",
-  screened: "Screened",
-  interview: "Interview",
-  offer: "Offer",
-  hired: "Hired",
-  rejected: "Rejected",
-  withdrawn: "Withdrawn",
-};
-
 // Distinct colors for the source donut (cycled).
 const SOURCE_COLORS = ["#6366F1", "#06B6D4", "#F59E0B", "#10B981", "#EC4899", "#8B5CF6", "#64748B"];
 
+const OFFER_OUTCOMES: { key: keyof KpiMetrics["offers"]; label: string; color: string }[] = [
+  { key: "accepted", label: "Accepted", color: "bg-green-500" },
+  { key: "declined", label: "Declined", color: "bg-red-500" },
+  { key: "pending", label: "Pending", color: "bg-amber-500" },
+  { key: "expired", label: "Expired", color: "bg-gray-400" },
+];
+
+function weekLabel(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
 export function AnalyticsPage() {
-  const overviewQuery = useQuery({
-    queryKey: ["analytics", "overview"],
-    queryFn: async () => (await apiGet<OverviewData>("/analytics/overview")).data!,
+  const metricsQuery = useQuery({
+    queryKey: ["analytics", "metrics"],
+    queryFn: async () => (await apiGet<KpiMetrics>("/analytics/metrics")).data!,
   });
-  const pipelineQuery = useQuery({
-    queryKey: ["analytics", "pipeline"],
-    queryFn: async () => (await apiGet<PipelineStage[]>("/analytics/pipeline")).data!,
+  const trendQuery = useQuery({
+    queryKey: ["analytics", "trend"],
+    queryFn: async () => (await apiGet<TrendPoint[]>("/analytics/trend")).data!,
   });
   const timeToHireQuery = useQuery({
     queryKey: ["analytics", "time-to-hire"],
@@ -78,185 +93,246 @@ export function AnalyticsPage() {
     queryFn: async () => (await apiGet<SourceData[]>("/analytics/sources")).data!,
   });
 
-  const overview = overviewQuery.data;
-  const pipeline = pipelineQuery.data || [];
+  const metrics = metricsQuery.data;
+  const trend = trendQuery.data || [];
   const timeToHire = timeToHireQuery.data;
   const sources = sourcesQuery.data || [];
 
-  const maxPipelineCount = Math.max(...pipeline.map((s) => s.count), 1);
-  // Top-of-funnel count to compute stage conversion %.
-  const topCount =
-    pipeline.find((s) => s.stage === "applied")?.count ?? pipeline[0]?.count ?? 0;
   const sourcesTotal = sources.reduce((sum, s) => sum + s.total, 0);
+  const trendData = trend.map((t) => ({ label: weekLabel(t.weekStart), count: t.count }));
+  const trendTotal = trend.reduce((sum, t) => sum + t.count, 0);
+  const offerMax = metrics
+    ? Math.max(
+        metrics.offers.accepted,
+        metrics.offers.declined,
+        metrics.offers.pending,
+        metrics.offers.expired,
+        1,
+      )
+    : 1;
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Recruitment Analytics</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Hiring funnel, time-to-hire, and source effectiveness.
+          Conversion rates, offer outcomes, hiring velocity, and source effectiveness.
         </p>
       </div>
 
-      {/* Stat cards */}
-      {overviewQuery.isLoading ? (
+      {/* KPI cards — analytical rates, not the Dashboard's entity counts */}
+      {metricsQuery.isLoading ? (
         <div className="flex h-24 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
         </div>
-      ) : overview ? (
+      ) : metrics ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={Briefcase} label="Open Jobs" value={overview.openJobs} accent="blue" href="/jobs?status=open" />
-          <StatCard icon={Users} label="Total Candidates" value={overview.totalCandidates} accent="purple" href="/candidates" />
-          <StatCard icon={TrendingUp} label="Active Applications" value={overview.activeApplications} accent="amber" href="/candidates" />
-          <StatCard icon={UserCheck} label="Hires" value={overview.recentHires} accent="green" href="/offers?status=accepted" />
+          <StatCard
+            icon={TrendingUp}
+            label="Hire Rate"
+            value={`${metrics.hireRate}%`}
+            sub={`${metrics.hired} of ${metrics.totalApplications} applications`}
+            accent="green"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="Offer Acceptance"
+            value={`${metrics.offers.acceptanceRate}%`}
+            sub={`${metrics.offers.accepted} of ${metrics.offers.accepted + metrics.offers.declined} decided`}
+            accent="blue"
+          />
+          <StatCard
+            icon={UserCheck}
+            label="Total Hires"
+            value={metrics.hired}
+            sub="candidates hired"
+            accent="purple"
+          />
+          <StatCard
+            icon={Send}
+            label="Pending Offers"
+            value={metrics.offers.pending}
+            sub="awaiting candidate response"
+            accent="amber"
+          />
         </div>
       ) : null}
 
+      {/* Row 2: Applications trend + Source effectiveness */}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {/* Pipeline Funnel */}
+        {/* Applications Trend */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-            <BarChart3 className="h-5 w-5 text-brand-600" />
-            Pipeline Funnel
+            <LineIcon className="h-5 w-5 text-brand-600" />
+            Applications Trend
+            <span className="ml-auto text-xs font-normal text-gray-400">last 8 weeks</span>
           </h2>
-          {pipelineQuery.isLoading ? (
+          {trendQuery.isLoading ? (
             <div className="flex h-48 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
             </div>
-          ) : pipeline.length === 0 || topCount === 0 ? (
-            <EmptyState message="No candidates in the pipeline yet." />
+          ) : trendTotal === 0 ? (
+            <EmptyState message="No applications in the last 8 weeks." />
+          ) : (
+            <div className="mt-4 h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trendData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(99,102,241,0.06)" }}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }}
+                    labelFormatter={(l) => `Week of ${l}`}
+                    formatter={(v: number) => [v, "Applications"]}
+                  />
+                  <Bar dataKey="count" fill="#6366F1" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        {/* Source Effectiveness */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <PieIcon className="h-5 w-5 text-brand-600" />
+            Source Effectiveness
+          </h2>
+          {sourcesQuery.isLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+            </div>
+          ) : sources.length === 0 || sourcesTotal === 0 ? (
+            <EmptyState message="No candidate sources tracked yet." compact />
+          ) : (
+            <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="relative h-32 w-32 flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={sources}
+                      dataKey="total"
+                      nameKey="source"
+                      innerRadius={38}
+                      outerRadius={60}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {sources.map((_, i) => (
+                        <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-lg font-bold text-gray-900">{sourcesTotal}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-gray-400">total</span>
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-2">
+                {sources.map((src, i) => (
+                  <div key={src.source} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                        style={{ backgroundColor: SOURCE_COLORS[i % SOURCE_COLORS.length] }}
+                      />
+                      <span className="truncate capitalize text-gray-700">{src.source}</span>
+                    </span>
+                    <span className="flex flex-shrink-0 items-center gap-2">
+                      <span className="text-xs text-gray-400">
+                        {src.hired}/{src.total}
+                      </span>
+                      <span
+                        className={`inline-flex w-12 justify-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          src.hireRate >= 30
+                            ? "bg-green-100 text-green-700"
+                            : src.hireRate >= 10
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {src.hireRate}%
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Row 3: Offer outcomes + Time to hire */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {/* Offer Outcomes */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <FileText className="h-5 w-5 text-brand-600" />
+            Offer Outcomes
+          </h2>
+          {metricsQuery.isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+            </div>
+          ) : !metrics || metrics.offers.total === 0 ? (
+            <EmptyState message="No offers extended yet." />
           ) : (
             <div className="mt-5 space-y-4">
-              {pipeline.map((stage) => {
-                const pct = topCount > 0 ? Math.round((stage.count / topCount) * 100) : 0;
-                const barWidth = Math.max((stage.count / maxPipelineCount) * 100, stage.count > 0 ? 3 : 0);
+              {OFFER_OUTCOMES.map(({ key, label, color }) => {
+                const count = metrics.offers[key] as number;
+                const width = Math.max((count / offerMax) * 100, count > 0 ? 4 : 0);
                 return (
-                  <div key={stage.stage}>
-                    <div className="mb-1.5 flex items-baseline justify-between text-sm">
-                      <span className="font-medium text-gray-700">
-                        {STAGE_LABELS[stage.stage] || stage.stage}
-                      </span>
-                      <span className="flex items-baseline gap-2">
-                        <span className="font-semibold text-gray-900">{stage.count}</span>
-                        {stage.stage !== "applied" && (
-                          <span className="text-xs text-gray-400">{pct}%</span>
-                        )}
-                      </span>
+                  <div key={key}>
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-700">{label}</span>
+                      <span className="font-semibold text-gray-900">{count}</span>
                     </div>
-                    <div className="h-7 w-full overflow-hidden rounded-lg bg-gray-100">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
                       <div
-                        className={`h-full rounded-lg bg-gradient-to-r transition-all duration-500 ${
-                          STAGE_COLORS[stage.stage] || "from-gray-300 to-gray-400"
-                        }`}
-                        style={{ width: `${barWidth}%` }}
+                        className={`h-full rounded-full ${color} transition-all duration-500`}
+                        style={{ width: `${width}%` }}
                       />
                     </div>
                   </div>
                 );
               })}
+              <p className="pt-1 text-xs text-gray-400">
+                {metrics.offers.total} offer{metrics.offers.total !== 1 ? "s" : ""} extended in total
+              </p>
             </div>
           )}
         </div>
 
-        {/* Time to Hire + Source breakdown */}
-        <div className="space-y-6">
-          {/* Time to Hire */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-              <Clock className="h-5 w-5 text-brand-600" />
-              Time to Hire
-            </h2>
-            {timeToHireQuery.isLoading ? (
-              <div className="flex h-20 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+        {/* Time to Hire */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <Clock className="h-5 w-5 text-brand-600" />
+            Time to Hire
+          </h2>
+          {timeToHireQuery.isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+            </div>
+          ) : timeToHire && timeToHire.hiredCount > 0 ? (
+            <div className="flex h-40 flex-col justify-center">
+              <div className="flex items-end gap-2">
+                <span className="text-5xl font-bold text-gray-900">{timeToHire.averageDays}</span>
+                <span className="mb-2 text-sm text-gray-500">days on average</span>
               </div>
-            ) : timeToHire && timeToHire.hiredCount > 0 ? (
-              <>
-                <div className="mt-4 flex items-end gap-2">
-                  <span className="text-4xl font-bold text-gray-900">{timeToHire.averageDays}</span>
-                  <span className="mb-1 text-sm text-gray-500">days average</span>
-                </div>
-                <p className="mt-2 text-sm text-gray-500">
-                  Based on {timeToHire.hiredCount} hire{timeToHire.hiredCount !== 1 ? "s" : ""}
-                </p>
-              </>
-            ) : (
-              <EmptyState message="No hires yet to measure time-to-hire." compact />
-            )}
-          </div>
-
-          {/* Source Effectiveness */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-              <PieIcon className="h-5 w-5 text-brand-600" />
-              Source Effectiveness
-            </h2>
-            {sourcesQuery.isLoading ? (
-              <div className="flex h-32 items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
-              </div>
-            ) : sources.length === 0 || sourcesTotal === 0 ? (
-              <EmptyState message="No candidate sources tracked yet." compact />
-            ) : (
-              <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-                {/* Donut: share of candidates by source */}
-                <div className="relative h-32 w-32 flex-shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={sources}
-                        dataKey="total"
-                        nameKey="source"
-                        innerRadius={38}
-                        outerRadius={60}
-                        paddingAngle={2}
-                        stroke="none"
-                      >
-                        {sources.map((_, i) => (
-                          <Cell key={i} fill={SOURCE_COLORS[i % SOURCE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-gray-900">{sourcesTotal}</span>
-                    <span className="text-[10px] uppercase tracking-wide text-gray-400">total</span>
-                  </div>
-                </div>
-
-                {/* Legend + hire rate */}
-                <div className="min-w-0 flex-1 space-y-2">
-                  {sources.map((src, i) => (
-                    <div key={src.source} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                          style={{ backgroundColor: SOURCE_COLORS[i % SOURCE_COLORS.length] }}
-                        />
-                        <span className="truncate capitalize text-gray-700">{src.source}</span>
-                      </span>
-                      <span className="flex flex-shrink-0 items-center gap-2">
-                        <span className="text-xs text-gray-400">
-                          {src.hired}/{src.total}
-                        </span>
-                        <span
-                          className={`inline-flex w-12 justify-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            src.hireRate >= 30
-                              ? "bg-green-100 text-green-700"
-                              : src.hireRate >= 10
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {src.hireRate}%
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              <p className="mt-3 text-sm text-gray-500">
+                From application to hire, based on {timeToHire.hiredCount} hire
+                {timeToHire.hiredCount !== 1 ? "s" : ""}.
+              </p>
+            </div>
+          ) : (
+            <EmptyState message="No hires yet to measure time-to-hire." />
+          )}
         </div>
       </div>
     </div>
@@ -285,37 +361,28 @@ function StatCard({
   icon: Icon,
   label,
   value,
+  sub,
   accent,
-  href,
 }: {
   icon: any;
   label: string;
-  value: number;
+  value: number | string;
+  sub?: string;
   accent: keyof typeof ACCENTS;
-  href?: string;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
-  const content = (
-    <div className="flex items-center gap-3">
-      <div className={`rounded-lg p-2.5 ${a.bg}`}>
-        <Icon className={`h-5 w-5 ${a.color}`} />
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className={`rounded-lg p-2.5 ${a.bg}`}>
+          <Icon className={`h-5 w-5 ${a.color}`} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm text-gray-500">{label}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </div>
       </div>
-      <div>
-        <p className="text-sm text-gray-500">{label}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-      </div>
+      {sub && <p className="mt-3 truncate text-xs text-gray-400">{sub}</p>}
     </div>
   );
-
-  if (href) {
-    return (
-      <Link
-        to={href}
-        className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-200"
-      >
-        {content}
-      </Link>
-    );
-  }
-  return <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">{content}</div>;
 }
