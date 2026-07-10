@@ -40,6 +40,7 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
       page: req.query.page ? parseInt(req.query.page as string) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
       status: req.query.status as string | undefined,
+      search: req.query.search as string | undefined,
     };
 
     // Employees can only see their own referrals

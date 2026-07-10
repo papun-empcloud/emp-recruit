@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Gift, Plus, X, Pencil } from "lucide-react";
+import { Loader2, Gift, Plus, X, Pencil, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, apiGet, apiPost } from "@/api/client";
 import { formatDate } from "@/lib/utils";
 import { getUser } from "@/lib/auth-store";
@@ -51,6 +51,21 @@ export function ReferralListPage() {
   const user = getUser();
   const isAdmin = ADMIN_ROLES.includes((user?.role as string) || "");
 
+  // List controls: search (candidate/job), status filter, pagination.
+  const [listPage, setListPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [listSearchInput, setListSearchInput] = useState("");
+  const [listSearch, setListSearch] = useState("");
+  const perPage = 20;
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setListSearch(listSearchInput.trim());
+      setListPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [listSearchInput]);
+
   const [form, setForm] = useState({
     job_id: "",
     first_name: "",
@@ -97,11 +112,15 @@ export function ReferralListPage() {
   const openJobs: JobPosting[] = jobsQuery.data || [];
 
   const referralsQuery = useQuery({
-    queryKey: ["referrals"],
+    queryKey: ["referrals", listPage, statusFilter, listSearch],
     queryFn: async () => {
-      const res = await apiGet<any>("/referrals");
+      const params: Record<string, any> = { page: listPage, limit: perPage };
+      if (statusFilter) params.status = statusFilter;
+      if (listSearch) params.search = listSearch;
+      const res = await apiGet<any>("/referrals", params);
       return res.data;
     },
+    placeholderData: (prev) => prev,
   });
 
   const submitMutation = useMutation({
@@ -180,6 +199,9 @@ export function ReferralListPage() {
   }
 
   const referrals: ReferralRow[] = referralsQuery.data?.data || [];
+  const refTotal: number = referralsQuery.data?.total ?? 0;
+  const refTotalPages: number = referralsQuery.data?.totalPages ?? 1;
+  const filtersActive = Boolean(statusFilter || listSearch);
 
   return (
     <div>
@@ -342,8 +364,56 @@ export function ReferralListPage() {
         </div>
       )}
 
+      {/* List controls: search + status filter */}
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={listSearchInput}
+              onChange={(e) => setListSearchInput(e.target.value)}
+              placeholder="Search candidate, email or job…"
+              className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setListPage(1);
+            }}
+            className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          >
+            <option value="">All statuses</option>
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {filtersActive && (
+            <button
+              onClick={() => {
+                setStatusFilter("");
+                setListSearchInput("");
+                setListSearch("");
+                setListPage(1);
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" /> Clear
+            </button>
+          )}
+        </div>
+        <p className="text-sm text-gray-500">
+          {refTotal} referral{refTotal !== 1 ? "s" : ""}
+          {filtersActive ? " match your filters" : ""}
+        </p>
+      </div>
+
       {/* Table */}
-      <div className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {referralsQuery.isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
@@ -351,7 +421,11 @@ export function ReferralListPage() {
         ) : referrals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Gift className="h-12 w-12 text-gray-300" />
-            <p className="mt-3 text-sm text-gray-500">No referrals yet. Refer someone to get started!</p>
+            <p className="mt-3 text-sm text-gray-500">
+              {filtersActive
+                ? "No referrals match your filters."
+                : "No referrals yet. Refer someone to get started!"}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -400,6 +474,29 @@ export function ReferralListPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {refTotalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            onClick={() => setListPage((p) => Math.max(1, p - 1))}
+            disabled={listPage <= 1}
+            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" /> Previous
+          </button>
+          <span className="text-sm text-gray-500">
+            Page {listPage} of {refTotalPages}
+          </span>
+          <button
+            onClick={() => setListPage((p) => Math.min(refTotalPages, p + 1))}
+            disabled={listPage >= refTotalPages}
+            className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {editingRef && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
