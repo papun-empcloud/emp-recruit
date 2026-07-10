@@ -197,9 +197,19 @@ export const submitFeedbackSchema = z.object({
 // Offers
 // ---------------------------------------------------------------------------
 
+// A generous but finite upper bound so an obviously-bogus salary (a data-entry
+// error like ₹7,80,00,00,00,00,00,000) is rejected instead of stored. 10 billion
+// comfortably exceeds any real annual salary in any supported currency.
+const MAX_SALARY = 10_000_000_000;
+const salaryAmount = z
+  .number()
+  .int()
+  .min(0)
+  .max(MAX_SALARY, { message: "Salary exceeds the maximum allowed value" });
+
 export const createOfferSchema = z.object({
   application_id: z.string().uuid(),
-  salary_amount: z.number().int().min(0),
+  salary_amount: salaryAmount,
   salary_currency: z.string().length(3).default("INR"),
   joining_date: z.string(),
   expiry_date: z.string(),
@@ -212,7 +222,7 @@ export const createOfferSchema = z.object({
 });
 
 export const updateOfferSchema = z.object({
-  salary_amount: z.number().int().min(0).optional(),
+  salary_amount: salaryAmount.optional(),
   salary_currency: z.string().length(3).optional(),
   joining_date: z.string().optional(),
   expiry_date: z.string().optional(),
