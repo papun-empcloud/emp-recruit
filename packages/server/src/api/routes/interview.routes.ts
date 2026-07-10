@@ -66,6 +66,15 @@ router.post(
       if (!Number.isInteger(durationNum) || durationNum < 15 || durationNum > 480) {
         throw new ValidationError("Duration must be between 15 and 480 minutes");
       }
+      // Reject a scheduled time that's already in the past (covers same-day past
+      // times, which a date-only check on the client would miss).
+      const when = new Date(scheduled_at);
+      if (Number.isNaN(when.getTime())) {
+        throw new ValidationError("Invalid scheduled date/time");
+      }
+      if (when.getTime() < Date.now()) {
+        throw new ValidationError("Interview cannot be scheduled in the past");
+      }
 
       const interview = await interviewService.scheduleInterview(orgId, {
         application_id,

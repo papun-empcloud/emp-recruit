@@ -131,6 +131,14 @@ export function InterviewSchedulePage() {
     // Combine date and time into ISO datetime
     const dateTime = new Date(`${form.scheduled_at}T${form.scheduled_time || "10:00"}:00`);
 
+    // The date-only check above passes when the date is today, so also reject a
+    // combined date+time that is already in the past (e.g. today at 8:00 AM when
+    // it's now afternoon).
+    if (dateTime.getTime() < Date.now()) {
+      toast.error("Interview time cannot be in the past");
+      return;
+    }
+
     const payload: Record<string, any> = {
       application_id: form.application_id,
       type: form.type,
