@@ -58,8 +58,8 @@ const applySchema = z.object({
   phone: z.string().optional(),
   cover_letter: z.string().optional(),
   current_company: z.string().optional(),
-  experience_years: z.coerce.number().optional(),
-  expected_salary: z.coerce.number().optional(),
+  experience_years: z.coerce.number().min(0, "Years of experience cannot be negative").optional(),
+  expected_salary: z.coerce.number().min(0, "Expected salary cannot be negative").optional(),
 });
 
 // ---------------------------------------------------------------------------

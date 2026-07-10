@@ -72,6 +72,25 @@ export function CareerApplyPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Explicit validation so the applicant always gets a visible error, rather
+    // than the browser silently blocking submit on an out-of-range number.
+    if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
+      toast.error("Please fill in your name and email.");
+      return;
+    }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (form.experience_years !== "" && Number(form.experience_years) < 0) {
+      toast.error("Years of experience cannot be negative.");
+      return;
+    }
+    if (form.expected_salary !== "" && Number(form.expected_salary) < 0) {
+      toast.error("Expected salary cannot be negative.");
+      return;
+    }
     applyMutation.mutate();
   }
 
@@ -103,7 +122,7 @@ export function CareerApplyPage() {
           Fill in your details below. Fields marked with * are required.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-5">
           {/* Name row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
