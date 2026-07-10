@@ -413,8 +413,12 @@ function calculateSkillsScore(
   jobSkillsOriginal: string[],
 ): { skillsScore: number; matchedSkills: string[]; missingSkills: string[] } {
   if (jobSkillsLower.length === 0) {
-    // No required skills means a perfect match on skills
-    return { skillsScore: 100, matchedSkills: candidateSkills, missingSkills: [] };
+    // No required skills to match against. Awarding a flat 100 gave every
+    // candidate an identical perfect score (BUG-010). With nothing to match,
+    // score by the candidate's own skill breadth instead, so distinct
+    // candidates are differentiated (≈8 recognised skills reaches 100).
+    const score = Math.min(100, candidateSkills.length * 12);
+    return { skillsScore: score, matchedSkills: candidateSkills.slice(0, 12), missingSkills: [] };
   }
 
   const matchedSkills: string[] = [];
@@ -442,9 +446,12 @@ function calculateExperienceScore(
   minYears: number | null,
   maxYears: number | null,
 ): number {
-  // If job has no experience requirements, give full score
+  // No stated experience requirement — scale by the candidate's actual years
+  // (instead of a flat 100 for everyone) so distinct candidates differ. Reaches
+  // 100 around 10 years; unknown experience is treated as mid.
   if (minYears === null && maxYears === null) {
-    return 100;
+    if (candidateYears === null) return 50;
+    return Math.min(100, 50 + candidateYears * 5);
   }
 
   // If candidate has no experience info, give partial score
