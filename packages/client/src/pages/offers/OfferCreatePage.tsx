@@ -359,6 +359,7 @@ export function OfferCreatePage() {
                 required
                 value={form.joining_date}
                 min={minDate}
+                max="9999-12-31"
                 onChange={(e) => setForm((p) => ({ ...p, joining_date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
@@ -372,7 +373,7 @@ export function OfferCreatePage() {
                 required
                 value={form.expiry_date}
                 min={minDate}
-                max={form.joining_date || undefined}
+                max={form.joining_date || "9999-12-31"}
                 onChange={(e) => setForm((p) => ({ ...p, expiry_date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />

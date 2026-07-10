@@ -285,6 +285,7 @@ export function InterviewSchedulePage() {
               {/* #17 — can't schedule in the past. */}
               <input
                 type="date"
+                max="9999-12-31"
                 required
                 value={form.scheduled_at}
                 min={todayIso()}
