@@ -119,6 +119,9 @@ function CareerPageSettings() {
 
   const validColor = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(form.primary_color);
   const previewColor = validColor ? form.primary_color : "#4F46E5";
+  // Preview the jobs actually selected for the page (mirrors the public page),
+  // not a hardcoded sample.
+  const previewJobs = (jobsQuery.data || []).filter((j) => jobSelection.has(j.id));
 
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -261,20 +264,37 @@ function CareerPageSettings() {
               <p className="mt-2 text-sm text-gray-500">
                 {form.description || "A short description shown on your career page..."}
               </p>
-              <div className="mt-4 rounded-lg border border-gray-200 p-3">
-                <div className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-gray-400" />
-                  <p className="text-sm font-semibold text-gray-900">Senior Software Engineer</p>
+              {previewJobs.length === 0 ? (
+                <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
+                  No jobs selected yet — pick jobs below and they'll appear here.
                 </div>
-                <p className="mt-0.5 text-xs text-gray-400">Engineering · Remote</p>
-                <button
-                  type="button"
-                  style={{ backgroundColor: previewColor }}
-                  className="mt-3 rounded-md px-3 py-1.5 text-xs font-medium text-white"
-                >
-                  Apply Now
-                </button>
-              </div>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {previewJobs.slice(0, 4).map((job) => (
+                    <div key={job.id} className="rounded-lg border border-gray-200 p-3">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-gray-400" />
+                        <p className="text-sm font-semibold text-gray-900">{job.title}</p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        {[job.department, job.location].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                      <button
+                        type="button"
+                        style={{ backgroundColor: previewColor }}
+                        className="mt-3 rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Apply Now
+                      </button>
+                    </div>
+                  ))}
+                  {previewJobs.length > 4 && (
+                    <p className="text-center text-xs text-gray-400">
+                      +{previewJobs.length - 4} more open position{previewJobs.length - 4 !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <p className="mt-2 text-xs text-gray-400">Updates as you type. Save to publish your changes.</p>
