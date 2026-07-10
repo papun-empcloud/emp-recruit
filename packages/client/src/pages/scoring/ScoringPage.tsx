@@ -11,6 +11,8 @@ import {
   Target,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { cn, formatDate } from "@/lib/utils";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 
@@ -73,15 +75,25 @@ export function ScoringPage() {
 
   const jobs = (jobsData?.data?.data ?? []).filter((j) => j.status !== "draft");
 
-  // Fetch ranked scores for the selected job
-  const { data: rankingsData, isLoading: loadingRankings } = useQuery({
-    queryKey: ["scoring-rankings", selectedJobId],
-    queryFn: () =>
-      apiGet<ScoredApplication[]>(`/scoring/jobs/${selectedJobId}/rankings`),
-    enabled: Boolean(selectedJobId),
-  });
+  // Fetch ranked scores for the selected job (server-side paginated). Reset to
+  // page 1 whenever the selected job changes.
+  const [rankPage, setRankPage] = useState(1);
+  useEffect(() => {
+    setRankPage(1);
+  }, [selectedJobId]);
 
-  const rankings = rankingsData?.data ?? [];
+  const {
+    rows: rankings,
+    total: rankTotal,
+    isLoading: loadingRankings,
+  } = usePaginatedList<ScoredApplication>(
+    ["scoring-rankings", selectedJobId],
+    `/scoring/jobs/${selectedJobId}/rankings`,
+    {},
+    rankPage,
+    DEFAULT_PAGE_SIZE,
+    { enabled: Boolean(selectedJobId) },
+  );
 
   // Batch score mutation
   const batchScoreMutation = useMutation({
@@ -205,7 +217,8 @@ export function ScoringPage() {
       )}
 
       {rankings.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-3">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -237,7 +250,7 @@ export function ScoringPage() {
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="whitespace-nowrap px-6 py-4">
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-xs font-semibold text-purple-700">
-                      {idx + 1}
+                      {(rankPage - 1) * DEFAULT_PAGE_SIZE + idx + 1}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
@@ -285,6 +298,13 @@ export function ScoringPage() {
               ))}
             </tbody>
           </table>
+          </div>
+          <Pagination
+            page={rankPage}
+            perPage={DEFAULT_PAGE_SIZE}
+            total={rankTotal}
+            onPageChange={setRankPage}
+          />
         </div>
       )}
     </div>
