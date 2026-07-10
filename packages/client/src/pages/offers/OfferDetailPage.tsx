@@ -18,6 +18,7 @@ import {
   Eye,
   Mail,
   X,
+  Plus,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import toast from "react-hot-toast";
@@ -559,12 +560,15 @@ export function OfferDetailPage() {
               <p className="mt-1 text-sm text-gray-500">Choose a template to generate the offer letter.</p>
               <div className="mt-4 space-y-2">
                 {letterTemplates.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-gray-500">
-                    No templates found.{" "}
-                    <Link to="/offers/letter-templates" className="text-brand-600 hover:underline">
-                      Create one first.
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-gray-500">No offer letter templates yet.</p>
+                    <Link
+                      to="/offers/letter-templates"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                    >
+                      <Plus className="h-4 w-4" /> Create a template
                     </Link>
-                  </p>
+                  </div>
                 ) : (
                   letterTemplates.map((t) => (
                     <button
