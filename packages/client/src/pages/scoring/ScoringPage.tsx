@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Brain,
   Loader2,
   Search,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -75,6 +76,29 @@ export function ScoringPage() {
 
   const jobs = (jobsData?.data?.data ?? []).filter((j) => j.status !== "draft");
 
+  // Searchable "Select a Job" combobox — filter the (potentially long) job list
+  // by typing instead of scrolling a native <select>.
+  const [jobQuery, setJobQuery] = useState("");
+  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  const jobSelectRef = useRef<HTMLDivElement>(null);
+
+  const selectedJob = jobs.find((j) => j.id === selectedJobId) || null;
+  const filteredJobs = jobs.filter((j) =>
+    j.title.toLowerCase().includes(jobQuery.trim().toLowerCase()),
+  );
+
+  // Close the dropdown when clicking outside it.
+  useEffect(() => {
+    if (!jobDropdownOpen) return;
+    function onClick(e: MouseEvent) {
+      if (jobSelectRef.current && !jobSelectRef.current.contains(e.target as Node)) {
+        setJobDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [jobDropdownOpen]);
+
   // Fetch ranked scores for the selected job (server-side paginated). Reset to
   // page 1 whenever the selected job changes.
   const [rankPage, setRankPage] = useState(1);
@@ -131,19 +155,64 @@ export function ScoringPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Select a Job
             </label>
-            <select
-              value={selectedJobId}
-              onChange={(e) => setSelectedJobId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              <option value="">Choose a job posting...</option>
-              {jobs.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.title}
-                  {job.status && job.status !== "open" ? ` (${job.status})` : ""}
-                </option>
-              ))}
-            </select>
+            <div className="relative" ref={jobSelectRef}>
+              <button
+                type="button"
+                onClick={() => setJobDropdownOpen((o) => !o)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
+                <span className={`truncate ${selectedJob ? "text-gray-900" : "text-gray-400"}`}>
+                  {selectedJob
+                    ? `${selectedJob.title}${selectedJob.status && selectedJob.status !== "open" ? ` (${selectedJob.status})` : ""}`
+                    : "Choose a job posting..."}
+                </span>
+                <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
+              </button>
+
+              {jobDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <div className="relative border-b border-gray-100 p-2">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={jobQuery}
+                      onChange={(e) => setJobQuery(e.target.value)}
+                      placeholder="Search jobs…"
+                      className="w-full rounded-md border border-gray-200 py-1.5 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
+                  <ul className="max-h-60 overflow-auto py-1">
+                    {filteredJobs.length === 0 ? (
+                      <li className="px-4 py-3 text-sm text-gray-400">No jobs match your search.</li>
+                    ) : (
+                      filteredJobs.map((job) => (
+                        <li key={job.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedJobId(job.id);
+                              setJobDropdownOpen(false);
+                              setJobQuery("");
+                            }}
+                            className={`flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                              job.id === selectedJobId ? "bg-brand-50 text-brand-700" : "text-gray-700"
+                            }`}
+                          >
+                            <span className="truncate">{job.title}</span>
+                            {job.status && job.status !== "open" && (
+                              <span className="ml-2 flex-shrink-0 text-xs capitalize text-gray-400">
+                                {job.status}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
 
           {selectedJobId && (
