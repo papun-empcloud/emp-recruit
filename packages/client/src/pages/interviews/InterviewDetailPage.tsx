@@ -24,7 +24,9 @@ import {
   Loader2,
   Play,
   X,
+  UserPlus,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AiAnalysisCard } from "@/components/AiAnalysisCard";
@@ -933,6 +935,45 @@ export function InterviewDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["interview", id] }),
   });
 
+  // Panelist management (Add / Remove).
+  const [showAddPanelist, setShowAddPanelist] = useState(false);
+  const [panelistUserId, setPanelistUserId] = useState("");
+  const [panelistRole, setPanelistRole] = useState("interviewer");
+
+  const { data: orgUsersData } = useQuery({
+    queryKey: ["org-users", "panelist"],
+    queryFn: () =>
+      apiGet<{ id: number; first_name: string; last_name: string; email: string }[]>(
+        "/organizations/users",
+      ),
+    enabled: !!id,
+  });
+  const orgUsers = orgUsersData?.data ?? [];
+
+  const addPanelistMutation = useMutation({
+    mutationFn: (body: { user_id: number; role: string }) =>
+      apiPost(`/interviews/${id}/panelists`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interview", id] });
+      setShowAddPanelist(false);
+      setPanelistUserId("");
+      setPanelistRole("interviewer");
+      toast.success("Panelist added");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || "Failed to add panelist"),
+  });
+
+  const removePanelistMutation = useMutation({
+    mutationFn: (userId: number) => apiDelete(`/interviews/${id}/panelists/${userId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interview", id] });
+      toast.success("Panelist removed");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || "Failed to remove panelist"),
+  });
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-500">
@@ -953,6 +994,15 @@ export function InterviewDetailPage() {
   const isPanelist = interview.panelists.some((p) => p.user_id === currentUserId);
   const hasSubmittedFeedback = interview.feedback.some((f) => f.panelist_id === currentUserId);
   const showFeedbackForm = isPanelist && !hasSubmittedFeedback;
+
+  const panelistName = (uid: number) => {
+    const u = orgUsers.find((x) => x.id === uid);
+    return u ? `${u.first_name} ${u.last_name}`.trim() || u.email : `User #${uid}`;
+  };
+  // Users not already on the panel — candidates for the Add Panelist picker.
+  const availablePanelistUsers = orgUsers.filter(
+    (u) => !interview.panelists.some((p) => p.user_id === u.id),
+  );
 
   return (
     <div className="space-y-6">
@@ -1072,27 +1122,104 @@ export function InterviewDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Users className="h-5 w-5 text-gray-400" /> Panelists ({interview.panelists.length})
           </h2>
+          {!showAddPanelist && (
+            <button
+              onClick={() => setShowAddPanelist(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-100"
+            >
+              <UserPlus className="h-4 w-4" /> Add Panelist
+            </button>
+          )}
         </div>
+
+        {showAddPanelist && (
+          <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <label className="mb-1 block text-xs font-medium text-gray-500">Team member</label>
+                <select
+                  value={panelistUserId}
+                  onChange={(e) => setPanelistUserId(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="">Select a person…</option>
+                  {availablePanelistUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {`${u.first_name} ${u.last_name}`.trim() || u.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">Role</label>
+                <select
+                  value={panelistRole}
+                  onChange={(e) => setPanelistRole(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-40"
+                >
+                  <option value="interviewer">Interviewer</option>
+                  <option value="lead">Lead</option>
+                  <option value="observer">Observer</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (!panelistUserId) {
+                      toast.error("Select a team member");
+                      return;
+                    }
+                    addPanelistMutation.mutate({ user_id: Number(panelistUserId), role: panelistRole });
+                  }}
+                  disabled={addPanelistMutation.isPending}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {addPanelistMutation.isPending ? "Adding…" : "Add"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddPanelist(false);
+                    setPanelistUserId("");
+                  }}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            {availablePanelistUsers.length === 0 && (
+              <p className="mt-2 text-xs text-gray-400">Everyone in your organization is already on the panel.</p>
+            )}
+          </div>
+        )}
+
         <div className="divide-y divide-gray-100">
           {interview.panelists.length === 0 && (
             <p className="px-6 py-4 text-sm text-gray-500">No panelists assigned yet.</p>
           )}
           {interview.panelists.map((panelist) => {
             const fb = interview.feedback.find((f) => f.panelist_id === panelist.user_id);
+            const name = panelistName(panelist.user_id);
+            const initials = name.startsWith("User #")
+              ? String(panelist.user_id)
+              : name
+                  .split(" ")
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
             return (
               <div key={panelist.id} className="flex items-center justify-between px-6 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-medium text-brand-700">
-                    {panelist.user_id}
+                    {initials}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      User #{panelist.user_id}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">{name}</p>
                     <p className="text-xs text-gray-500 capitalize">{panelist.role}</p>
                   </div>
                 </div>
-                <div>
+                <div className="flex items-center gap-3">
                   {fb ? (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                       Feedback submitted
@@ -1102,6 +1229,14 @@ export function InterviewDetailPage() {
                       Pending
                     </span>
                   )}
+                  <button
+                    onClick={() => removePanelistMutation.mutate(panelist.user_id)}
+                    disabled={removePanelistMutation.isPending}
+                    title="Remove panelist"
+                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             );
