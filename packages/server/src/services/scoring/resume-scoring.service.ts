@@ -13,6 +13,7 @@ import type {
 } from "@emp-recruit/shared";
 import { logger } from "../../utils/logger";
 import { getLLM } from "../ai/llm";
+import { config } from "../../config";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -355,9 +356,13 @@ export async function scoreCandidate(
     };
   }
 
+  // Deterministic heuristic by default so the individual "AI Score" and "Batch
+  // Score All" always agree for the same candidate and are reproducible. Only
+  // reach for the (non-deterministic, rate-limited) LLM when explicitly enabled.
   const result =
-    (await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)) ??
-    heuristicScore();
+    (config.ai.resumeScoringLlm
+      ? await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)
+      : null) ?? heuristicScore();
   const { overallScore, skillsScore, experienceScore, matchedSkills, missingSkills, recommendation } =
     result;
 
