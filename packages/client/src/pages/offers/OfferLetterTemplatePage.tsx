@@ -41,7 +41,9 @@ export function OfferLetterTemplatePage() {
     queryKey: ["offer-letter-templates"],
     queryFn: async () => {
       const res = await apiGet<OfferLetterTemplate[]>("/offer-letters/templates");
-      return res.data || [];
+      // Guard against any non-array response shape (null / object / paginated
+      // envelope) so the page never crashes on `templates.map`.
+      return Array.isArray(res.data) ? res.data : [];
     },
   });
 
@@ -89,7 +91,7 @@ export function OfferLetterTemplatePage() {
     saveMutation.mutate(form);
   }
 
-  const templates = templatesQuery.data || [];
+  const templates = Array.isArray(templatesQuery.data) ? templatesQuery.data : [];
 
   return (
     <div className="space-y-6">
