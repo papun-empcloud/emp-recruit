@@ -5,6 +5,7 @@
 
 import { getDB } from "../../db/adapters";
 import { NotFoundError, ValidationError } from "../../utils/errors";
+import { logger } from "../../utils/logger";
 import type {
   OnboardingTemplate,
   OnboardingTemplateTask,
@@ -290,6 +291,59 @@ export async function autoGenerateOnAcceptance(
   return generateChecklist(orgId, applicationId, template.id, joiningDate);
 }
 
+/**
+ * Ensure every accepted offer has an onboarding checklist. Offers that were
+ * accepted before auto-generation existed (or any accept that slipped through)
+ * never got one, so the onboarding page showed "No checklists found" despite the
+ * promise that checklists are created on acceptance. This idempotently backfills
+ * them. Best-effort — never throws. Returns how many were created.
+ */
+export async function backfillAcceptedOfferChecklists(orgId: number): Promise<number> {
+  const db = getDB();
+
+  const offers = await db.findMany<{
+    id: string;
+    application_id: string;
+    job_id: string | null;
+    joining_date: any;
+  }>("offers", {
+    filters: { organization_id: orgId, status: "accepted" },
+    limit: 500,
+  });
+
+  let created = 0;
+  for (const offer of offers.data) {
+    if (!offer.application_id) continue;
+    try {
+      let department: string | null = null;
+      if (offer.job_id) {
+        const job = await db.findOne<{ department: string | null }>("job_postings", {
+          id: offer.job_id,
+          organization_id: orgId,
+        });
+        department = job?.department ?? null;
+      }
+      const joining = offer.joining_date
+        ? String(offer.joining_date).slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      const checklist = await autoGenerateOnAcceptance(
+        orgId,
+        offer.application_id,
+        joining,
+        department,
+      );
+      if (checklist) created++;
+    } catch (err) {
+      logger.error(`Backfill onboarding checklist failed for offer ${offer.id}:`, err);
+    }
+  }
+
+  if (created > 0) {
+    logger.info(`Backfilled ${created} onboarding checklist(s) for accepted offers in org ${orgId}`);
+  }
+  return created;
+}
+
 export async function generateChecklist(
   orgId: number,
   applicationId: string,
@@ -419,6 +473,11 @@ export async function getChecklist(
 
 export async function listChecklists(orgId: number, params: ListChecklistsParams) {
   const db = getDB();
+
+  // Make the "checklists are generated when an offer is accepted" promise hold
+  // retroactively: ensure any accepted offer without a checklist gets one before
+  // we return the list. Idempotent and best-effort.
+  await backfillAcceptedOfferChecklists(orgId);
 
   const filters: Record<string, any> = { organization_id: orgId };
   if (params.status) {
