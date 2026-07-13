@@ -158,6 +158,11 @@ export function extractSkills(resumeText: string): ExtractedSkill[] {
 
   for (const skill of ALL_SKILLS) {
     const skillLower = skill.toLowerCase();
+    // Skip ultra-short, purely-alphabetic skill names (e.g. "c", "r", "go")
+    // when scanning free resume text: they collide with ordinary English words
+    // and produce garbage skill tags. Skills with symbols ("c#", "c++") and
+    // curated profile skills (which don't pass through here) are unaffected.
+    if (skillLower.length <= 2 && /^[a-z]+$/.test(skillLower)) continue;
     // Escape regex special characters in the skill name
     const escaped = skillLower.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
 
