@@ -1,6 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
+  RouterProvider,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import App from "./App";
@@ -16,13 +21,27 @@ const queryClient = new QueryClient({
   },
 });
 
+// A data router (createBrowserRouter) is used instead of a plain <BrowserRouter>
+// so React Router's useBlocker is available — it powers the unsaved-changes
+// guard on the Career Page. App's own <Routes> tree renders unchanged inside the
+// catch-all route.
+function RootLayout() {
+  return (
+    <>
+      <App />
+      <Toaster position="top-right" />
+    </>
+  );
+}
+
+const router = createBrowserRouter(
+  createRoutesFromElements(<Route path="*" element={<RootLayout />} />),
+);
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-        <Toaster position="top-right" />
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </React.StrictMode>
 );

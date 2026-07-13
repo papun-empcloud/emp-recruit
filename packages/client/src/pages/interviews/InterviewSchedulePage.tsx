@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
 import type { Application, PaginatedResponse, InterviewType } from "@emp-recruit/shared";
 
@@ -283,8 +284,8 @@ export function InterviewSchedulePage() {
                 Date <span className="text-red-500">*</span>
               </label>
               {/* #17 — can't schedule in the past. */}
-              <input
-                type="date"
+              <DateInput
+                max="9999-12-31"
                 required
                 value={form.scheduled_at}
                 min={todayIso()}

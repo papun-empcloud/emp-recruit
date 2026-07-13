@@ -26,13 +26,14 @@ router.use(authenticate);
 router.get("/", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
-    const { page, limit, application_id, status, sort_field, sort_order } = req.query;
+    const { page, limit, application_id, status, search, sort_field, sort_order } = req.query;
 
     const result = await interviewService.listInterviews(orgId, {
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       application_id: application_id as string | undefined,
       status: status as InterviewStatus | undefined,
+      search: search as string | undefined,
       sort_field: sort_field as string | undefined,
       sort_order: sort_order as "asc" | "desc" | undefined,
     });

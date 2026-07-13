@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Plus, Search, Users, ChevronRight, Mail, Building2, Clock } from "lucide-react";
-import { apiGet } from "@/api/client";
-import type { Candidate, PaginatedResponse } from "@emp-recruit/shared";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import type { Candidate } from "@emp-recruit/shared";
 import { formatDate } from "@/lib/utils";
 
 const SOURCE_BADGE: Record<string, string> = {
@@ -18,22 +18,9 @@ const SOURCE_BADGE: Record<string, string> = {
 export function CandidateListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const page = Number(searchParams.get("page") ?? "1");
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["candidates", { page, search }],
-    queryFn: () =>
-      apiGet<PaginatedResponse<Candidate>>("/candidates", {
-        page,
-        perPage: 20,
-        search: search || undefined,
-      }),
-  });
-
-  const candidates = data?.data?.data ?? [];
-  const total = data?.data?.total ?? 0;
-  const totalPages = data?.data?.totalPages ?? 1;
+  const searchTerm = searchParams.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(searchTerm);
 
   function setFilter(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -42,6 +29,22 @@ export function CandidateListPage() {
     if (key !== "page") next.delete("page");
     setSearchParams(next);
   }
+
+  // Debounce the search box into the URL; changing the term resets to page 1.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput.trim() !== searchTerm) setFilter("search", searchInput.trim());
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
+  const { rows: candidates, total, isLoading } = usePaginatedList<Candidate>(
+    ["candidates"],
+    "/candidates",
+    { search: searchTerm },
+    page,
+  );
 
   return (
     <div className="space-y-6">
@@ -67,9 +70,8 @@ export function CandidateListPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && setFilter("search", search)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search by name, email, or company..."
           className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
@@ -184,28 +186,13 @@ export function CandidateListPage() {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setFilter("page", String(page - 1))}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setFilter("page", String(page + 1))}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+      {!isLoading && candidates.length > 0 && (
+        <Pagination
+          page={page}
+          perPage={DEFAULT_PAGE_SIZE}
+          total={total}
+          onPageChange={(p) => setFilter("page", String(p))}
+        />
       )}
     </div>
   );

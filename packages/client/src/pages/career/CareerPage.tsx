@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useBlocker } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -56,24 +57,24 @@ function CareerPageSettings() {
     },
   });
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    primary_color: "#4F46E5",
-    slug: "",
-  });
+  const EMPTY_FORM = { title: "", description: "", primary_color: "#4F46E5", slug: "" };
+  const [form, setForm] = useState(EMPTY_FORM);
+  // Snapshot of the last-saved values, to detect unsaved edits.
+  const [savedForm, setSavedForm] = useState(EMPTY_FORM);
   const [initialized, setInitialized] = useState(false);
 
   if (configQuery.data && !initialized) {
     const c = configQuery.data;
     // Strip stray HTML tags from description if a previous tool wrote them.
     const cleanDescription = (c.description || "").replace(/<[^>]+>/g, "").trim();
-    setForm({
+    const initial = {
       title: c.title || "",
       description: cleanDescription,
       primary_color: c.primary_color || "#4F46E5",
       slug: c.slug || "",
-    });
+    };
+    setForm(initial);
+    setSavedForm(initial);
     setInitialized(true);
   }
 
@@ -96,6 +97,7 @@ function CareerPageSettings() {
     },
     onSuccess: () => {
       toast.success("Career page saved");
+      setSavedForm(form); // current form is now the saved baseline
       queryClient.invalidateQueries({ queryKey: ["career-page-config"] });
       queryClient.invalidateQueries({ queryKey: ["career-page-jobs"] });
     },
@@ -108,6 +110,42 @@ function CareerPageSettings() {
     e.preventDefault();
     saveMutation.mutate();
   }
+
+  // Unsaved-changes detection: config form or job selection differs from saved.
+  const savedJobSet = new Set(
+    (jobsQuery.data || []).filter((j) => Boolean(j.show_on_career_page)).map((j) => j.id),
+  );
+  const jobsDirty =
+    jobSelection.size !== savedJobSet.size ||
+    Array.from(jobSelection).some((id) => !savedJobSet.has(id));
+  const isDirty =
+    (initialized && JSON.stringify(form) !== JSON.stringify(savedForm)) ||
+    (jobsInitialized && jobsDirty);
+
+  // Warn before leaving with unsaved changes. useBlocker reliably intercepts
+  // in-app navigation and works because the app is mounted under a data router
+  // (see main.tsx); beforeunload covers browser close / refresh.
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && currentLocation.pathname !== nextLocation.pathname,
+  );
+  useEffect(() => {
+    if (blocker.state !== "blocked") return;
+    if (window.confirm("You have unsaved changes on the Career Page. Leave without saving?")) {
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [blocker]);
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
 
   if (configQuery.isLoading) {
     return (
