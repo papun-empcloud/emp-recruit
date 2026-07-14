@@ -38,6 +38,15 @@ const AnalyticsPage = lazyWithRetry(() =>
 const SettingsPage = lazyWithRetry(() =>
   import("@/pages/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
 );
+const AiInterviewsListPage = lazyWithRetry(() =>
+  import("@/pages/ai-interview/AiInterviewsListPage").then((m) => ({ default: m.AiInterviewsListPage })),
+);
+const AiInterviewDetailPage = lazyWithRetry(() =>
+  import("@/pages/ai-interview/AiInterviewDetailPage").then((m) => ({ default: m.AiInterviewDetailPage })),
+);
+const AiInterviewPage = lazyWithRetry(() =>
+  import("@/pages/ai-interview/AiInterviewPage").then((m) => ({ default: m.AiInterviewPage })),
+);
 const ScoreReportPage = lazyWithRetry(() =>
   import("@/pages/scoring/ScoreReportPage").then((m) => ({ default: m.ScoreReportPage })),
 );
@@ -167,6 +176,10 @@ export default function App() {
             <Route path="/scoring" element={<ScoringPage />} />
             <Route path="/scoring/:appId" element={<ScoreReportPage />} />
 
+            {/* AI voice interviews */}
+            <Route path="/ai-interviews" element={<AiInterviewsListPage />} />
+            <Route path="/ai-interviews/:id" element={<AiInterviewDetailPage />} />
+
             {/* Public career page management */}
             <Route path="/career-page" element={<CareerPage />} />
 
@@ -194,6 +207,9 @@ export default function App() {
         <Route path="/careers/:slug" element={<PublicLayout />}>
           {careerRoutes}
         </Route>
+
+        {/* Candidate AI interview (no auth — token link) */}
+        <Route path="/ai-interview/:token" element={<AiInterviewPage />} />
       </Routes>
     </Suspense>
     </ErrorBoundary>
