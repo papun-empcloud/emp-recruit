@@ -327,6 +327,7 @@ export async function submitPublicApplication(
     stage: "applied",
     source: "direct",
     cover_letter: data.cover_letter || null,
+    expected_salary: data.expected_salary ?? null, // BUG-04: was collected but never stored
     resume_path: resumePath || candidate.resume_path || null,
   } as Partial<Application>);
 
