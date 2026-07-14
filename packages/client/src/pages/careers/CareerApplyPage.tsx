@@ -70,6 +70,27 @@ export function CareerApplyPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
+  // Validate the resume the moment it's picked, so the applicant gets immediate
+  // feedback instead of only finding out after clicking Submit. (BUG-01)
+  const ALLOWED_RESUME_EXT = [".pdf", ".doc", ".docx"];
+  const MAX_RESUME_BYTES = 10 * 1024 * 1024; // 10MB, matches the server limit
+  function handleResumeSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset the input so re-selecting the same (or a corrected) file re-fires.
+    e.target.value = "";
+    if (!file) return;
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!ALLOWED_RESUME_EXT.includes(ext)) {
+      toast.error("Only PDF, DOC, and DOCX resume files are allowed.");
+      return;
+    }
+    if (file.size > MAX_RESUME_BYTES) {
+      toast.error("Resume file is too large (max 10MB).");
+      return;
+    }
+    setResume(file);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -209,9 +230,7 @@ export function CareerApplyPage() {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   className="hidden"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setResume(e.target.files[0]);
-                  }}
+                  onChange={handleResumeSelect}
                 />
               </label>
             )}
