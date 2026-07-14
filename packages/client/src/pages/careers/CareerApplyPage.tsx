@@ -30,6 +30,7 @@ export function CareerApplyPage() {
   });
   const [resume, setResume] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const jobQuery = useQuery({
     queryKey: ["public-job", slug, jobId],
@@ -78,6 +79,8 @@ export function CareerApplyPage() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
+    // Clear a field's error as soon as the applicant edits it. (BUG-06)
+    setErrors((prev) => (prev[name] ? { ...prev, [name]: "" } : prev));
     // Phone: reject non-numeric input as it's typed — only digits and the usual
     // phone punctuation (+ - ( ) space) are kept. (BUG-02)
     if (name === "phone") {
@@ -85,6 +88,15 @@ export function CareerApplyPage() {
       return;
     }
     setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  // Red border + focus ring for fields with a validation error. (BUG-06)
+  function fieldClass(field: string) {
+    const base =
+      "mt-1 block w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1";
+    return errors[field]
+      ? `${base} border-red-400 focus:border-red-500 focus:ring-red-500`
+      : `${base} border-gray-300 focus:border-brand-500 focus:ring-brand-500`;
   }
 
   // Validate the resume the moment it's picked, so the applicant gets immediate
@@ -111,32 +123,47 @@ export function CareerApplyPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Explicit validation so the applicant always gets a visible error, rather
-    // than the browser silently blocking submit on an out-of-range number.
+    // Collect per-field errors so invalid fields are highlighted inline (BUG-06),
+    // in addition to the toast messages the flow already surfaced.
+    const next: Record<string, string> = {};
+    const emailInvalid =
+      form.email.trim() !== "" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim());
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    const phoneInvalid = form.phone.trim() !== "" && (phoneDigits.length < 7 || phoneDigits.length > 15);
+    const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
+    const salaryNegative = form.expected_salary !== "" && Number(form.expected_salary) < 0;
+
+    if (!form.first_name.trim()) next.first_name = "First name is required.";
+    if (!form.last_name.trim()) next.last_name = "Last name is required.";
+    if (!form.email.trim()) next.email = "Email is required.";
+    else if (emailInvalid) next.email = "Please enter a valid email address.";
+    if (phoneInvalid) next.phone = "Please enter a valid phone number.";
+    if (yearsNegative) next.experience_years = "Years of experience cannot be negative.";
+    if (salaryNegative) next.expected_salary = "Expected salary cannot be negative.";
+    setErrors(next);
+
+    // Keep the exact toast messages/priority the QA verified (CHK-01/02/03).
     if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
       toast.error("Please fill in your name and email.");
       return;
     }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) {
+    if (emailInvalid) {
       toast.error("Please enter a valid email address.");
       return;
     }
-    // Phone is optional, but if given it must look like a real number (BUG-02).
-    if (form.phone.trim()) {
-      const digits = form.phone.replace(/\D/g, "");
-      if (digits.length < 7 || digits.length > 15) {
-        toast.error("Please enter a valid phone number.");
-        return;
-      }
+    if (phoneInvalid) {
+      toast.error("Please enter a valid phone number.");
+      return;
     }
-    if (form.experience_years !== "" && Number(form.experience_years) < 0) {
+    if (yearsNegative) {
       toast.error("Years of experience cannot be negative.");
       return;
     }
-    if (form.expected_salary !== "" && Number(form.expected_salary) < 0) {
+    if (salaryNegative) {
       toast.error("Expected salary cannot be negative.");
       return;
     }
+    setSubmitError(null);
     applyMutation.mutate();
   }
 
@@ -182,8 +209,9 @@ export function CareerApplyPage() {
                 required
                 value={form.first_name}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className={fieldClass("first_name")}
               />
+              {errors.first_name && <p className="mt-1 text-xs text-red-600">{errors.first_name}</p>}
             </div>
             <div>
               <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
@@ -196,8 +224,9 @@ export function CareerApplyPage() {
                 required
                 value={form.last_name}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className={fieldClass("last_name")}
               />
+              {errors.last_name && <p className="mt-1 text-xs text-red-600">{errors.last_name}</p>}
             </div>
           </div>
 
@@ -213,8 +242,9 @@ export function CareerApplyPage() {
               required
               value={form.email}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className={fieldClass("email")}
             />
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
           </div>
 
           {/* Phone */}
@@ -228,8 +258,9 @@ export function CareerApplyPage() {
               type="tel"
               value={form.phone}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className={fieldClass("phone")}
             />
+            {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
           </div>
 
           {/* Resume upload */}
@@ -306,8 +337,11 @@ export function CareerApplyPage() {
                 max="50"
                 value={form.experience_years}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className={fieldClass("experience_years")}
               />
+              {errors.experience_years && (
+                <p className="mt-1 text-xs text-red-600">{errors.experience_years}</p>
+              )}
             </div>
             <div>
               <label htmlFor="expected_salary" className="block text-sm font-medium text-gray-700">
@@ -320,8 +354,11 @@ export function CareerApplyPage() {
                 min="0"
                 value={form.expected_salary}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className={fieldClass("expected_salary")}
               />
+              {errors.expected_salary && (
+                <p className="mt-1 text-xs text-red-600">{errors.expected_salary}</p>
+              )}
             </div>
           </div>
 
