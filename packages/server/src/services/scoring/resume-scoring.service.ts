@@ -184,6 +184,36 @@ export function extractSkills(resumeText: string): ExtractedSkill[] {
   return found;
 }
 
+// Ultra-short, purely-alphabetic tokens (e.g. "c", "r", "go") read as noise skill
+// tags in the UI — the same tokens extractSkills already skips. Filter them out
+// of any skill list we compute or return, so older polluted data is cleaned on
+// read too.
+export function isNoiseSkill(skill: string): boolean {
+  const s = String(skill).trim().toLowerCase();
+  return s.length <= 2 && /^[a-z]+$/.test(s);
+}
+export function dropNoiseSkills(skills: string[]): string[] {
+  return (skills ?? []).filter((s) => s != null && String(s).trim() !== "" && !isNoiseSkill(String(s)));
+}
+// Clean the matched_skills field of a rankings row in place, preserving whether
+// it's stored as a JSON string or an already-parsed array.
+function cleanRankingRow(row: any): any {
+  const ms = row?.matched_skills;
+  if (ms == null) return row;
+  if (Array.isArray(ms)) return { ...row, matched_skills: dropNoiseSkills(ms.map(String)) };
+  if (typeof ms === "string") {
+    try {
+      const arr = JSON.parse(ms);
+      if (Array.isArray(arr)) {
+        return { ...row, matched_skills: JSON.stringify(dropNoiseSkills(arr.map(String))) };
+      }
+    } catch {
+      /* leave as-is */
+    }
+  }
+  return row;
+}
+
 // ---------------------------------------------------------------------------
 // LLM scoring (real AI) — used when an AI provider is configured (config.ai).
 // Provider-agnostic: OpenAI/OpenRouter/compatible today, Claude etc. later.
@@ -323,13 +353,14 @@ export async function scoreCandidate(
     }
   }
 
-  // Merge all candidate skills (deduplicated, lowercased for comparison)
-  const allCandidateSkills = [
+  // Merge all candidate skills (deduplicated, lowercased for comparison) and
+  // drop noise tags so matched skills never surface junk like "c" or "go".
+  const allCandidateSkills = dropNoiseSkills([
     ...new Set([
       ...candidateSkills.map((s) => s.toLowerCase()),
       ...resumeSkills.map((s) => s.toLowerCase()),
     ]),
-  ];
+  ]);
 
   // Parse job required skills (handle both string and already-parsed array)
   const jobSkills: string[] = job.skills
@@ -604,7 +635,7 @@ export async function getJobRankings(orgId: number, jobId: string): Promise<any[
     [orgId, jobId],
   );
 
-  return rows[0] as any[];
+  return (rows[0] as any[]).map(cleanRankingRow);
 }
 
 /**
@@ -640,7 +671,7 @@ export async function getJobRankingsPaginated(
   );
 
   return {
-    data: rows[0] as any[],
+    data: (rows[0] as any[]).map(cleanRankingRow),
     total,
     page,
     perPage,
