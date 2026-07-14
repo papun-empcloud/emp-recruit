@@ -83,7 +83,7 @@ router.get(
   },
 );
 
-// GET /jobs/:jobId/rankings — get all scored applications ranked by score
+// GET /jobs/:jobId/rankings — scored applications ranked by score (paginated)
 router.get(
   "/jobs/:jobId/rankings",
   async (req: Request, res: Response, next: NextFunction) => {
@@ -92,7 +92,13 @@ router.get(
       if (!jobId) throw new ValidationError("Job ID is required");
 
       const orgId = req.user!.empcloudOrgId;
-      const rankings = await scoringService.getJobRankings(orgId, jobId);
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit
+        ? parseInt(req.query.limit as string, 10)
+        : req.query.perPage
+          ? parseInt(req.query.perPage as string, 10)
+          : 10;
+      const rankings = await scoringService.getJobRankingsPaginated(orgId, jobId, { page, limit });
 
       return sendSuccess(res, rankings);
     } catch (err) {

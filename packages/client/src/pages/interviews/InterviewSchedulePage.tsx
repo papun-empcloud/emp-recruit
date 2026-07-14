@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
 import type { Application, PaginatedResponse, InterviewType } from "@emp-recruit/shared";
 
@@ -130,6 +131,14 @@ export function InterviewSchedulePage() {
 
     // Combine date and time into ISO datetime
     const dateTime = new Date(`${form.scheduled_at}T${form.scheduled_time || "10:00"}:00`);
+
+    // The date-only check above passes when the date is today, so also reject a
+    // combined date+time that is already in the past (e.g. today at 8:00 AM when
+    // it's now afternoon).
+    if (dateTime.getTime() < Date.now()) {
+      toast.error("Interview time cannot be in the past");
+      return;
+    }
 
     const payload: Record<string, any> = {
       application_id: form.application_id,
@@ -275,8 +284,8 @@ export function InterviewSchedulePage() {
                 Date <span className="text-red-500">*</span>
               </label>
               {/* #17 — can't schedule in the past. */}
-              <input
-                type="date"
+              <DateInput
+                max="9999-12-31"
                 required
                 value={form.scheduled_at}
                 min={todayIso()}

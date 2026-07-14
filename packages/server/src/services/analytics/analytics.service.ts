@@ -116,3 +116,85 @@ export async function getSourceEffectiveness(orgId: number): Promise<
   // Only return sources that have at least one application
   return results.filter((r) => r.total > 0);
 }
+
+// ---------------------------------------------------------------------------
+// KPI Metrics — hire rate + offer outcomes (analytical rates, not raw counts)
+// ---------------------------------------------------------------------------
+export async function getKpiMetrics(orgId: number): Promise<{
+  totalApplications: number;
+  hired: number;
+  hireRate: number;
+  offers: {
+    total: number;
+    accepted: number;
+    declined: number;
+    pending: number;
+    expired: number;
+    acceptanceRate: number;
+  };
+}> {
+  const db = getDB();
+
+  const totalApplications = await db.count("applications", { organization_id: orgId });
+  const hired = await db.count("applications", { organization_id: orgId, stage: "hired" });
+  const hireRate = totalApplications > 0 ? Math.round((hired / totalApplications) * 100) : 0;
+
+  const offerTotal = await db.count("offers", { organization_id: orgId });
+  const accepted = await db.count("offers", { organization_id: orgId, status: "accepted" });
+  const declined = await db.count("offers", { organization_id: orgId, status: "declined" });
+  const expired = await db.count("offers", { organization_id: orgId, status: "expired" });
+  // Pending = extended to the candidate and awaiting their response.
+  const pending = await db.count("offers", { organization_id: orgId, status: "sent" });
+  // Acceptance rate is over decided offers only (accepted + declined).
+  const decided = accepted + declined;
+  const acceptanceRate = decided > 0 ? Math.round((accepted / decided) * 100) : 0;
+
+  return {
+    totalApplications,
+    hired,
+    hireRate,
+    offers: { total: offerTotal, accepted, declined, pending, expired, acceptanceRate },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Applications Trend — weekly application volume for the last N weeks
+// ---------------------------------------------------------------------------
+export async function getApplicationsTrend(
+  orgId: number,
+  weeks = 8,
+): Promise<{ weekStart: string; count: number }[]> {
+  const db = getDB();
+
+  // Group by the Monday of each application's week (WEEKDAY: 0 = Monday).
+  const rows = await db.raw<any[][]>(
+    `SELECT DATE(DATE_SUB(applied_at, INTERVAL WEEKDAY(applied_at) DAY)) AS week_start,
+            COUNT(*) AS count
+       FROM applications
+      WHERE organization_id = ?
+        AND applied_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+      GROUP BY week_start`,
+    [orgId, weeks * 7],
+  );
+
+  const counts = new Map<string, number>();
+  for (const r of rows[0] as any[]) {
+    counts.set(String(r.week_start).slice(0, 10), Number(r.count));
+  }
+
+  // Build a continuous, zero-filled series of the last `weeks` Mondays so the
+  // chart has no gaps even in weeks with no applications.
+  const series: { weekStart: string; count: number }[] = [];
+  const monday = new Date();
+  const day = (monday.getDay() + 6) % 7; // days since Monday (0 = Monday)
+  monday.setDate(monday.getDate() - day);
+  monday.setHours(0, 0, 0, 0);
+  for (let i = weeks - 1; i >= 0; i--) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() - i * 7);
+    const key = d.toISOString().slice(0, 10);
+    series.push({ weekStart: key, count: counts.get(key) ?? 0 });
+  }
+
+  return series;
+}

@@ -23,6 +23,7 @@ interface ListParams {
   page?: number;
   limit?: number;
   status?: string;
+  search?: string;
   referrerId?: number; // for employee: show only own referrals
 }
 
@@ -117,21 +118,65 @@ export async function listReferrals(
   totalPages: number;
 }> {
   const db = getDB();
+  const page = params.page || 1;
+  const limit = params.limit || 20;
 
-  const filters: Record<string, any> = { organization_id: orgId };
-  if (params.status) filters.status = params.status;
-  if (params.referrerId) filters.referrer_id = params.referrerId;
+  let rows: Referral[];
+  let total: number;
+  let totalPages: number;
 
-  const result = await db.findMany<Referral>("referrals", {
-    page: params.page || 1,
-    limit: params.limit || 20,
-    filters,
-    sort: { field: "created_at", order: "desc" },
-  });
+  const search = params.search?.trim();
+  if (search) {
+    // The referred candidate's name/email and the job title live in joined
+    // tables, so a text search reaches across candidates and job_postings.
+    const like = `%${search}%`;
+    const offset = (page - 1) * limit;
+    const filterClause =
+      (params.status ? "AND r.status = ? " : "") +
+      (params.referrerId ? "AND r.referrer_id = ? " : "");
+    const filterArgs: any[] = [];
+    if (params.status) filterArgs.push(params.status);
+    if (params.referrerId) filterArgs.push(params.referrerId);
+    const searchArgs = [like, like, like, like, like];
+
+    const joinWhere = `FROM referrals r
+        JOIN candidates c ON c.id = r.candidate_id
+        JOIN job_postings j ON j.id = r.job_id
+       WHERE r.organization_id = ? ${filterClause}
+         AND (c.first_name LIKE ? OR c.last_name LIKE ?
+              OR CONCAT(c.first_name, ' ', c.last_name) LIKE ? OR c.email LIKE ? OR j.title LIKE ?)`;
+
+    const countRows = await db.raw<any[][]>(
+      `SELECT COUNT(*) as total ${joinWhere}`,
+      [orgId, ...filterArgs, ...searchArgs],
+    );
+    total = Number(countRows[0]?.[0]?.total ?? 0);
+
+    const dataRows = await db.raw<any[][]>(
+      `SELECT r.* ${joinWhere} ORDER BY r.created_at DESC LIMIT ? OFFSET ?`,
+      [orgId, ...filterArgs, ...searchArgs, limit, offset],
+    );
+    rows = dataRows[0] as Referral[];
+    totalPages = Math.max(1, Math.ceil(total / limit));
+  } else {
+    const filters: Record<string, any> = { organization_id: orgId };
+    if (params.status) filters.status = params.status;
+    if (params.referrerId) filters.referrer_id = params.referrerId;
+
+    const result = await db.findMany<Referral>("referrals", {
+      page,
+      limit,
+      filters,
+      sort: { field: "created_at", order: "desc" },
+    });
+    rows = result.data;
+    total = result.total;
+    totalPages = result.totalPages;
+  }
 
   // Enrich with candidate name and job title
   const enriched = await Promise.all(
-    result.data.map(async (ref) => {
+    rows.map(async (ref) => {
       const candidate = await db.findById<Candidate>("candidates", ref.candidate_id);
       const job = await db.findById<JobPosting>("job_postings", ref.job_id);
       return {
@@ -144,10 +189,10 @@ export async function listReferrals(
 
   return {
     data: enriched,
-    total: result.total,
-    page: result.page,
-    perPage: result.limit,
-    totalPages: result.totalPages,
+    total,
+    page,
+    perPage: limit,
+    totalPages,
   };
 }
 

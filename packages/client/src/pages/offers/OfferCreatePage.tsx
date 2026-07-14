@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
 import type { Application, PaginatedResponse } from "@emp-recruit/shared";
 
@@ -125,8 +126,9 @@ export function OfferCreatePage() {
       toast.error("Expiry date cannot be in the past");
       return;
     }
-    if (form.expiry_date < form.joining_date) {
-      toast.error("Expiry date cannot be before joining date");
+    // Expiry (accept-by deadline) must be on or before the joining date.
+    if (form.expiry_date > form.joining_date) {
+      toast.error("Offer expiry date must be on or before the joining date");
       return;
     }
     if (!form.joining_date) {
@@ -353,11 +355,11 @@ export function OfferCreatePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Joining Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <DateInput
                 required
                 value={form.joining_date}
                 min={minDate}
+                max="9999-12-31"
                 onChange={(e) => setForm((p) => ({ ...p, joining_date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
@@ -366,11 +368,11 @@ export function OfferCreatePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Offer Expiry Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <DateInput
                 required
                 value={form.expiry_date}
-                min={form.joining_date || minDate}
+                min={minDate}
+                max={form.joining_date || "9999-12-31"}
                 onChange={(e) => setForm((p) => ({ ...p, expiry_date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />

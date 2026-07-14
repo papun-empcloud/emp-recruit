@@ -68,6 +68,7 @@ export interface ListInterviewsParams {
   limit?: number;
   application_id?: string;
   status?: InterviewStatus;
+  search?: string;
   sort_field?: string;
   sort_order?: "asc" | "desc";
 }
@@ -205,23 +206,73 @@ export async function listInterviews(
   const page = params.page || 1;
   const limit = params.limit || 20;
 
-  const filters: Record<string, any> = { organization_id: orgId };
-  if (params.application_id) filters.application_id = params.application_id;
-  if (params.status) filters.status = params.status;
+  let rows: Interview[];
+  let total: number;
+  let totalPages: number;
 
-  const result = await db.findMany<Interview>("interviews", {
-    page,
-    limit,
-    filters,
-    sort: {
-      field: params.sort_field || "scheduled_at",
-      order: params.sort_order || "desc",
-    },
-  });
+  const search = params.search?.trim();
+  if (search) {
+    // Candidate name and job title live in joined tables, so a text search has
+    // to reach across applications -> candidates/job_postings. Only whitelisted
+    // columns are interpolated into ORDER BY; everything else is bound.
+    const like = `%${search}%`;
+    const offset = (page - 1) * limit;
+    const filterClause =
+      (params.application_id ? "AND i.application_id = ? " : "") +
+      (params.status ? "AND i.status = ? " : "");
+    const filterArgs: any[] = [];
+    if (params.application_id) filterArgs.push(params.application_id);
+    if (params.status) filterArgs.push(params.status);
+    const searchArgs = [like, like, like, like];
+
+    const joinWhere = `FROM interviews i
+        JOIN applications a ON a.id = i.application_id
+        JOIN candidates c ON c.id = a.candidate_id
+        JOIN job_postings j ON j.id = a.job_id
+       WHERE i.organization_id = ? ${filterClause}
+         AND (c.first_name LIKE ? OR c.last_name LIKE ?
+              OR CONCAT(c.first_name, ' ', c.last_name) LIKE ? OR j.title LIKE ?)`;
+
+    const countRows = await db.raw<any[][]>(
+      `SELECT COUNT(*) as total ${joinWhere}`,
+      [orgId, ...filterArgs, ...searchArgs],
+    );
+    total = Number(countRows[0]?.[0]?.total ?? 0);
+
+    const allowedSort = ["scheduled_at", "created_at", "status", "duration_minutes"];
+    const sortField = allowedSort.includes(params.sort_field || "")
+      ? params.sort_field!
+      : "scheduled_at";
+    const sortOrder = (params.sort_order || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
+
+    const dataRows = await db.raw<any[][]>(
+      `SELECT i.* ${joinWhere} ORDER BY i.\`${sortField}\` ${sortOrder} LIMIT ? OFFSET ?`,
+      [orgId, ...filterArgs, ...searchArgs, limit, offset],
+    );
+    rows = dataRows[0] as Interview[];
+    totalPages = Math.max(1, Math.ceil(total / limit));
+  } else {
+    const filters: Record<string, any> = { organization_id: orgId };
+    if (params.application_id) filters.application_id = params.application_id;
+    if (params.status) filters.status = params.status;
+
+    const result = await db.findMany<Interview>("interviews", {
+      page,
+      limit,
+      filters,
+      sort: {
+        field: params.sort_field || "scheduled_at",
+        order: params.sort_order || "desc",
+      },
+    });
+    rows = result.data;
+    total = result.total;
+    totalPages = result.totalPages;
+  }
 
   // Enrich with candidate name, job title, and panelist count
   const enriched = await Promise.all(
-    result.data.map(async (interview) => {
+    rows.map(async (interview) => {
       // Get application -> candidate + job
       const appRow = await db.findById<{
         id: string;
@@ -256,10 +307,10 @@ export async function listInterviews(
 
   return {
     data: enriched,
-    total: result.total,
-    page: result.page,
-    perPage: result.limit,
-    totalPages: result.totalPages,
+    total,
+    page,
+    perPage: limit,
+    totalPages,
   };
 }
 

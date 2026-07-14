@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Calendar, Users, Plus, Search, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
-import { apiGet } from "@/api/client";
+import { Calendar, Users, Plus, Search, ShieldAlert } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
 import { cn, formatDate } from "@/lib/utils";
-import type { InterviewStatus, InterviewType, PaginatedResponse } from "@emp-recruit/shared";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import type { InterviewStatus, InterviewType } from "@emp-recruit/shared";
 
 interface InterviewRow {
   id: string;
@@ -58,17 +58,24 @@ export function InterviewListPage() {
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
-  const perPage = 20;
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["interviews", page, statusFilter],
-    queryFn: async () => {
-      const params: Record<string, any> = { page, limit: perPage };
-      if (statusFilter) params.status = statusFilter;
-      const res = await apiGet<PaginatedResponse<InterviewRow>>("/interviews", params);
-      return res.data!;
-    },
-  });
+  // Debounce the search box so we don't fire a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { rows, total, isLoading, isError } = usePaginatedList<InterviewRow>(
+    ["interviews"],
+    "/interviews",
+    { status: statusFilter, search },
+    page,
+  );
 
   return (
     <div className="space-y-6">
@@ -90,16 +97,25 @@ export function InterviewListPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search candidate or job…"
+            className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+        <div>
           <select
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="h-10 rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -153,14 +169,14 @@ export function InterviewListPage() {
                 </td>
               </tr>
             )}
-            {data && data.data.length === 0 && (
+            {!isLoading && !isError && rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
                   No interviews found.
                 </td>
               </tr>
             )}
-            {data?.data.map((interview) => (
+            {rows.map((interview) => (
               <tr key={interview.id} className="hover:bg-gray-50 transition-colors">
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="text-sm font-medium text-gray-900">
@@ -214,27 +230,14 @@ export function InterviewListPage() {
         </table>
 
         {/* Pagination */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
-            <p className="text-sm text-gray-700">
-              Page {data.page} of {data.totalPages} ({data.total} total)
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                disabled={page >= data.totalPages}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
+        {!isLoading && rows.length > 0 && (
+          <div className="border-t border-gray-200 bg-white px-6 py-3">
+            <Pagination
+              page={page}
+              perPage={DEFAULT_PAGE_SIZE}
+              total={total}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </div>

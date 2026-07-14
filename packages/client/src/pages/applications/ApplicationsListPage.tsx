@@ -1,20 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Loader2,
-  FileText,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  X,
-} from "lucide-react";
+import { Loader2, FileText, Calendar, Search, X } from "lucide-react";
 import { apiGet } from "@/api/client";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import type { PaginatedResponse, JobPosting } from "@emp-recruit/shared";
 import { cn, formatDate, getInitials } from "@/lib/utils";
-
-const PER_PAGE = 20;
 
 const STAGES = ["applied", "screened", "interview", "offer", "hired", "rejected", "withdrawn"];
 
@@ -70,29 +62,23 @@ export function ApplicationsListPage() {
   const departments = Array.from(new Set(jobs.map((j) => j.department).filter(Boolean))).sort() as string[];
   const locations = Array.from(new Set(jobs.map((j) => j.location).filter(Boolean))).sort() as string[];
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["applications", { stage, jobId, department, location, dateFrom, dateTo, search, page }],
-    queryFn: () =>
-      apiGet<PaginatedResponse<AppRow>>("/applications", {
-        page,
-        perPage: PER_PAGE,
-        sort: "applied_at",
-        order: "desc",
-        ...(stage ? { stage } : {}),
-        ...(jobId ? { job_id: jobId } : {}),
-        ...(department ? { department } : {}),
-        ...(location ? { location } : {}),
-        ...(dateFrom ? { date_from: dateFrom } : {}),
-        ...(dateTo ? { date_to: dateTo } : {}),
-        ...(search ? { search } : {}),
-      }),
-    placeholderData: (prev) => prev,
-  });
+  const { rows, total, isLoading, isFetching } = usePaginatedList<AppRow>(
+    ["applications"],
+    "/applications",
+    {
+      sort: "applied_at",
+      order: "desc",
+      stage,
+      job_id: jobId,
+      department,
+      location,
+      date_from: dateFrom,
+      date_to: dateTo,
+      search,
+    },
+    page,
+  );
 
-  const result = data?.data;
-  const rows = result?.data ?? [];
-  const total = result?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
   const filtersActive = Boolean(
     stage || jobId || department || location || dateFrom || dateTo || search,
   );
@@ -247,7 +233,7 @@ export function ApplicationsListPage() {
         </p>
       </div>
 
-      {isLoading && !result ? (
+      {isLoading && isFetching ? (
         <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
         </div>
@@ -296,27 +282,12 @@ export function ApplicationsListPage() {
           ))}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" /> Previous
-              </button>
-              <span className="text-sm text-gray-500">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            perPage={DEFAULT_PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

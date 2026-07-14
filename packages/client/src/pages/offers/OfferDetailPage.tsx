@@ -18,6 +18,7 @@ import {
   Eye,
   Mail,
   X,
+  Plus,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import toast from "react-hot-toast";
@@ -403,7 +404,12 @@ export function OfferDetailPage() {
                 <Briefcase className="mt-0.5 h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-xs font-medium uppercase text-gray-500">Job Title</p>
-                  <p className="text-sm font-medium text-gray-900">{offer.job_title}</p>
+                  {/* Use job_title_display (live job title, falling back to the
+                      stored offer title) so this matches the Offers list, which
+                      shows the same field. */}
+                  <p className="text-sm font-medium text-gray-900">
+                    {offer.job_title_display || offer.job_title}
+                  </p>
                   {offer.department && <p className="text-xs text-gray-500">{offer.department}</p>}
                 </div>
               </div>
@@ -554,12 +560,15 @@ export function OfferDetailPage() {
               <p className="mt-1 text-sm text-gray-500">Choose a template to generate the offer letter.</p>
               <div className="mt-4 space-y-2">
                 {letterTemplates.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-gray-500">
-                    No templates found.{" "}
-                    <Link to="/offers/letter-templates" className="text-brand-600 hover:underline">
-                      Create one first.
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-gray-500">No offer letter templates yet.</p>
+                    <Link
+                      to="/offers/letter-templates"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                    >
+                      <Plus className="h-4 w-4" /> Create a template
                     </Link>
-                  </p>
+                  </div>
                 ) : (
                   letterTemplates.map((t) => (
                     <button
@@ -646,7 +655,7 @@ export function OfferDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          User #{approver.user_id}
+                          {(approver as any).approver_name || `User #${approver.user_id}`}
                         </p>
                         {approver.notes && (
                           <p className="text-xs text-gray-500 truncate">{approver.notes}</p>

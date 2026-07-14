@@ -13,6 +13,7 @@ import type {
 } from "@emp-recruit/shared";
 import { logger } from "../../utils/logger";
 import { getLLM } from "../ai/llm";
+import { config } from "../../config";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -157,6 +158,11 @@ export function extractSkills(resumeText: string): ExtractedSkill[] {
 
   for (const skill of ALL_SKILLS) {
     const skillLower = skill.toLowerCase();
+    // Skip ultra-short, purely-alphabetic skill names (e.g. "c", "r", "go")
+    // when scanning free resume text: they collide with ordinary English words
+    // and produce garbage skill tags. Skills with symbols ("c#", "c++") and
+    // curated profile skills (which don't pass through here) are unaffected.
+    if (skillLower.length <= 2 && /^[a-z]+$/.test(skillLower)) continue;
     // Escape regex special characters in the skill name
     const escaped = skillLower.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
 
@@ -355,9 +361,13 @@ export async function scoreCandidate(
     };
   }
 
+  // Deterministic heuristic by default so the individual "AI Score" and "Batch
+  // Score All" always agree for the same candidate and are reproducible. Only
+  // reach for the (non-deterministic, rate-limited) LLM when explicitly enabled.
   const result =
-    (await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)) ??
-    heuristicScore();
+    (config.ai.resumeScoringLlm
+      ? await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)
+      : null) ?? heuristicScore();
   const { overallScore, skillsScore, experienceScore, matchedSkills, missingSkills, recommendation } =
     result;
 
@@ -413,8 +423,12 @@ function calculateSkillsScore(
   jobSkillsOriginal: string[],
 ): { skillsScore: number; matchedSkills: string[]; missingSkills: string[] } {
   if (jobSkillsLower.length === 0) {
-    // No required skills means a perfect match on skills
-    return { skillsScore: 100, matchedSkills: candidateSkills, missingSkills: [] };
+    // No required skills to match against. Awarding a flat 100 gave every
+    // candidate an identical perfect score (BUG-010). With nothing to match,
+    // score by the candidate's own skill breadth instead, so distinct
+    // candidates are differentiated (≈8 recognised skills reaches 100).
+    const score = Math.min(100, candidateSkills.length * 12);
+    return { skillsScore: score, matchedSkills: candidateSkills.slice(0, 12), missingSkills: [] };
   }
 
   const matchedSkills: string[] = [];
@@ -442,9 +456,12 @@ function calculateExperienceScore(
   minYears: number | null,
   maxYears: number | null,
 ): number {
-  // If job has no experience requirements, give full score
+  // No stated experience requirement — scale by the candidate's actual years
+  // (instead of a flat 100 for everyone) so distinct candidates differ. Reaches
+  // 100 around 10 years; unknown experience is treated as mid.
   if (minYears === null && maxYears === null) {
-    return 100;
+    if (candidateYears === null) return 50;
+    return Math.min(100, 50 + candidateYears * 5);
   }
 
   // If candidate has no experience info, give partial score
@@ -554,13 +571,25 @@ export async function getScoreReport(
   return score;
 }
 
+// Shared SELECT/FROM/WHERE for a job's ranked candidates. Callers append the
+// ORDER BY (and, when paginating, LIMIT/OFFSET) and bind [orgId, jobId, ...].
+const JOB_RANKINGS_SELECT = `SELECT cs.*,
+          c.first_name as candidate_first_name,
+          c.last_name as candidate_last_name,
+          TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) as candidate_name,
+          c.email as candidate_email,
+          j.title as job_title,
+          a.stage as application_stage
+   FROM candidate_scores cs
+   LEFT JOIN candidates c ON c.id = cs.candidate_id
+   LEFT JOIN applications a ON a.id = cs.application_id
+   LEFT JOIN job_postings j ON j.id = cs.job_id
+   WHERE cs.organization_id = ? AND cs.job_id = ?`;
+
 /**
  * Get all scored applications for a job, ranked by overall score descending.
  */
-export async function getJobRankings(
-  orgId: number,
-  jobId: string,
-): Promise<any[]> {
+export async function getJobRankings(orgId: number, jobId: string): Promise<any[]> {
   const db = getDB();
 
   // Verify job exists
@@ -571,21 +600,50 @@ export async function getJobRankings(
   if (!job) throw new NotFoundError("Job", jobId);
 
   const rows = await db.raw<any[][]>(
-    `SELECT cs.*,
-            c.first_name as candidate_first_name,
-            c.last_name as candidate_last_name,
-            TRIM(CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,''))) as candidate_name,
-            c.email as candidate_email,
-            j.title as job_title,
-            a.stage as application_stage
-     FROM candidate_scores cs
-     LEFT JOIN candidates c ON c.id = cs.candidate_id
-     LEFT JOIN applications a ON a.id = cs.application_id
-     LEFT JOIN job_postings j ON j.id = cs.job_id
-     WHERE cs.organization_id = ? AND cs.job_id = ?
-     ORDER BY cs.overall_score DESC`,
+    `${JOB_RANKINGS_SELECT} ORDER BY cs.overall_score DESC`,
     [orgId, jobId],
   );
 
   return rows[0] as any[];
+}
+
+/**
+ * Server-side-paginated ranked candidates for a job, so the rankings table can
+ * scale. Returns the standard { data, total, page, perPage, totalPages } shape.
+ */
+export async function getJobRankingsPaginated(
+  orgId: number,
+  jobId: string,
+  params?: { page?: number; limit?: number },
+): Promise<{ data: any[]; total: number; page: number; perPage: number; totalPages: number }> {
+  const db = getDB();
+  const page = params?.page && params.page > 0 ? params.page : 1;
+  const perPage = params?.limit && params.limit > 0 ? params.limit : 10;
+
+  // Verify job exists
+  const job = await db.findOne<JobPosting>("job_postings", {
+    id: jobId,
+    organization_id: orgId,
+  });
+  if (!job) throw new NotFoundError("Job", jobId);
+
+  const countRows = await db.raw<any[][]>(
+    `SELECT COUNT(*) as total FROM candidate_scores cs WHERE cs.organization_id = ? AND cs.job_id = ?`,
+    [orgId, jobId],
+  );
+  const total = Number(countRows[0]?.[0]?.total ?? 0);
+
+  const offset = (page - 1) * perPage;
+  const rows = await db.raw<any[][]>(
+    `${JOB_RANKINGS_SELECT} ORDER BY cs.overall_score DESC LIMIT ? OFFSET ?`,
+    [orgId, jobId, perPage, offset],
+  );
+
+  return {
+    data: rows[0] as any[],
+    total,
+    page,
+    perPage,
+    totalPages: Math.max(1, Math.ceil(total / perPage)),
+  };
 }

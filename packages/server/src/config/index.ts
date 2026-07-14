@@ -132,6 +132,12 @@ export const config = {
       model: process.env.OPENAI_MODEL || process.env.AI_MODEL || "gpt-4o",
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     },
+    // Resume scoring uses the deterministic heuristic by default so an
+    // individual score and a batch score for the same candidate always agree
+    // and are reproducible. LLM scoring is non-deterministic and rate-limited
+    // (a batch silently falls back mid-run, mixing two incomparable methods),
+    // so it's strictly opt-in via AI_RESUME_SCORING=llm.
+    resumeScoringLlm: process.env.AI_RESUME_SCORING === "llm",
     // Speech-to-text for interview recordings. Pluggable: local Whisper (on
     // device, no key — the default) upgrades to Deepgram or OpenAI Whisper the
     // moment those keys are present.

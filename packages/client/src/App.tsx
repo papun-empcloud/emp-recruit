@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
-import { Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { isLoggedIn, useAuthStore, extractSSOToken } from "@/lib/auth-store";
 import { apiPost } from "@/api/client";
@@ -60,6 +60,24 @@ function PageLoader() {
 
 function AuthRedirect() {
   return isLoggedIn() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+}
+
+function NotFoundPage() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <p className="text-5xl font-bold text-brand-600">404</p>
+      <h1 className="mt-4 text-xl font-semibold text-gray-900">Page not found</h1>
+      <p className="mt-1 text-sm text-gray-500">
+        The page you're looking for doesn't exist or has moved.
+      </p>
+      <Link
+        to="/dashboard"
+        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+      >
+        Back to Dashboard
+      </Link>
+    </div>
+  );
 }
 
 function SSOGate({ children }: { children: React.ReactNode }) {
@@ -161,6 +179,10 @@ export default function App() {
             {/* Settings */}
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
+
+          {/* Unknown routes for a signed-in user render a styled 404 inside the
+              app shell (sidebar + header) instead of a bare page. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         {/* Candidate Portal (no employee auth — uses portal tokens) */}
@@ -172,9 +194,6 @@ export default function App() {
         <Route path="/careers/:slug" element={<PublicLayout />}>
           {careerRoutes}
         </Route>
-
-        {/* 404 */}
-        <Route path="*" element={<div className="p-8"><h1 className="text-2xl font-bold text-gray-900">Page Not Found</h1></div>} />
       </Routes>
     </Suspense>
     </ErrorBoundary>

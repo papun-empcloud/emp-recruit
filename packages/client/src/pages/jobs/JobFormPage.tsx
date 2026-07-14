@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPut } from "@/api/client";
 import type { JobPosting } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { DateInput } from "@/components/DateInput";
 
 // Strip HTML tags and decode a couple of common entities so we can measure the
 // actual text a rich-text description contains (validation counts characters,
@@ -502,11 +503,11 @@ export function JobFormPage() {
               via the native min attribute; backend rejects Invalid dates too. */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
-            <input
-              type="date"
+            <DateInput
               value={form.closes_at}
               onChange={(e) => setForm((p) => ({ ...p, closes_at: e.target.value }))}
               min={minCloseDate}
+              max="9999-12-31"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>

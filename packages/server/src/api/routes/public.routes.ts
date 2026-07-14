@@ -43,10 +43,28 @@ const upload = multer({
     if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Only PDF and Word documents are allowed"));
+      cb(new Error("Only PDF, DOC, and DOCX resume files are allowed"));
     }
   },
 });
+
+// Wrap multer so a rejected upload (wrong file type from the fileFilter, or a
+// file over the size limit) surfaces as a clean 400 to the applicant instead of
+// a bare 500 Internal Server Error.
+function uploadResume(req: Request, res: Response, next: NextFunction) {
+  upload.single("resume")(req, res, (err: any) => {
+    if (err) {
+      const message =
+        err instanceof multer.MulterError
+          ? err.code === "LIMIT_FILE_SIZE"
+            ? "Resume file is too large (max 10MB)."
+            : "Resume upload failed."
+          : err?.message || "Invalid resume file.";
+      return next(new ValidationError(message));
+    }
+    next();
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -58,8 +76,8 @@ const applySchema = z.object({
   phone: z.string().optional(),
   cover_letter: z.string().optional(),
   current_company: z.string().optional(),
-  experience_years: z.coerce.number().optional(),
-  expected_salary: z.coerce.number().optional(),
+  experience_years: z.coerce.number().min(0, "Years of experience cannot be negative").optional(),
+  expected_salary: z.coerce.number().min(0, "Expected salary cannot be negative").optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -120,7 +138,7 @@ router.get("/careers/:slug/jobs/:jobId", async (req: Request, res: Response, nex
 // ---------------------------------------------------------------------------
 router.post(
   "/careers/:slug/apply",
-  upload.single("resume"),
+  uploadResume,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsed = applySchema.safeParse(req.body);

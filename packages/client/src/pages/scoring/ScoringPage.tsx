@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Brain,
   Loader2,
   Search,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Zap,
   Target,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { cn, formatDate } from "@/lib/utils";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 
@@ -73,15 +76,48 @@ export function ScoringPage() {
 
   const jobs = (jobsData?.data?.data ?? []).filter((j) => j.status !== "draft");
 
-  // Fetch ranked scores for the selected job
-  const { data: rankingsData, isLoading: loadingRankings } = useQuery({
-    queryKey: ["scoring-rankings", selectedJobId],
-    queryFn: () =>
-      apiGet<ScoredApplication[]>(`/scoring/jobs/${selectedJobId}/rankings`),
-    enabled: Boolean(selectedJobId),
-  });
+  // Searchable "Select a Job" combobox — filter the (potentially long) job list
+  // by typing instead of scrolling a native <select>.
+  const [jobQuery, setJobQuery] = useState("");
+  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  const jobSelectRef = useRef<HTMLDivElement>(null);
 
-  const rankings = rankingsData?.data ?? [];
+  const selectedJob = jobs.find((j) => j.id === selectedJobId) || null;
+  const filteredJobs = jobs.filter((j) =>
+    j.title.toLowerCase().includes(jobQuery.trim().toLowerCase()),
+  );
+
+  // Close the dropdown when clicking outside it.
+  useEffect(() => {
+    if (!jobDropdownOpen) return;
+    function onClick(e: MouseEvent) {
+      if (jobSelectRef.current && !jobSelectRef.current.contains(e.target as Node)) {
+        setJobDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [jobDropdownOpen]);
+
+  // Fetch ranked scores for the selected job (server-side paginated). Reset to
+  // page 1 whenever the selected job changes.
+  const [rankPage, setRankPage] = useState(1);
+  useEffect(() => {
+    setRankPage(1);
+  }, [selectedJobId]);
+
+  const {
+    rows: rankings,
+    total: rankTotal,
+    isLoading: loadingRankings,
+  } = usePaginatedList<ScoredApplication>(
+    ["scoring-rankings", selectedJobId],
+    `/scoring/jobs/${selectedJobId}/rankings`,
+    {},
+    rankPage,
+    DEFAULT_PAGE_SIZE,
+    { enabled: Boolean(selectedJobId) },
+  );
 
   // Batch score mutation
   const batchScoreMutation = useMutation({
@@ -119,19 +155,64 @@ export function ScoringPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Select a Job
             </label>
-            <select
-              value={selectedJobId}
-              onChange={(e) => setSelectedJobId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              <option value="">Choose a job posting...</option>
-              {jobs.map((job) => (
-                <option key={job.id} value={job.id}>
-                  {job.title}
-                  {job.status && job.status !== "open" ? ` (${job.status})` : ""}
-                </option>
-              ))}
-            </select>
+            <div className="relative" ref={jobSelectRef}>
+              <button
+                type="button"
+                onClick={() => setJobDropdownOpen((o) => !o)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
+                <span className={`truncate ${selectedJob ? "text-gray-900" : "text-gray-400"}`}>
+                  {selectedJob
+                    ? `${selectedJob.title}${selectedJob.status && selectedJob.status !== "open" ? ` (${selectedJob.status})` : ""}`
+                    : "Choose a job posting..."}
+                </span>
+                <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
+              </button>
+
+              {jobDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <div className="relative border-b border-gray-100 p-2">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={jobQuery}
+                      onChange={(e) => setJobQuery(e.target.value)}
+                      placeholder="Search jobs…"
+                      className="w-full rounded-md border border-gray-200 py-1.5 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
+                  <ul className="max-h-60 overflow-auto py-1">
+                    {filteredJobs.length === 0 ? (
+                      <li className="px-4 py-3 text-sm text-gray-400">No jobs match your search.</li>
+                    ) : (
+                      filteredJobs.map((job) => (
+                        <li key={job.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedJobId(job.id);
+                              setJobDropdownOpen(false);
+                              setJobQuery("");
+                            }}
+                            className={`flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm hover:bg-gray-50 ${
+                              job.id === selectedJobId ? "bg-brand-50 text-brand-700" : "text-gray-700"
+                            }`}
+                          >
+                            <span className="truncate">{job.title}</span>
+                            {job.status && job.status !== "open" && (
+                              <span className="ml-2 flex-shrink-0 text-xs capitalize text-gray-400">
+                                {job.status}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
 
           {selectedJobId && (
@@ -205,7 +286,8 @@ export function ScoringPage() {
       )}
 
       {rankings.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-3">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -237,7 +319,7 @@ export function ScoringPage() {
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="whitespace-nowrap px-6 py-4">
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-xs font-semibold text-purple-700">
-                      {idx + 1}
+                      {(rankPage - 1) * DEFAULT_PAGE_SIZE + idx + 1}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
@@ -285,6 +367,13 @@ export function ScoringPage() {
               ))}
             </tbody>
           </table>
+          </div>
+          <Pagination
+            page={rankPage}
+            perPage={DEFAULT_PAGE_SIZE}
+            total={rankTotal}
+            onPageChange={setRankPage}
+          />
         </div>
       )}
     </div>

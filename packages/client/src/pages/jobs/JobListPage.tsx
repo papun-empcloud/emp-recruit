@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight } from "lucide-react";
-import { apiGet, apiPatch } from "@/api/client";
-import type { JobPosting, PaginatedResponse } from "@emp-recruit/shared";
+import { apiPatch } from "@/api/client";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -27,25 +29,11 @@ const STATUS_BADGE: Record<string, string> = {
 
 export function JobListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const statusFilter = searchParams.get("status") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
+  const searchTerm = searchParams.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(searchTerm);
   const queryClient = useQueryClient();
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["jobs", { page, status: statusFilter, search }],
-    queryFn: () =>
-      apiGet<PaginatedResponse<JobPosting>>("/jobs", {
-        page,
-        perPage: 20,
-        status: statusFilter || undefined,
-        search: search || undefined,
-      }),
-  });
-
-  const jobs = data?.data?.data ?? [];
-  const total = data?.data?.total ?? 0;
-  const totalPages = data?.data?.totalPages ?? 1;
 
   function setFilter(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -54,6 +42,22 @@ export function JobListPage() {
     if (key !== "page") next.delete("page");
     setSearchParams(next);
   }
+
+  // Debounce the search box into the URL; changing the term resets to page 1.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput.trim() !== searchTerm) setFilter("search", searchInput.trim());
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
+  const { rows: jobs, total, isLoading } = usePaginatedList<JobPosting>(
+    ["jobs"],
+    "/jobs",
+    { status: statusFilter, search: searchTerm },
+    page,
+  );
 
   return (
     <div className="space-y-6">
@@ -97,9 +101,8 @@ export function JobListPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && setFilter("search", search)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search by title, department, or location..."
           className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
@@ -216,28 +219,13 @@ export function JobListPage() {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setFilter("page", String(page - 1))}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setFilter("page", String(page + 1))}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+      {!isLoading && jobs.length > 0 && (
+        <Pagination
+          page={page}
+          perPage={DEFAULT_PAGE_SIZE}
+          total={total}
+          onPageChange={(p) => setFilter("page", String(p))}
+        />
       )}
     </div>
   );

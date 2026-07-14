@@ -4,8 +4,11 @@
 // ============================================================================
 
 import { getDB } from "../../db/adapters";
+import { findUserById } from "../../db/empcloud";
 import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
 import { toMysqlDateTime } from "../../utils/date";
+import { logger } from "../../utils/logger";
+import * as onboardingService from "../onboarding/onboarding.service";
 import type { Offer, OfferApprover, OfferStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -40,6 +43,7 @@ interface UpdateOfferData {
 
 interface ListOffersParams {
   status?: OfferStatus;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -76,13 +80,35 @@ export async function createOffer(orgId: number, data: CreateOfferData): Promise
     throw new ValidationError("Job title is required (and could not be derived from the job)");
   }
 
+  // Offers that are still "live" — anything not terminally closed. A new offer
+  // is only a duplicate against one of these; a candidate can be re-offered
+  // after a prior offer was declined/revoked/expired.
+  const TERMINAL = ["declined", "revoked", "expired"];
+
   // Check no active offer exists for this application
   const existingOffer = await db.findOne<Offer>("offers", {
     application_id: data.application_id,
     organization_id: orgId,
   });
-  if (existingOffer && !["declined", "revoked", "expired"].includes(existingOffer.status)) {
+  if (existingOffer && !TERMINAL.includes(existingOffer.status)) {
     throw new ValidationError("An active offer already exists for this application");
+  }
+
+  // Guard against a duplicate offer for the same candidate + role reached via a
+  // DIFFERENT application (e.g. the candidate applied to the same job twice, or
+  // an offer was raised on each application). The per-application check above
+  // misses that, which let two live offers for one candidate/role slip through.
+  if (candidateId && jobId) {
+    const sameRoleOffers = await db.findMany<Offer>("offers", {
+      filters: { organization_id: orgId, candidate_id: candidateId, job_id: jobId },
+      limit: 100,
+    });
+    const activeDuplicate = sameRoleOffers.data.find((o) => !TERMINAL.includes(o.status));
+    if (activeDuplicate) {
+      throw new ValidationError(
+        "An active offer already exists for this candidate and role. Revoke or close the existing offer before creating a new one.",
+      );
+    }
   }
 
   const offer = await db.create<Offer>("offers", {
@@ -146,6 +172,16 @@ export async function getOffer(
     limit: 100,
   });
 
+  // Resolve each approver's name from EmpCloud so the approval trail shows a
+  // person, not a raw "User #480".
+  const approvers = await Promise.all(
+    approversResult.data.map(async (a) => {
+      const u = await findUserById(a.user_id).catch(() => null);
+      const name = u ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : "";
+      return { ...a, approver_name: name || null, approver_email: u?.email ?? null };
+    }),
+  );
+
   // Resolve candidate/job so the detail view can show names, not raw UUIDs
   // (mirrors the enrichment listOffers already does).
   const candidate = await db.findById<any>("candidates", offer.candidate_id);
@@ -156,30 +192,70 @@ export async function getOffer(
     candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
     candidate_email: candidate?.email ?? null,
     job_title_display: job?.title || offer.job_title,
-    approvers: approversResult.data,
+    approvers,
   };
 }
 
 export async function listOffers(orgId: number, params: ListOffersParams) {
   const db = getDB();
+  const page = params.page || 1;
+  const limit = params.limit || 20;
 
-  const filters: Record<string, any> = { organization_id: orgId };
-  if (params.status) {
-    filters.status = params.status;
+  let rows: Offer[];
+  let total: number;
+  let totalPages: number;
+
+  const search = params.search?.trim();
+  if (search) {
+    // Search the candidate name and job title (both the stored offer title and
+    // the linked posting's title), so the filtered total is accurate rather than
+    // filtering a single page client-side.
+    const like = `%${search}%`;
+    const offset = (page - 1) * limit;
+    const statusClause = params.status ? "AND o.status = ? " : "";
+    const statusArgs: any[] = params.status ? [params.status] : [];
+    const searchArgs = [like, like, like, like, like];
+
+    const joinWhere = `FROM offers o
+        LEFT JOIN candidates c ON c.id = o.candidate_id
+        LEFT JOIN job_postings j ON j.id = o.job_id
+       WHERE o.organization_id = ? ${statusClause}
+         AND (c.first_name LIKE ? OR c.last_name LIKE ?
+              OR CONCAT(COALESCE(c.first_name,''), ' ', COALESCE(c.last_name,'')) LIKE ?
+              OR o.job_title LIKE ? OR j.title LIKE ?)`;
+
+    const countRows = await db.raw<any[][]>(
+      `SELECT COUNT(*) as total ${joinWhere}`,
+      [orgId, ...statusArgs, ...searchArgs],
+    );
+    total = Number(countRows[0]?.[0]?.total ?? 0);
+
+    const dataRows = await db.raw<any[][]>(
+      `SELECT o.* ${joinWhere} ORDER BY o.created_at DESC LIMIT ? OFFSET ?`,
+      [orgId, ...statusArgs, ...searchArgs, limit, offset],
+    );
+    rows = dataRows[0] as Offer[];
+    totalPages = Math.max(1, Math.ceil(total / limit));
+  } else {
+    const filters: Record<string, any> = { organization_id: orgId };
+    if (params.status) filters.status = params.status;
+
+    const result = await db.findMany<Offer>("offers", {
+      filters,
+      page,
+      limit,
+      sort: { field: "created_at", order: "desc" },
+    });
+    rows = result.data;
+    total = result.total;
+    totalPages = result.totalPages;
   }
-
-  const result = await db.findMany<Offer>("offers", {
-    filters,
-    page: params.page || 1,
-    limit: params.limit || 20,
-    sort: { field: "created_at", order: "desc" },
-  });
 
   // Enrich with candidate and job info
   const enriched = await Promise.all(
-    result.data.map(async (offer) => {
+    rows.map(async (offer) => {
       const candidate = await db.findById<any>("candidates", offer.candidate_id);
-      const job = await db.findById<any>("job_postings", offer.job_id);
+      const job = offer.job_id ? await db.findById<any>("job_postings", offer.job_id) : null;
       return {
         ...offer,
         candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
@@ -190,10 +266,10 @@ export async function listOffers(orgId: number, params: ListOffersParams) {
 
   return {
     data: enriched,
-    total: result.total,
-    page: result.page,
-    limit: result.limit,
-    totalPages: result.totalPages,
+    total,
+    page,
+    limit,
+    totalPages,
   };
 }
 
@@ -391,14 +467,38 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
 
   // Mark the underlying job posting as "filled" so HR sees it in the Filled
   // tab on the job listings page.
+  let department: string | null = null;
   if (offer.job_id) {
-    const job = await db.findOne<{ id: string; status: string }>("job_postings", {
-      id: offer.job_id,
-      organization_id: orgId,
-    });
+    const job = await db.findOne<{ id: string; status: string; department: string | null }>(
+      "job_postings",
+      { id: offer.job_id, organization_id: orgId },
+    );
+    department = job?.department ?? null;
     if (job && job.status !== "closed") {
       await db.update("job_postings", offer.job_id, { status: "filled" });
     }
+  }
+
+  // Auto-generate the onboarding checklist for the new hire (the offer-to-
+  // onboarding handoff the UI advertises). Best-effort — a missing default
+  // template or any error must never fail the acceptance itself.
+  try {
+    const joining = offer.joining_date
+      ? String(offer.joining_date).slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    const checklist = await onboardingService.autoGenerateOnAcceptance(
+      orgId,
+      offer.application_id,
+      joining,
+      department,
+    );
+    if (checklist) {
+      logger.info(`Onboarding checklist auto-generated for accepted offer ${id}`);
+    } else {
+      logger.info(`Offer ${id} accepted but no default onboarding template — checklist skipped`);
+    }
+  } catch (err) {
+    logger.error(`Onboarding auto-generation failed for offer ${id}:`, err);
   }
 
   // Notify EMP Cloud about the hire (non-blocking)

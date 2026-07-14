@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
-import { NotFoundError, ConflictError } from "../../utils/errors";
+import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { publishJobToBoards } from "../job-board/job-board.service";
 import type { JobPosting, JobStatus } from "@emp-recruit/shared";
@@ -104,6 +104,26 @@ export async function updateJob(
   const db = getDB();
   const existing = await db.findOne<JobPosting>("job_postings", { id, organization_id: orgId });
   if (!existing) throw new NotFoundError("Job", id);
+
+  // Guard the experience/salary ranges against the EFFECTIVE (merged) values.
+  // The update schema is partial, so a request that touches only one end (e.g.
+  // just experience_min) would otherwise invert the range — the Zod refine only
+  // sees the incoming fields, not what's already stored.
+  const pick = (incoming: any, current: any) => (incoming !== undefined ? incoming : current);
+  const expMin = pick(data.experience_min, existing.experience_min);
+  const expMax = pick(data.experience_max, existing.experience_max);
+  if (expMin != null && expMax != null && Number(expMin) > Number(expMax)) {
+    throw new ValidationError("Min experience cannot be greater than max experience", {
+      experience_max: ["Min experience cannot be greater than max experience"],
+    });
+  }
+  const salMin = pick(data.salary_min, existing.salary_min);
+  const salMax = pick(data.salary_max, existing.salary_max);
+  if (salMin != null && salMax != null && Number(salMin) > Number(salMax)) {
+    throw new ValidationError("Min salary cannot be greater than max salary", {
+      salary_max: ["Min salary cannot be greater than max salary"],
+    });
+  }
 
   const updates: Record<string, any> = { ...data };
   if (data.skills && Array.isArray(data.skills)) {

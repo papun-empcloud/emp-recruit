@@ -50,11 +50,12 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const { status, page, limit } = req.query;
+      const { status, search, page, limit, perPage } = req.query;
       const result = await offerService.listOffers(orgId, {
         status: status as any,
+        search: search as string | undefined,
         page: page ? Number(page) : undefined,
-        limit: limit ? Number(limit) : undefined,
+        limit: limit ? Number(limit) : perPage ? Number(perPage) : undefined,
       });
       sendPaginated(res, result.data, result.total, result.page, result.limit);
     } catch (err) {
