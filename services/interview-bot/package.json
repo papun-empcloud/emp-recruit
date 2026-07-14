@@ -1,0 +1,25 @@
+{
+  "name": "emp-recruit-interview-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PoC: an AI interviewer that joins a Jitsi meeting, asks resume-tailored questions by voice, transcribes answers, and stores a scored evaluation via the emp-recruit AI-interview API. NOT a workspace package — install and run standalone on a Linux/Docker host.",
+  "type": "module",
+  "bin": {
+    "interview-bot": "dist/index.js"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "puppeteer-core": "^23.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "@types/ws": "^8.5.12",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
