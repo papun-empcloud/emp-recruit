@@ -29,6 +29,7 @@ export function CareerApplyPage() {
     expected_salary: "",
   });
   const [resume, setResume] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const jobQuery = useQuery({
     queryKey: ["public-job", slug, jobId],
@@ -58,10 +59,19 @@ export function CareerApplyPage() {
       return data;
     },
     onSuccess: () => {
+      setSubmitError(null);
       navigate(`/careers/${slug}/jobs/${jobId}/success`);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error?.message || "Failed to submit application";
+      const isDuplicate = err.response?.status === 409;
+      const msg =
+        err.response?.data?.error?.message ||
+        (isDuplicate
+          ? "You've already applied for this job with this email address."
+          : "Failed to submit application");
+      // Show it both as a toast and as a persistent inline banner so the
+      // applicant always sees why nothing happened. (BUG-03)
+      setSubmitError(msg);
       toast.error(msg);
     },
   });
@@ -314,6 +324,12 @@ export function CareerApplyPage() {
               />
             </div>
           </div>
+
+          {submitError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
 
           <button
             type="submit"
