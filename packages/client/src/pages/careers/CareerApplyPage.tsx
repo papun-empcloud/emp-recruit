@@ -67,7 +67,14 @@ export function CareerApplyPage() {
   });
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    // Phone: reject non-numeric input as it's typed — only digits and the usual
+    // phone punctuation (+ - ( ) space) are kept. (BUG-02)
+    if (name === "phone") {
+      setForm((prev) => ({ ...prev, phone: value.replace(/[^\d+\-()\s]/g, "") }));
+      return;
+    }
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   // Validate the resume the moment it's picked, so the applicant gets immediate
@@ -103,6 +110,14 @@ export function CareerApplyPage() {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) {
       toast.error("Please enter a valid email address.");
       return;
+    }
+    // Phone is optional, but if given it must look like a real number (BUG-02).
+    if (form.phone.trim()) {
+      const digits = form.phone.replace(/\D/g, "");
+      if (digits.length < 7 || digits.length > 15) {
+        toast.error("Please enter a valid phone number.");
+        return;
+      }
     }
     if (form.experience_years !== "" && Number(form.experience_years) < 0) {
       toast.error("Years of experience cannot be negative.");
