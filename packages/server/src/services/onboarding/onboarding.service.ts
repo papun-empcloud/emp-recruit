@@ -243,6 +243,49 @@ export async function removeTemplateTask(
 // Checklist Generation & Management
 // ---------------------------------------------------------------------------
 
+// A sensible standard onboarding checklist, seeded automatically when an org has
+// no template that actually contains tasks — otherwise auto-generated checklists
+// come out empty ("No tasks in this template yet").
+const DEFAULT_ONBOARDING_TASKS: CreateTemplateTaskData[] = [
+  { title: "Send welcome email and first-day details", category: "Pre-boarding", assignee_role: "hr", due_days: 0, order: 0 },
+  { title: "Prepare workstation and equipment", category: "IT Setup", assignee_role: "it", due_days: 1, order: 1 },
+  { title: "Create accounts and system access", category: "IT Setup", assignee_role: "it", due_days: 1, order: 2 },
+  { title: "Collect signed documents and ID proofs", category: "Documentation", assignee_role: "hr", due_days: 2, order: 3 },
+  { title: "Complete HR and payroll paperwork", category: "Documentation", assignee_role: "hr", due_days: 3, order: 4 },
+  { title: "Office tour and team introductions", category: "Orientation", assignee_role: "manager", due_days: 1, order: 5 },
+  { title: "Review role, goals and expectations", category: "Orientation", assignee_role: "manager", due_days: 5, order: 6 },
+  { title: "Assign an onboarding buddy", category: "Orientation", assignee_role: "manager", due_days: 1, order: 7 },
+  { title: "Set up required training", category: "Training", assignee_role: "hr", due_days: 7, order: 8 },
+  { title: "30-day check-in", category: "Follow-up", assignee_role: "manager", due_days: 30, order: 9 },
+];
+
+/**
+ * Ensure the org has at least one onboarding template that actually contains
+ * tasks. If none do, seed a standard "Standard Onboarding" template so
+ * auto-generated checklists are useful instead of empty. Best-effort.
+ */
+async function ensureUsableTemplate(orgId: number): Promise<void> {
+  const db = getDB();
+  const all = await db.findMany<OnboardingTemplate>("onboarding_templates", {
+    filters: { organization_id: orgId },
+    limit: 100,
+  });
+  for (const t of all.data) {
+    const count = await db.count("onboarding_template_tasks", { template_id: t.id });
+    if (count > 0) return; // already have a usable template
+  }
+  const hasDefault = all.data.some((t) => t.is_default);
+  const template = await createTemplate(orgId, {
+    name: "Standard Onboarding",
+    description: "Default onboarding checklist seeded automatically.",
+    is_default: !hasDefault,
+  });
+  for (const task of DEFAULT_ONBOARDING_TASKS) {
+    await addTemplateTask(orgId, template.id, task);
+  }
+  logger.info(`Seeded default onboarding template ${template.id} for org ${orgId}`);
+}
+
 /**
  * Auto-generate an onboarding checklist when an offer is accepted. Picks the
  * most appropriate template for the new hire, preferring a department-specific
@@ -267,6 +310,9 @@ export async function autoGenerateOnAcceptance(
   });
   if (existing) return null;
 
+  // Seed a standard template (with tasks) if the org has none that are usable.
+  await ensureUsableTemplate(orgId);
+
   const all = await db.findMany<OnboardingTemplate>("onboarding_templates", {
     filters: { organization_id: orgId },
     limit: 100,
@@ -274,18 +320,26 @@ export async function autoGenerateOnAcceptance(
   const templates = all.data;
   if (templates.length === 0) return null; // nothing configured — nothing to do
 
+  // Prefer templates that actually contain tasks, so the generated checklist is
+  // never empty. Fall back to any template only if none has tasks.
+  const counts = await Promise.all(
+    templates.map(async (t) => ({ t, tasks: await db.count("onboarding_template_tasks", { template_id: t.id }) })),
+  );
+  const withTasks = counts.filter((x) => x.tasks > 0).map((x) => x.t);
+  const pool = withTasks.length > 0 ? withTasks : templates;
+
   const dept = department || null;
   const template =
     // a department-specific default is the best match
-    (dept ? templates.find((t) => t.is_default && t.department === dept) : undefined) ||
+    (dept ? pool.find((t) => t.is_default && t.department === dept) : undefined) ||
     // then an org-wide (department-less) default
-    templates.find((t) => t.is_default && !t.department) ||
+    pool.find((t) => t.is_default && !t.department) ||
     // then any default
-    templates.find((t) => t.is_default) ||
+    pool.find((t) => t.is_default) ||
     // then a department match even if it isn't flagged default
-    (dept ? templates.find((t) => t.department === dept) : undefined) ||
+    (dept ? pool.find((t) => t.department === dept) : undefined) ||
     // finally, any template so a checklist is still generated
-    templates[0];
+    pool[0];
   if (!template) return null;
 
   return generateChecklist(orgId, applicationId, template.id, joiningDate);
