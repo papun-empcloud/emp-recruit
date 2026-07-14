@@ -27,6 +27,7 @@ interface SessionDetail {
   created_at: string;
   completed_at: string | null;
   transcript: Transcript[];
+  voice_transcript: string | null;
 }
 
 const REC_LABEL: Record<string, { label: string; className: string }> = {
@@ -145,10 +146,23 @@ export function AiInterviewDetailPage() {
         </div>
       )}
 
-      {/* Transcript */}
+      {/* Voice transcript (real-time interview) */}
+      {s.voice_transcript && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <MessageSquare className="h-5 w-5 text-gray-400" /> Voice transcript
+          </h2>
+          <pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 font-sans text-sm text-gray-700">
+            {s.voice_transcript}
+          </pre>
+        </div>
+      )}
+
+      {/* Planned questions / typed answers */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <MessageSquare className="h-5 w-5 text-gray-400" /> Transcript
+          <MessageSquare className="h-5 w-5 text-gray-400" />
+          {s.voice_transcript ? "Questions" : "Transcript"}
         </h2>
         <div className="mt-4 space-y-5">
           {s.transcript.map((t, i) => (
@@ -156,9 +170,12 @@ export function AiInterviewDetailPage() {
               <p className="text-sm font-medium text-gray-900">
                 Q{i + 1}. {t.question}
               </p>
-              <p className="mt-1 whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                {t.answer && t.answer.trim() ? t.answer : <span className="text-gray-400">No answer</span>}
-              </p>
+              {/* Voice interviews carry the answers in the voice transcript above. */}
+              {!s.voice_transcript && (
+                <p className="mt-1 whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  {t.answer && t.answer.trim() ? t.answer : <span className="text-gray-400">No answer</span>}
+                </p>
+              )}
             </div>
           ))}
         </div>

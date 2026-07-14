@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, Send } from "lucide-react";
+import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, Send, PhoneOff } from "lucide-react";
 import axios from "axios";
 
 const PUBLIC_API = "/api/v1/public/ai-interviews";
@@ -13,7 +13,10 @@ interface InterviewState {
   current_index: number;
   question: string | null;
   done: boolean;
+  voice_enabled?: boolean;
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Web Speech API (not in standard TS lib types).
 const SpeechRecognitionCtor: any =
@@ -165,6 +168,12 @@ export function AiInterviewPage() {
     );
   }
 
+  // Real-time voice interview (Retell) when it's configured — a live spoken
+  // conversation instead of the typed/turn-based flow below.
+  if (state.voice_enabled) {
+    return <VoiceInterview token={token!} candidateName={state.candidate_name} jobTitle={state.job_title} />;
+  }
+
   // Intro screen — a user gesture is required before the browser will speak.
   if (!started) {
     return (
@@ -269,6 +278,174 @@ export function AiInterviewPage() {
         {listening && (
           <p className="mt-2 text-center text-xs text-red-500">● Listening… speak your answer, then tap “Stop recording”.</p>
         )}
+      </div>
+    </Shell>
+  );
+}
+
+// Real-time voice interview via Retell. The candidate has a live spoken
+// conversation; the transcript + score are finalized server-side via webhook.
+function VoiceInterview({
+  token,
+  candidateName,
+  jobTitle,
+}: {
+  token: string;
+  candidateName: string;
+  jobTitle: string | null;
+}) {
+  const [phase, setPhase] = useState<"idle" | "connecting" | "live" | "finishing" | "done">("idle");
+  const [agentTalking, setAgentTalking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const clientRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      try {
+        clientRef.current?.stopCall?.();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+
+  async function finish() {
+    setPhase("finishing");
+    // Retell's webhook finalizes + scores the session server-side; poll until done.
+    for (let i = 0; i < 20; i++) {
+      try {
+        const { data } = await axios.get(`${PUBLIC_API}/${token}`);
+        if (data.data.status === "completed") break;
+      } catch {
+        /* ignore */
+      }
+      await sleep(3000);
+    }
+    setPhase("done");
+  }
+
+  async function start() {
+    setError(null);
+    setPhase("connecting");
+    try {
+      const { data } = await axios.post(`${PUBLIC_API}/${token}/voice-call`);
+      const accessToken = data.data.accessToken as string;
+      const { RetellWebClient } = await import("retell-client-js-sdk");
+      const client = new RetellWebClient();
+      clientRef.current = client;
+      client.on("call_started", () => setPhase("live"));
+      client.on("agent_start_talking", () => setAgentTalking(true));
+      client.on("agent_stop_talking", () => setAgentTalking(false));
+      client.on("call_ended", () => finish());
+      client.on("error", () => {
+        setError("The call ran into a problem.");
+        try {
+          client.stopCall();
+        } catch {
+          /* ignore */
+        }
+        finish();
+      });
+      await client.startCall({ accessToken });
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.error?.message ||
+          "Couldn't start the voice interview. Check your microphone permission and try again.",
+      );
+      setPhase("idle");
+    }
+  }
+
+  function endCall() {
+    try {
+      clientRef.current?.stopCall?.();
+    } catch {
+      /* ignore */
+    }
+    finish();
+  }
+
+  if (phase === "done") {
+    return (
+      <Shell>
+        <div className="text-center">
+          <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
+          <h1 className="mt-4 text-xl font-bold text-gray-900">Interview complete</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Thank you, {candidateName}. Your interview has been recorded and shared with the hiring team.
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (phase === "live" || phase === "finishing") {
+    return (
+      <Shell>
+        <div className="text-center">
+          <div
+            className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full transition-all ${
+              agentTalking ? "bg-purple-100 ring-4 ring-purple-200" : "bg-purple-50"
+            }`}
+          >
+            <Brain className={`h-10 w-10 ${agentTalking ? "text-purple-600" : "text-purple-400"}`} />
+          </div>
+          <p className="mt-4 text-sm font-medium text-gray-900">
+            {phase === "finishing"
+              ? "Finishing up…"
+              : agentTalking
+                ? "The interviewer is speaking…"
+                : "Listening — go ahead and answer."}
+          </p>
+          {phase === "live" && (
+            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-red-500">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> Live
+            </p>
+          )}
+          {phase === "live" ? (
+            <button
+              onClick={endCall}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-red-50 px-5 py-2.5 text-sm font-medium text-red-600 ring-1 ring-red-200 hover:bg-red-100"
+            >
+              <PhoneOff className="h-4 w-4" /> End interview
+            </button>
+          ) : (
+            <Loader2 className="mx-auto mt-6 h-6 w-6 animate-spin text-brand-600" />
+          )}
+        </div>
+      </Shell>
+    );
+  }
+
+  // idle / connecting
+  return (
+    <Shell>
+      <div className="text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100">
+          <Brain className="h-9 w-9 text-purple-600" />
+        </div>
+        <h1 className="mt-5 text-2xl font-bold text-gray-900">AI Voice Interview</h1>
+        {jobTitle && <p className="mt-1 text-sm font-medium text-brand-600">{jobTitle}</p>}
+        <p className="mt-4 text-sm text-gray-600">
+          Hi {candidateName}. You'll have a short spoken conversation with our AI interviewer — it asks questions and
+          you answer out loud, just like a real interview. Please allow microphone access when prompted.
+        </p>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        <button
+          onClick={start}
+          disabled={phase === "connecting"}
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+        >
+          {phase === "connecting" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Connecting…
+            </>
+          ) : (
+            <>
+              <Mic className="h-4 w-4" /> Start voice interview
+            </>
+          )}
+        </button>
       </div>
     </Shell>
   );

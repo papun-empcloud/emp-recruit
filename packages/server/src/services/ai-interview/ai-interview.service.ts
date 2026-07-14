@@ -13,6 +13,7 @@ import { NotFoundError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { getLLM } from "../ai/llm";
 import { parseResumeText } from "../scoring/resume-scoring.service";
+import { config } from "../../config";
 
 export interface AiInterviewQuestion {
   id: string;
@@ -36,6 +37,8 @@ interface AiInterviewRow {
   summary: string | null;
   provider: string | null;
   model: string | null;
+  retell_call_id: string | null;
+  voice_transcript: string | null;
   started_at: Date | null;
   completed_at: Date | null;
   created_at: Date;
@@ -340,7 +343,14 @@ export async function getPublicState(token: string) {
     current_index: session.current_index,
     question: done ? null : questions[session.current_index]?.text ?? null,
     done,
+    // When Retell is configured the candidate gets a real-time spoken interview;
+    // otherwise they fall back to the typed/turn-based flow.
+    voice_enabled: isVoiceEnabled(),
   };
+}
+
+export function isVoiceEnabled(): boolean {
+  return Boolean(config.ai.retell.apiKey && config.ai.retell.agentId);
 }
 
 /** Candidate (public): record the answer to the current question, advance. */
@@ -424,6 +434,161 @@ export async function completeSession(token: string) {
   });
   logger.info(`AI interview ${session.id} completed — ${evaluation.overall_score}/100 (${evaluation.provider})`);
   return { status: "completed" as const, overall_score: evaluation.overall_score };
+}
+
+// ---------------------------------------------------------------------------
+// Real-time voice interview (Retell AI)
+// ---------------------------------------------------------------------------
+
+/**
+ * Candidate (public): start a real-time voice call with the AI interviewer.
+ * Creates a Retell web call bound to this session's tailored questions and
+ * returns the access token the browser SDK uses to join. Retell drives the
+ * live speech-to-speech conversation; the transcript arrives via the webhook.
+ */
+export async function createVoiceCall(token: string): Promise<{ accessToken: string; callId: string }> {
+  if (!isVoiceEnabled()) {
+    throw new ValidationError(
+      "Voice interviews are not configured (set RETELL_API_KEY and RETELL_AGENT_ID).",
+    );
+  }
+  const db = getDB();
+  const session = await loadByToken(token);
+  if (session.status === "completed") {
+    throw new ValidationError("This interview is already completed");
+  }
+
+  const questions = getQuestions(session);
+  const candidate = await db.findById<{ first_name: string; last_name: string }>(
+    "candidates",
+    session.candidate_id,
+  );
+  const job = session.job_id ? await db.findById<{ title: string }>("job_postings", session.job_id) : null;
+
+  const dynamicVariables = {
+    candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}`.trim() : "the candidate",
+    job_title: job?.title ?? "the role",
+    questions: questions.map((q, i) => `${i + 1}. ${q.text}`).join("\n"),
+  };
+
+  const res = await fetch("https://api.retellai.com/v2/create-web-call", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.ai.retell.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      agent_id: config.ai.retell.agentId,
+      retell_llm_dynamic_variables: dynamicVariables,
+      metadata: { ai_interview_token: token, ai_interview_id: session.id },
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    logger.error(`Retell create-web-call failed (${res.status}): ${text}`);
+    throw new ValidationError("Could not start the voice interview. Please try again.");
+  }
+  const data = (await res.json()) as { access_token: string; call_id: string };
+
+  const now = new Date();
+  await db.update("ai_interviews", session.id, {
+    retell_call_id: data.call_id,
+    status: "in_progress",
+    started_at: session.started_at ?? now,
+    updated_at: now,
+  });
+
+  logger.info(`AI voice interview ${session.id} started (Retell call ${data.call_id})`);
+  return { accessToken: data.access_token, callId: data.call_id };
+}
+
+/**
+ * Retell webhook. On call analysis we store the transcript and run the
+ * evaluation, marking the session completed. Idempotent and best-effort.
+ */
+export async function handleRetellWebhook(payload: any): Promise<void> {
+  const event = payload?.event;
+  const call = payload?.call;
+  // The transcript is available on call_analyzed (and usually call_ended too).
+  if (!call || (event !== "call_analyzed" && event !== "call_ended")) return;
+
+  const db = getDB();
+  const token = call.metadata?.ai_interview_token as string | undefined;
+  let session = token ? await db.findOne<AiInterviewRow>("ai_interviews", { token }) : null;
+  if (!session && call.call_id) {
+    session = await db.findOne<AiInterviewRow>("ai_interviews", { retell_call_id: call.call_id });
+  }
+  if (!session || session.status === "completed") return;
+
+  const transcript = typeof call.transcript === "string" ? call.transcript : "";
+  // Wait for the transcript-bearing event; a bare call_ended without one can be
+  // ignored (call_analyzed will follow).
+  if (!transcript && event === "call_ended") return;
+
+  const job = session.job_id ? await db.findById<any>("job_postings", session.job_id) : null;
+  const evaluation = await evaluateFromTranscript(job, getQuestions(session), transcript);
+
+  const now = new Date();
+  await db.update("ai_interviews", session.id, {
+    voice_transcript: transcript,
+    status: "completed",
+    overall_score: evaluation.overall_score,
+    recommendation: evaluation.recommendation,
+    strengths: evaluation.strengths,
+    concerns: evaluation.concerns,
+    summary: evaluation.summary,
+    provider: evaluation.provider,
+    model: evaluation.model,
+    completed_at: now,
+    updated_at: now,
+  });
+  logger.info(`AI voice interview ${session.id} finalized from Retell — ${evaluation.overall_score}/100 (${evaluation.provider})`);
+}
+
+async function evaluateFromTranscript(
+  job: any,
+  questions: AiInterviewQuestion[],
+  transcript: string,
+): Promise<EvalResult> {
+  const llm = getLLM();
+  if (llm && transcript.trim().length > 0) {
+    try {
+      const prompt = `JOB: ${job?.title ?? ""}\nREQUIREMENTS: ${(job?.requirements ?? "").slice(0, 800)}\n\nINTERVIEW TRANSCRIPT (Agent = AI interviewer, User = candidate):\n${transcript.slice(0, 8000)}`;
+      const raw = await llm.complete({ system: EVAL_SYSTEM, prompt, json: true, maxTokens: 1200 });
+      const p = parseJsonObject(raw);
+      const overall = Math.max(0, Math.min(100, Math.round(Number(p.overall_score))));
+      if (Number.isFinite(overall)) {
+        return {
+          overall_score: overall,
+          recommendation:
+            typeof p.recommendation === "string" ? p.recommendation : recommendationFor(overall),
+          strengths: String(p.strengths ?? ""),
+          concerns: String(p.concerns ?? ""),
+          summary: String(p.summary ?? ""),
+          provider: llm.key,
+          model: llm.model(),
+        };
+      }
+    } catch (err) {
+      logger.warn("AI voice interview evaluation failed; using heuristic:", err);
+    }
+  }
+
+  const words = transcript.trim() ? transcript.trim().split(/\s+/).length : 0;
+  const overall = words > 0 ? Math.min(100, 15 + Math.round((Math.min(words, 400) / 400) * 70)) : 0;
+  return {
+    overall_score: overall,
+    recommendation: recommendationFor(overall),
+    strengths:
+      words > 0
+        ? `The candidate spoke roughly ${words} words across ${questions.length} questions.`
+        : "No spoken answers were captured.",
+    concerns:
+      "This is an automated completion score (no AI provider configured for content analysis). Enable AI_PROVIDER for a content-based evaluation of the transcript.",
+    summary: `Voice interview completed; about ${words} words transcribed. See the transcript below.`,
+    provider: "heuristic",
+    model: null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -514,5 +679,7 @@ export async function getSession(orgId: number, id: string) {
     completed_at: session.completed_at,
     created_at: session.created_at,
     transcript,
+    // Present when the interview was conducted as a real-time voice call.
+    voice_transcript: session.voice_transcript ?? null,
   };
 }
