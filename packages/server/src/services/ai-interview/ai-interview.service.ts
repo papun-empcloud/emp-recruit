@@ -317,6 +317,18 @@ export async function createSession(
   );
   if (!application) throw new NotFoundError("Application", applicationId);
 
+  // Prevent duplicate invites: allow only one non-completed AI interview per
+  // application. A fresh one can be created once any prior interview is done.
+  const existing = await db.findMany<AiInterviewRow>("ai_interviews", {
+    filters: { organization_id: orgId, application_id: applicationId },
+    limit: 5,
+  });
+  if ((existing.data ?? []).some((s) => s.status !== "completed")) {
+    throw new ValidationError(
+      "An AI interview already exists for this application — open it from the AI Interviews list instead of creating a duplicate.",
+    );
+  }
+
   const candidate = await db.findById<{ resume_path: string | null }>("candidates", application.candidate_id);
   if (!candidate) throw new NotFoundError("Candidate", application.candidate_id);
 
