@@ -14,24 +14,27 @@ it all runs in the browser via Retell's web SDK.
 > to turn on the live voice experience.
 
 ## 1. Create a Retell agent
-In the [Retell dashboard](https://dashboard.retellai.com/): create an agent (a
-Retell LLM agent + a voice). Give it a prompt that conducts an interview using
-**dynamic variables** — the app injects these per candidate:
 
+**Easiest — run the setup script** (creates the LLM + agent with the right
+interviewer prompt and prints the agent ID):
+
+```bash
+cd packages/server
+RETELL_API_KEY=key_xxx \
+RETELL_WEBHOOK_URL=https://<public-host>/api/v1/public/ai-interviews/retell-webhook \
+pnpm setup:retell
+# → prints: RETELL_AGENT_ID=agent_xxx
 ```
-You are a friendly, professional AI interviewer for the {{job_title}} role.
-You are interviewing {{candidate_name}}.
+(`RETELL_WEBHOOK_URL` is optional here; you can also set the webhook in the
+dashboard — see step 3.)
 
-Ask these questions ONE AT A TIME, in order. Wait for a full answer before moving
-on, and ask a brief natural follow-up if an answer is vague or very short:
+**Or manually** in the [Retell dashboard](https://dashboard.retellai.com/): create
+a Retell LLM agent + a voice, with a prompt that uses the **dynamic variables**
+the app injects per candidate (`{{candidate_name}}`, `{{job_title}}`,
+`{{questions}}`) — the exact prompt the script uses is in
+`packages/server/scripts/setup-retell-agent.ts`. Then copy the **Agent ID**.
 
-{{questions}}
-
-Keep your turns short and conversational. Do not read the numbers out loud. After
-the last question, thank the candidate warmly and end the call.
-```
-
-Copy the **Agent ID** and grab your **API key** (dashboard → API Keys).
+Get your **API key** from the dashboard → API Keys.
 
 ## 2. Configure the server
 Set these where the server reads env (repo `.env` / `packages/server`):
