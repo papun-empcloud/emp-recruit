@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, Send, PhoneOff } from "lucide-react";
+import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, ChevronRight, PhoneOff } from "lucide-react";
 import axios from "axios";
 
 const PUBLIC_API = "/api/v1/public/ai-interviews";
@@ -15,9 +15,13 @@ interface InterviewState {
   done: boolean;
   voice_enabled?: boolean;
   ready?: boolean;
+  seconds_per_question?: number | null;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// mm:ss for the countdown badge.
+const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 // Does the candidate's reply count as "yes, I can hear you"? Deliberately
 // conservative so a negation ("no, I can't") doesn't slip through.
@@ -36,19 +40,23 @@ export function AiInterviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
-  const [answer, setAnswer] = useState("");
+  const [answer, setAnswer] = useState(""); // finalized speech transcript (submitted)
+  const [interim, setInterim] = useState(""); // in-progress words, for the live subtitle
   const [listening, setListening] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [left, setLeft] = useState(false);
   const [soundChecked, setSoundChecked] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const soundCheckStopRef = useRef(false);
   const soundCheckTimerRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
 
   function quit() {
     if (!window.confirm("Leave the interview? You won't be able to resume it.")) return;
     stopSoundCheck();
+    clearTimer();
     try {
       recognitionRef.current?.stop();
       window.speechSynthesis?.cancel();
@@ -98,18 +106,60 @@ export function AiInterviewPage() {
   }
 
   // Speak a question and track when the AI is talking (to highlight its side).
-  function say(text: string) {
+  // onDone fires when the AI finishes reading — we use it to start listening +
+  // the countdown only after the question has been spoken (so the mic doesn't
+  // capture the AI's own voice).
+  function say(text: string, onDone?: () => void) {
     try {
-      if (!("speechSynthesis" in window)) return;
+      if (!("speechSynthesis" in window)) {
+        onDone?.();
+        return;
+      }
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.onstart = () => setAiSpeaking(true);
-      u.onend = () => setAiSpeaking(false);
-      u.onerror = () => setAiSpeaking(false);
+      u.onend = () => {
+        setAiSpeaking(false);
+        onDone?.();
+      };
+      u.onerror = () => {
+        setAiSpeaking(false);
+        onDone?.();
+      };
       window.speechSynthesis.speak(u);
     } catch {
       setAiSpeaking(false);
+      onDone?.();
     }
+  }
+
+  function clearTimer() {
+    if (timerRef.current != null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  // Start the per-question countdown (if the recruiter set one). Reaching 0
+  // auto-submits via the timeLeft effect below.
+  function startTimer() {
+    clearTimer();
+    const limit = state?.seconds_per_question;
+    if (!limit || limit <= 0) {
+      setTimeLeft(null);
+      return;
+    }
+    setTimeLeft(limit);
+    timerRef.current = window.setInterval(() => {
+      setTimeLeft((t) => (t == null ? t : t <= 1 ? 0 : t - 1));
+    }, 1000);
+  }
+
+  // Begin the answer phase for a question: listen for the spoken answer and run
+  // the countdown. Called once the AI has finished reading the question.
+  function beginAnswerPhase() {
+    startListening();
+    startTimer();
   }
 
   // Load the interview state.
@@ -129,6 +179,7 @@ export function AiInterviewPage() {
       active = false;
       soundCheckStopRef.current = true;
       if (soundCheckTimerRef.current != null) clearTimeout(soundCheckTimerRef.current);
+      if (timerRef.current != null) clearInterval(timerRef.current);
       try {
         window.speechSynthesis?.cancel();
       } catch {
@@ -137,22 +188,40 @@ export function AiInterviewPage() {
     };
   }, [token]);
 
-  // Speak each new question — but only after the sound check has passed.
+  // Speak each new question — but only after the sound check has passed. Once
+  // the AI finishes reading, start listening + the countdown.
   useEffect(() => {
     if (started && soundChecked && state && !state.done && state.question) {
-      say(state.question);
+      say(state.question, beginAnswerPhase);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.current_index, started, soundChecked, state?.done]);
 
-  // Advance past the sound check as soon as the candidate confirms — by voice
-  // (the mic fills the box) or by typing "yes".
+  // During the sound check, listen only in the gaps between the AI's repeats —
+  // so the mic catches the candidate's "yes" but not the AI saying the word.
+  useEffect(() => {
+    if (!started || soundChecked || !SpeechRecognitionCtor) return;
+    if (aiSpeaking) stopListening();
+    else startListening();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiSpeaking, started, soundChecked]);
+
+  // Advance past the sound check as soon as the candidate confirms (says "yes").
   useEffect(() => {
     if (started && !soundChecked && isAffirmative(answer)) {
       proceedToQuestions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answer, started, soundChecked]);
+
+  // Time's up on a question — auto-submit whatever was captured and move on.
+  useEffect(() => {
+    if (timeLeft === 0 && started && soundChecked && state && !state.done) {
+      clearTimer();
+      submitAnswer();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft]);
 
   // Confirm the sound check and move on to the first question.
   function proceedToQuestions() {
@@ -168,11 +237,18 @@ export function AiInterviewPage() {
     } catch {
       /* ignore */
     }
+    setInterim("");
     setListening(false);
   }
 
   function startListening() {
     if (!SpeechRecognitionCtor) return;
+    // Tear down any previous recognition so start() doesn't throw "already started".
+    try {
+      recognitionRef.current?.abort?.();
+    } catch {
+      /* ignore */
+    }
     try {
       const rec = new SpeechRecognitionCtor();
       rec.lang = "en-US";
@@ -180,12 +256,16 @@ export function AiInterviewPage() {
       rec.interimResults = true;
       rec.onresult = (e: any) => {
         let finalChunk = "";
+        let interimText = "";
         for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) finalChunk += e.results[i][0].transcript + " ";
+          const r = e.results[i];
+          if (r.isFinal) finalChunk += r[0].transcript + " ";
+          else interimText += r[0].transcript;
         }
         if (finalChunk) {
           setAnswer((prev) => `${prev} ${finalChunk}`.replace(/\s+/g, " ").trimStart());
         }
+        setInterim(interimText);
       };
       rec.onend = () => setListening(false);
       rec.onerror = () => setListening(false);
@@ -198,7 +278,8 @@ export function AiInterviewPage() {
   }
 
   async function submitAnswer() {
-    if (!state) return;
+    if (!state || submitting) return;
+    clearTimer();
     stopListening();
     setSubmitting(true);
     try {
@@ -300,8 +381,8 @@ export function AiInterviewPage() {
           {state.job_title && <p className="mt-1 text-sm font-medium text-brand-600">{state.job_title}</p>}
           <p className="mt-4 text-sm text-gray-600">
             Hi {state.candidate_name}, I'm your AI interviewer. First we'll do a quick sound check, then I'll ask
-            you {state.total} questions tailored to your background. You can answer by <strong>speaking</strong>{" "}
-            (tap the mic) or by <strong>typing</strong>. Take your time.
+            you {state.total} questions tailored to your background. Just <strong>answer out loud</strong> — I'll
+            listen, and you tap <strong>Next question</strong> when you're done with each one.
           </p>
           <button
             onClick={() => {
@@ -314,8 +395,8 @@ export function AiInterviewPage() {
             Start interview
           </button>
           {!SpeechRecognitionCtor && (
-            <p className="mt-3 text-xs text-gray-400">
-              Voice input isn't supported in this browser — you can type your answers.
+            <p className="mt-3 text-xs text-amber-600">
+              Heads up: your browser doesn't support voice input. Please use Chrome for the best experience.
             </p>
           )}
         </div>
@@ -324,31 +405,44 @@ export function AiInterviewPage() {
   }
 
   // Active call — Google Meet-style layout. Before the first question we run a
-  // quick sound check: the AI asks "can you hear me?" and only advances to the
-  // questions once the candidate confirms (says or types "yes").
+  // quick sound check (the AI asks "can you hear me?" until the candidate says
+  // "yes"). Then each question is spoken; the candidate answers OUT LOUD (shown
+  // as a live subtitle) and taps "Next question" — or the timer auto-advances.
   const inSoundCheck = !soundChecked;
   const isLast = state.current_index + 1 >= state.total;
   const caption = inSoundCheck
-    ? `Hi ${state.candidate_name}! Please make sure your sound is on. Can you hear me okay? Say "yes" or type it below to begin.`
+    ? `Hi ${state.candidate_name}! Please make sure your sound is on. Can you hear me okay? Say "yes" to begin.`
     : state.question;
+  const liveTranscript = `${answer} ${interim}`.trim();
   return (
     <div className="flex min-h-screen flex-col bg-[#202124] text-white">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3">
         <span className="text-sm font-medium text-gray-200">{state.job_title || "AI Interview"}</span>
-        <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
-          {inSoundCheck ? "Sound check" : `Question ${state.current_index + 1} of ${state.total}`}
-        </span>
+        <div className="flex items-center gap-2">
+          {!inSoundCheck && timeLeft != null && (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold tabular-nums ${
+                timeLeft <= 10 ? "animate-pulse bg-red-500/20 text-red-300" : "bg-white/10 text-gray-200"
+              }`}
+            >
+              {fmtTime(timeLeft)}
+            </span>
+          )}
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
+            {inSoundCheck ? "Sound check" : `Question ${state.current_index + 1} of ${state.total}`}
+          </span>
+        </div>
       </div>
 
       {/* Participant tiles */}
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-2">
-          <MeetTile label="Interviewer" speaking={aiSpeaking} status={aiSpeaking ? "Speaking" : "Ready"} icon={Brain} accent="purple" />
+          <MeetTile label="Interviewer" speaking={aiSpeaking} status={aiSpeaking ? "Speaking" : "Asked"} icon={Brain} accent="purple" />
           <MeetTile
             label="You"
             speaking={listening}
-            status={listening ? "Listening" : inSoundCheck ? "Say 'yes'" : "Your turn"}
+            status={listening ? "Listening" : inSoundCheck ? "Say 'yes'" : "Muted"}
             icon={Mic}
             accent="blue"
             muted={!listening}
@@ -356,8 +450,8 @@ export function AiInterviewPage() {
         </div>
       </div>
 
-      {/* Live caption — sound-check prompt, then the current question */}
-      <div className="px-4 pb-3">
+      {/* Question caption (AI subtitle) */}
+      <div className="px-4 pb-2">
         <div className="mx-auto flex max-w-3xl items-start justify-center gap-2 rounded-xl bg-black/40 px-4 py-3">
           <p className="text-center text-sm text-gray-100 sm:text-base">{caption}</p>
           {!inSoundCheck && (
@@ -372,48 +466,56 @@ export function AiInterviewPage() {
         </div>
       </div>
 
-      {/* Answer / confirm bar */}
-      <div className="mx-auto w-full max-w-3xl px-4">
-        <div className="flex items-end gap-2 rounded-2xl bg-[#3c4043] p-2">
-          <textarea
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            rows={2}
-            placeholder={inSoundCheck ? "Say or type “yes” to begin…" : "Type your answer, or use the mic…"}
-            className="max-h-32 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder:text-gray-400 focus:outline-none"
-          />
-          {inSoundCheck ? (
-            <button
-              onClick={proceedToQuestions}
-              className="flex h-10 flex-shrink-0 items-center gap-2 rounded-xl bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700"
-            >
-              <CheckCircle2 className="h-4 w-4" /> I can hear you
-            </button>
-          ) : (
-            <button
-              onClick={submitAnswer}
-              disabled={submitting || !answer.trim()}
-              className="flex h-10 flex-shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              {isLast ? "Finish" : "Send"}
-            </button>
-          )}
+      {/* Candidate subtitle — a live transcript of what they're saying */}
+      {!inSoundCheck && (
+        <div className="px-4 pb-4">
+          <div className="mx-auto min-h-[3rem] max-w-3xl rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-center">
+            {liveTranscript ? (
+              <p className="text-sm text-gray-100">
+                {answer} <span className="text-gray-400">{interim}</span>
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">
+                {listening ? "Listening… start speaking your answer." : "Tap the mic to answer out loud."}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Call control bar */}
       <div className="flex items-center justify-center gap-4 py-5">
-        {SpeechRecognitionCtor && (
+        {inSoundCheck ? (
           <button
-            onClick={() => (listening ? stopListening() : startListening())}
-            title={listening ? "Stop recording" : "Answer by voice"}
-            className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
-              listening ? "bg-white text-gray-900" : "bg-white/10 text-white hover:bg-white/20"
-            }`}
+            onClick={proceedToQuestions}
+            className="flex h-12 items-center gap-2 rounded-full bg-green-600 px-6 text-sm font-semibold text-white hover:bg-green-700"
           >
-            {listening ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+            <CheckCircle2 className="h-5 w-5" /> I can hear you
           </button>
+        ) : (
+          <>
+            {SpeechRecognitionCtor && (
+              <button
+                onClick={() => (listening ? stopListening() : startListening())}
+                title={listening ? "Mute" : "Unmute"}
+                className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+                  listening ? "bg-white text-gray-900" : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                {listening ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+              </button>
+            )}
+            <button
+              onClick={submitAnswer}
+              disabled={submitting}
+              title={isLast ? "Finish interview" : "Next question"}
+              className="flex h-12 items-center gap-2 rounded-full bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+              {isLast ? "Finish interview" : "Next question"}
+              {!submitting && <ChevronRight className="h-5 w-5" />}
+            </button>
+          </>
         )}
         <button
           onClick={quit}
