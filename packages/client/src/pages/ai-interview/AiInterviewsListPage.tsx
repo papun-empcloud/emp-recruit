@@ -151,6 +151,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
   const [selectedApp, setSelectedApp] = useState<AppRow | null>(null);
   const [objective, setObjective] = useState("");
   const [count, setCount] = useState("5");
+  const [perQuestionSecs, setPerQuestionSecs] = useState("0"); // 0 = no limit
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [questions, setQuestions] = useState<string[]>([]);
@@ -179,6 +180,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
         application_id: selectedApp!.id,
         objective: objective.trim() || undefined,
         question_count: Number(count) || 5,
+        seconds_per_question: Number(perQuestionSecs) || undefined,
       }),
     onSuccess: (res) => {
       const d = res.data!;
@@ -290,15 +292,40 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
 
-            <label className="mt-4 block text-xs font-medium text-gray-500">Number of questions</label>
-            <input
-              type="number"
-              min={3}
-              max={12}
-              value={count}
-              onChange={(e) => setCount(e.target.value)}
-              className="mt-1 w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
+            <div className="mt-4 flex gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Number of questions</label>
+                <input
+                  type="number"
+                  min={3}
+                  max={12}
+                  value={count}
+                  onChange={(e) => setCount(e.target.value)}
+                  className="mt-1 w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Time per question</label>
+                <select
+                  value={perQuestionSecs}
+                  onChange={(e) => setPerQuestionSecs(e.target.value)}
+                  className="mt-1 w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="0">No limit</option>
+                  <option value="30">30 seconds</option>
+                  <option value="60">1 minute</option>
+                  <option value="90">1.5 minutes</option>
+                  <option value="120">2 minutes</option>
+                  <option value="180">3 minutes</option>
+                  <option value="300">5 minutes</option>
+                </select>
+              </div>
+            </div>
+            {perQuestionSecs !== "0" && (
+              <p className="mt-1.5 text-xs text-gray-400">
+                The candidate's answer auto-submits when the timer runs out.
+              </p>
+            )}
 
             <div className="mt-5 flex justify-end">
               <button

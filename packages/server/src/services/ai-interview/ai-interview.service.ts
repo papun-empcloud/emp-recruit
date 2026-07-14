@@ -30,6 +30,7 @@ interface AiInterviewRow {
   status: "draft" | "ready" | "pending" | "in_progress" | "completed";
   objective: string | null;
   question_count: number;
+  seconds_per_question: number | null;
   questions: any;
   current_index: number;
   overall_score: number | null;
@@ -132,6 +133,15 @@ const QUESTION_SYSTEM = `You are an expert technical interviewer. Given a job, a
 function clampCount(count: number | undefined): number {
   const n = Math.round(Number(count));
   return Number.isFinite(n) ? Math.max(3, Math.min(12, n)) : 5;
+}
+
+// Optional per-question time limit (seconds). Falsy/invalid → no limit (null).
+// Clamped to a sane 10s–600s window.
+function clampSeconds(seconds: number | undefined | null): number | null {
+  if (seconds == null || seconds === 0) return null;
+  const n = Math.round(Number(seconds));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.max(10, Math.min(600, n));
 }
 
 function fallbackQuestions(job: any, jobSkills: string[], count: number): AiInterviewQuestion[] {
@@ -297,7 +307,7 @@ function clampComms(v: unknown): number | null {
 export async function createSession(
   orgId: number,
   applicationId: string,
-  opts?: { objective?: string; questionCount?: number },
+  opts?: { objective?: string; questionCount?: number; secondsPerQuestion?: number | null },
 ): Promise<AiInterviewRow & { questions: AiInterviewQuestion[] }> {
   const db = getDB();
 
@@ -325,6 +335,7 @@ export async function createSession(
   }
 
   const count = clampCount(opts?.questionCount);
+  const secondsPerQuestion = clampSeconds(opts?.secondsPerQuestion);
   const objective = (opts?.objective || "").trim();
   const questions = await generateQuestions(job, jobSkills, resumeText, count, objective);
 
@@ -341,6 +352,7 @@ export async function createSession(
     status: "draft",
     objective: objective || null,
     question_count: count,
+    seconds_per_question: secondsPerQuestion,
     questions: JSON.stringify(questions) as any,
     current_index: 0,
     created_at: now,
@@ -415,6 +427,7 @@ export async function getPublicState(token: string) {
     job_title: job?.title ?? null,
     total: questions.length,
     current_index: session.current_index,
+    seconds_per_question: session.seconds_per_question ?? null,
     // Don't reveal the questions until HR has approved them.
     question: !ready || done ? null : questions[session.current_index]?.text ?? null,
     done,
@@ -755,6 +768,7 @@ export async function getSession(orgId: number, id: string) {
     token: session.token,
     status: session.status,
     objective: session.objective ?? null,
+    seconds_per_question: session.seconds_per_question ?? null,
     total_questions: questions.length,
     questions: questions.map((q) => q.text),
     answered: transcript.filter((t) => t.answer && t.answer.trim().length > 0).length,

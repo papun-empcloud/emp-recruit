@@ -17,6 +17,7 @@ interface SessionDetail {
   token: string;
   status: "draft" | "ready" | "pending" | "in_progress" | "completed";
   objective: string | null;
+  seconds_per_question: number | null;
   total_questions: number;
   questions: string[];
   answered: number;
@@ -101,6 +102,10 @@ export function AiInterviewDetailPage() {
           <span className="font-medium text-gray-700">Objective:</span> {s.objective}
         </p>
       )}
+      <p className="text-xs text-gray-500">
+        <span className="font-medium text-gray-600">Time per question:</span>{" "}
+        {s.seconds_per_question ? `${s.seconds_per_question}s (auto-submits)` : "No limit"}
+      </p>
 
       {/* Draft — needs recruiter approval before the candidate can take it */}
       {s.status === "draft" && (

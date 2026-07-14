@@ -24,6 +24,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const session = await aiInterviewService.createSession(req.user!.empcloudOrgId, String(applicationId), {
       objective: req.body.objective,
       questionCount: req.body.question_count,
+      secondsPerQuestion: req.body.seconds_per_question,
     });
     sendSuccess(
       res,
