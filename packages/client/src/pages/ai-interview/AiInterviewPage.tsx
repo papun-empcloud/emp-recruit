@@ -14,6 +14,7 @@ interface InterviewState {
   question: string | null;
   done: boolean;
   voice_enabled?: boolean;
+  ready?: boolean;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -168,6 +169,22 @@ export function AiInterviewPage() {
     );
   }
 
+  // Not approved by the recruiter yet.
+  if (state.ready === false) {
+    return (
+      <Shell>
+        <div className="text-center">
+          <Loader2 className="mx-auto h-10 w-10 text-brand-400" />
+          <h1 className="mt-4 text-lg font-bold text-gray-900">Your interview is being prepared</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Hang tight, {state.candidate_name} — the recruiter is finalizing your questions. Please check back
+            shortly.
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
   // Real-time voice interview (Retell) when it's configured — a live spoken
   // conversation instead of the typed/turn-based flow below.
   if (state.voice_enabled) {
@@ -296,6 +313,8 @@ function VoiceInterview({
 }) {
   const [phase, setPhase] = useState<"idle" | "connecting" | "live" | "finishing" | "done">("idle");
   const [agentTalking, setAgentTalking] = useState(false);
+  const [agentText, setAgentText] = useState("");
+  const [userText, setUserText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const clientRef = useRef<any>(null);
 
@@ -336,6 +355,13 @@ function VoiceInterview({
       client.on("call_started", () => setPhase("live"));
       client.on("agent_start_talking", () => setAgentTalking(true));
       client.on("agent_stop_talking", () => setAgentTalking(false));
+      client.on("update", (u: any) => {
+        const turns: Array<{ role: string; content: string }> = u?.transcript || [];
+        const lastAgent = [...turns].reverse().find((t) => t.role === "agent");
+        const lastUser = [...turns].reverse().find((t) => t.role === "user");
+        if (lastAgent) setAgentText(lastAgent.content);
+        if (lastUser) setUserText(lastUser.content);
+      });
       client.on("call_ended", () => finish());
       client.on("error", () => {
         setError("The call ran into a problem.");
@@ -380,40 +406,69 @@ function VoiceInterview({
   }
 
   if (phase === "live" || phase === "finishing") {
+    // FoloUp-style split screen: interviewer on the left, candidate on the right,
+    // each showing their current line of the live conversation.
     return (
-      <Shell>
-        <div className="text-center">
-          <div
-            className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full transition-all ${
-              agentTalking ? "bg-purple-100 ring-4 ring-purple-200" : "bg-purple-50"
-            }`}
-          >
-            <Brain className={`h-10 w-10 ${agentTalking ? "text-purple-600" : "text-purple-400"}`} />
-          </div>
-          <p className="mt-4 text-sm font-medium text-gray-900">
-            {phase === "finishing"
-              ? "Finishing up…"
-              : agentTalking
-                ? "The interviewer is speaking…"
-                : "Listening — go ahead and answer."}
-          </p>
-          {phase === "live" && (
-            <p className="mt-1 flex items-center justify-center gap-1.5 text-xs text-red-500">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> Live
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+        <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-6 py-3 text-center">
+            <p className="text-sm font-semibold text-gray-900">{jobTitle || "AI Interview"}</p>
+            <p className="mt-0.5 flex items-center justify-center gap-1.5 text-xs text-red-500">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+              {phase === "finishing" ? "Wrapping up…" : "Live"}
             </p>
-          )}
-          {phase === "live" ? (
-            <button
-              onClick={endCall}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-red-50 px-5 py-2.5 text-sm font-medium text-red-600 ring-1 ring-red-200 hover:bg-red-100"
-            >
-              <PhoneOff className="h-4 w-4" /> End interview
-            </button>
-          ) : (
-            <Loader2 className="mx-auto mt-6 h-6 w-6 animate-spin text-brand-600" />
-          )}
+          </div>
+
+          <div className="grid min-h-[22rem] grid-cols-2 divide-x divide-gray-100">
+            {/* Interviewer */}
+            <div className="flex flex-col items-center justify-between p-6 text-center">
+              <p className="min-h-[6rem] text-lg font-semibold leading-snug text-gray-900">
+                {agentText || "…"}
+              </p>
+              <div className="mt-6">
+                <div
+                  className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${
+                    agentTalking ? "bg-purple-100 ring-4 ring-purple-200" : "bg-purple-50"
+                  }`}
+                >
+                  <Brain className={`h-8 w-8 ${agentTalking ? "text-purple-600" : "text-purple-400"}`} />
+                </div>
+                <p className="mt-2 text-sm font-medium text-gray-700">Interviewer</p>
+              </div>
+            </div>
+
+            {/* Candidate */}
+            <div className="flex flex-col items-center justify-between p-6 text-center">
+              <p className="min-h-[6rem] text-lg font-semibold leading-snug text-gray-900">
+                {userText || (agentTalking ? "" : "…")}
+              </p>
+              <div className="mt-6">
+                <div
+                  className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${
+                    !agentTalking && phase === "live" ? "bg-brand-100 ring-4 ring-brand-200" : "bg-gray-100"
+                  }`}
+                >
+                  <Mic className={`h-8 w-8 ${!agentTalking && phase === "live" ? "text-brand-600" : "text-gray-400"}`} />
+                </div>
+                <p className="mt-2 text-sm font-medium text-gray-700">You</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center border-t border-gray-100 py-4">
+            {phase === "live" ? (
+              <button
+                onClick={endCall}
+                className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-5 py-2.5 text-sm font-medium text-red-600 ring-1 ring-red-200 hover:bg-red-100"
+              >
+                <PhoneOff className="h-4 w-4" /> End interview
+              </button>
+            ) : (
+              <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
+            )}
+          </div>
         </div>
-      </Shell>
+      </div>
     );
   }
 

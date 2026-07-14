@@ -27,10 +27,13 @@ interface AiInterviewRow {
   candidate_id: string;
   job_id: string | null;
   token: string;
-  status: "pending" | "in_progress" | "completed";
+  status: "draft" | "ready" | "pending" | "in_progress" | "completed";
+  objective: string | null;
+  question_count: number;
   questions: any;
   current_index: number;
   overall_score: number | null;
+  communication_score: number | null;
   recommendation: string | null;
   strengths: string | null;
   concerns: string | null;
@@ -39,6 +42,7 @@ interface AiInterviewRow {
   model: string | null;
   retell_call_id: string | null;
   voice_transcript: string | null;
+  recording_url: string | null;
   started_at: Date | null;
   completed_at: Date | null;
   created_at: Date;
@@ -123,31 +127,41 @@ function parseJsonObject(raw: string): any {
 // Question generation (LLM + deterministic fallback)
 // ---------------------------------------------------------------------------
 
-const QUESTION_SYSTEM = `You are an expert technical interviewer. Given a job and a candidate's resume, write focused interview questions tailored to THIS candidate — probe the specific skills, projects, and gaps you see. Mix technical and behavioral. Reply with ONLY a JSON array of 6 question strings, no prose, no markdown.`;
+const QUESTION_SYSTEM = `You are an expert technical interviewer. Given a job, a hiring objective, and a candidate's resume, write focused interview questions tailored to THIS candidate — probe the specific skills, projects, and gaps you see, guided by the objective. Mix technical and behavioral. Reply with ONLY a JSON array of question strings, no prose, no markdown.`;
 
-function fallbackQuestions(job: any, jobSkills: string[]): AiInterviewQuestion[] {
+function clampCount(count: number | undefined): number {
+  const n = Math.round(Number(count));
+  return Number.isFinite(n) ? Math.max(3, Math.min(12, n)) : 5;
+}
+
+function fallbackQuestions(job: any, jobSkills: string[], count: number): AiInterviewQuestion[] {
   const title = job?.title || "this role";
-  const texts: string[] = [];
-  texts.push(`To start, tell me about yourself and the experience that's most relevant to the ${title} role.`);
-  for (const skill of jobSkills.slice(0, 3)) {
-    texts.push(`Can you describe your hands-on experience with ${skill}, with a specific example of how you used it?`);
+  const pool: string[] = [];
+  pool.push(`To start, tell me about yourself and the experience that's most relevant to the ${title} role.`);
+  for (const skill of jobSkills.slice(0, 4)) {
+    pool.push(`Can you describe your hands-on experience with ${skill}, with a specific example of how you used it?`);
   }
-  texts.push(`Walk me through a challenging project relevant to ${title} — your role, the approach you took, and the outcome.`);
-  texts.push(`Tell me about a time you faced a difficult problem or a tight deadline. How did you handle it?`);
-  texts.push(`Why are you interested in the ${title} role, and what would you most want to contribute?`);
-  return texts.map((text, i) => ({ id: `q${i + 1}`, text }));
+  pool.push(`Walk me through a challenging project relevant to ${title} — your role, the approach you took, and the outcome.`);
+  pool.push(`Tell me about a time you faced a difficult problem or a tight deadline. How did you handle it?`);
+  pool.push(`How do you approach learning a new tool or technology quickly when a project demands it?`);
+  pool.push(`Describe a time you disagreed with a teammate. How did you resolve it?`);
+  pool.push(`Why are you interested in the ${title} role, and what would you most want to contribute?`);
+  return pool.slice(0, count).map((text, i) => ({ id: `q${i + 1}`, text }));
 }
 
 async function generateQuestions(
   job: any,
   jobSkills: string[],
   resumeText: string,
+  count: number,
+  objective: string,
 ): Promise<AiInterviewQuestion[]> {
   const llm = getLLM();
   if (llm && (resumeText.trim() || job?.title)) {
     try {
       const prompt = [
         `JOB TITLE: ${job?.title ?? ""}`,
+        `HIRING OBJECTIVE: ${objective || "Assess overall fit for the role."}`,
         `DESCRIPTION: ${(job?.description ?? "").slice(0, 1500)}`,
         `REQUIREMENTS: ${(job?.requirements ?? "").slice(0, 1000)}`,
         `REQUIRED SKILLS: ${jobSkills.join(", ")}`,
@@ -155,12 +169,12 @@ async function generateQuestions(
         `CANDIDATE RESUME (excerpt):`,
         resumeText.slice(0, 3500) || "(no resume on file — ask general and role-based questions)",
         "",
-        `Write 6 tailored interview questions. Return ONLY a JSON array of 6 strings.`,
+        `Write exactly ${count} tailored interview questions. Return ONLY a JSON array of ${count} strings.`,
       ].join("\n");
-      const raw = await llm.complete({ system: QUESTION_SYSTEM, prompt, json: true, maxTokens: 900 });
+      const raw = await llm.complete({ system: QUESTION_SYSTEM, prompt, json: true, maxTokens: 1000 });
       const arr = parseJsonArray(raw)
         .filter((x) => typeof x === "string" && x.trim())
-        .slice(0, 8)
+        .slice(0, count)
         .map((text: string, i: number) => ({ id: `q${i + 1}`, text: String(text).trim() }));
       if (arr.length >= 3) {
         logger.info(`AI interview questions generated via ${llm.key} (${arr.length})`);
@@ -170,7 +184,7 @@ async function generateQuestions(
       logger.warn("AI interview question generation failed; using fallback:", err);
     }
   }
-  return fallbackQuestions(job, jobSkills);
+  return fallbackQuestions(job, jobSkills, count);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,7 +193,8 @@ async function generateQuestions(
 
 const EVAL_SYSTEM = `You are an expert interview assessor. You are given a job and a transcript of an AI-led interview (each question and the candidate's answer). Evaluate ONLY on the evidence in the answers — never invent facts. Reply with ONLY a JSON object with exactly these keys:
 {
-  "overall_score": integer 0-100,
+  "overall_score": integer 0-100 (overall hiring fit),
+  "communication_score": integer 0-10 (clarity, structure, and command of language),
   "recommendation": one of "strong_yes" | "yes" | "neutral" | "no" | "strong_no",
   "strengths": string (2-4 sentences),
   "concerns": string (2-4 sentences),
@@ -188,6 +203,7 @@ const EVAL_SYSTEM = `You are an expert interview assessor. You are given a job a
 
 interface EvalResult {
   overall_score: number;
+  communication_score: number | null;
   recommendation: string;
   strengths: string;
   concerns: string;
@@ -210,6 +226,7 @@ function heuristicEvaluation(
   const overall = Math.min(100, completeness + substance);
   return {
     overall_score: overall,
+    communication_score: answered > 0 ? Math.max(1, Math.round(overall / 10)) : null,
     recommendation: recommendationFor(overall),
     strengths:
       answered > 0
@@ -245,6 +262,7 @@ async function evaluate(
       if (Number.isFinite(overall)) {
         return {
           overall_score: overall,
+          communication_score: clampComms(p.communication_score),
           recommendation:
             typeof p.recommendation === "string" ? p.recommendation : recommendationFor(overall),
           strengths: String(p.strengths ?? ""),
@@ -261,12 +279,26 @@ async function evaluate(
   return heuristicEvaluation(questions, answers);
 }
 
+function clampComms(v: unknown): number | null {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.max(0, Math.min(10, n)) : null;
+}
+
 // ---------------------------------------------------------------------------
 // Session lifecycle
 // ---------------------------------------------------------------------------
 
-/** HR: create an AI interview session for an application (generates questions). */
-export async function createSession(orgId: number, applicationId: string): Promise<AiInterviewRow & { questions: AiInterviewQuestion[] }> {
+/**
+ * HR: create an AI interview session for an application. The AI generates the
+ * requested number of resume-tailored questions and the session starts in
+ * "draft" — HR reviews/edits and approves the questions before the candidate can
+ * take it.
+ */
+export async function createSession(
+  orgId: number,
+  applicationId: string,
+  opts?: { objective?: string; questionCount?: number },
+): Promise<AiInterviewRow & { questions: AiInterviewQuestion[] }> {
   const db = getDB();
 
   const application = await db.findOne<{ id: string; candidate_id: string; job_id: string | null }>(
@@ -292,7 +324,9 @@ export async function createSession(orgId: number, applicationId: string): Promi
     }
   }
 
-  const questions = await generateQuestions(job, jobSkills, resumeText);
+  const count = clampCount(opts?.questionCount);
+  const objective = (opts?.objective || "").trim();
+  const questions = await generateQuestions(job, jobSkills, resumeText, count, objective);
 
   const now = new Date();
   const id = uuidv4();
@@ -304,7 +338,9 @@ export async function createSession(orgId: number, applicationId: string): Promi
     candidate_id: application.candidate_id,
     job_id: application.job_id ?? null,
     token,
-    status: "pending",
+    status: "draft",
+    objective: objective || null,
+    question_count: count,
     questions: JSON.stringify(questions) as any,
     current_index: 0,
     created_at: now,
@@ -312,8 +348,44 @@ export async function createSession(orgId: number, applicationId: string): Promi
   } as Partial<AiInterviewRow>);
 
   const created = await db.findOne<AiInterviewRow>("ai_interviews", { id, organization_id: orgId });
-  logger.info(`AI interview session ${id} created for application ${applicationId} (${questions.length} questions)`);
+  logger.info(`AI interview session ${id} created (draft) for application ${applicationId} (${questions.length} questions)`);
   return { ...(created as AiInterviewRow), questions };
+}
+
+/** HR: replace the questions (during review) and re-generate is done client-side. */
+export async function updateQuestions(
+  orgId: number,
+  id: string,
+  questionTexts: string[],
+): Promise<AiInterviewQuestion[]> {
+  const db = getDB();
+  const session = await db.findOne<AiInterviewRow>("ai_interviews", { id, organization_id: orgId });
+  if (!session) throw new NotFoundError("AI interview", id);
+  if (session.status !== "draft") {
+    throw new ValidationError("Questions can only be edited before the interview is approved");
+  }
+  const questions = questionTexts
+    .map((t) => String(t).trim())
+    .filter(Boolean)
+    .map((text, i) => ({ id: `q${i + 1}`, text }));
+  if (questions.length < 1) throw new ValidationError("At least one question is required");
+
+  await db.update("ai_interviews", id, {
+    questions: JSON.stringify(questions),
+    question_count: questions.length,
+    updated_at: new Date(),
+  });
+  return questions;
+}
+
+/** HR: approve the questions — makes the candidate link usable. */
+export async function approveSession(orgId: number, id: string): Promise<void> {
+  const db = getDB();
+  const session = await db.findOne<AiInterviewRow>("ai_interviews", { id, organization_id: orgId });
+  if (!session) throw new NotFoundError("AI interview", id);
+  if (getQuestions(session).length < 1) throw new ValidationError("Add at least one question first");
+  await db.update("ai_interviews", id, { status: "ready", updated_at: new Date() });
+  logger.info(`AI interview ${id} approved (ready)`);
 }
 
 async function loadByToken(token: string): Promise<AiInterviewRow> {
@@ -334,14 +406,17 @@ export async function getPublicState(token: string) {
   );
   const job = session.job_id ? await db.findById<{ title: string }>("job_postings", session.job_id) : null;
 
+  const ready = session.status !== "draft"; // HR hasn't approved the questions yet
   const done = session.status === "completed" || session.current_index >= questions.length;
   return {
     status: session.status,
+    ready,
     candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}`.trim() : "Candidate",
     job_title: job?.title ?? null,
     total: questions.length,
     current_index: session.current_index,
-    question: done ? null : questions[session.current_index]?.text ?? null,
+    // Don't reveal the questions until HR has approved them.
+    question: !ready || done ? null : questions[session.current_index]?.text ?? null,
     done,
     // When Retell is configured the candidate gets a real-time spoken interview;
     // otherwise they fall back to the typed/turn-based flow.
@@ -357,6 +432,9 @@ export function isVoiceEnabled(): boolean {
 export async function submitAnswer(token: string, answer: string) {
   const db = getDB();
   const session = await loadByToken(token);
+  if (session.status === "draft") {
+    throw new ValidationError("This interview isn't ready yet");
+  }
   if (session.status === "completed") {
     throw new ValidationError("This interview has already been completed");
   }
@@ -423,6 +501,7 @@ export async function completeSession(token: string) {
   await db.update("ai_interviews", session.id, {
     status: "completed",
     overall_score: evaluation.overall_score,
+    communication_score: evaluation.communication_score,
     recommendation: evaluation.recommendation,
     strengths: evaluation.strengths,
     concerns: evaluation.concerns,
@@ -454,6 +533,9 @@ export async function createVoiceCall(token: string): Promise<{ accessToken: str
   }
   const db = getDB();
   const session = await loadByToken(token);
+  if (session.status === "draft") {
+    throw new ValidationError("This interview isn't ready yet");
+  }
   if (session.status === "completed") {
     throw new ValidationError("This interview is already completed");
   }
@@ -521,6 +603,7 @@ export async function handleRetellWebhook(payload: any): Promise<void> {
   if (!session || session.status === "completed") return;
 
   const transcript = typeof call.transcript === "string" ? call.transcript : "";
+  const recordingUrl = typeof call.recording_url === "string" ? call.recording_url : null;
   // Wait for the transcript-bearing event; a bare call_ended without one can be
   // ignored (call_analyzed will follow).
   if (!transcript && event === "call_ended") return;
@@ -531,8 +614,10 @@ export async function handleRetellWebhook(payload: any): Promise<void> {
   const now = new Date();
   await db.update("ai_interviews", session.id, {
     voice_transcript: transcript,
+    recording_url: recordingUrl,
     status: "completed",
     overall_score: evaluation.overall_score,
+    communication_score: evaluation.communication_score,
     recommendation: evaluation.recommendation,
     strengths: evaluation.strengths,
     concerns: evaluation.concerns,
@@ -560,6 +645,7 @@ async function evaluateFromTranscript(
       if (Number.isFinite(overall)) {
         return {
           overall_score: overall,
+          communication_score: clampComms(p.communication_score),
           recommendation:
             typeof p.recommendation === "string" ? p.recommendation : recommendationFor(overall),
           strengths: String(p.strengths ?? ""),
@@ -578,6 +664,7 @@ async function evaluateFromTranscript(
   const overall = words > 0 ? Math.min(100, 15 + Math.round((Math.min(words, 400) / 400) * 70)) : 0;
   return {
     overall_score: overall,
+    communication_score: words > 0 ? Math.max(1, Math.round(overall / 10)) : null,
     recommendation: recommendationFor(overall),
     strengths:
       words > 0
@@ -667,9 +754,12 @@ export async function getSession(orgId: number, id: string) {
     job_title: job?.title ?? null,
     token: session.token,
     status: session.status,
+    objective: session.objective ?? null,
     total_questions: questions.length,
+    questions: questions.map((q) => q.text),
     answered: transcript.filter((t) => t.answer && t.answer.trim().length > 0).length,
     overall_score: session.overall_score,
+    communication_score: session.communication_score ?? null,
     recommendation: session.recommendation,
     strengths: session.strengths,
     concerns: session.concerns,
@@ -681,5 +771,6 @@ export async function getSession(orgId: number, id: string) {
     transcript,
     // Present when the interview was conducted as a real-time voice call.
     voice_transcript: session.voice_transcript ?? null,
+    recording_url: session.recording_url ?? null,
   };
 }

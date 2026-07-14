@@ -16,16 +16,46 @@ const router = Router();
 router.use(authenticate);
 router.use(authorize("super_admin", "org_admin", "hr_admin", "hr_manager"));
 
-// POST / — create a session for an application
+// POST / — create a session for an application (generates draft questions)
 router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const applicationId = req.body.application_id;
     if (!applicationId) throw new ValidationError("application_id is required");
-    const session = await aiInterviewService.createSession(
-      req.user!.empcloudOrgId,
-      String(applicationId),
+    const session = await aiInterviewService.createSession(req.user!.empcloudOrgId, String(applicationId), {
+      objective: req.body.objective,
+      questionCount: req.body.question_count,
+    });
+    sendSuccess(
+      res,
+      { id: session.id, token: session.token, status: session.status, questions: session.questions },
+      201,
     );
-    sendSuccess(res, { id: session.id, token: session.token, questions: session.questions }, 201);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /:id/questions — HR edits the draft questions
+router.put("/:id/questions", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const questions = req.body.questions;
+    if (!Array.isArray(questions)) throw new ValidationError("questions must be an array of strings");
+    const updated = await aiInterviewService.updateQuestions(
+      req.user!.empcloudOrgId,
+      String(req.params.id),
+      questions.map((q: any) => String(q)),
+    );
+    sendSuccess(res, { questions: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /:id/approve — HR approves; the candidate link becomes usable
+router.post("/:id/approve", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await aiInterviewService.approveSession(req.user!.empcloudOrgId, String(req.params.id));
+    sendSuccess(res, { status: "ready" });
   } catch (err) {
     next(err);
   }
