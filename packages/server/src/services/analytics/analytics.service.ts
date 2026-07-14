@@ -167,8 +167,10 @@ export async function getApplicationsTrend(
   const db = getDB();
 
   // Group by the Monday of each application's week (WEEKDAY: 0 = Monday).
+  // DATE_FORMAT returns a plain 'YYYY-MM-DD' string so the keys are stable
+  // regardless of how the driver serialises DATE columns.
   const rows = await db.raw<any[][]>(
-    `SELECT DATE(DATE_SUB(applied_at, INTERVAL WEEKDAY(applied_at) DAY)) AS week_start,
+    `SELECT DATE_FORMAT(DATE_SUB(applied_at, INTERVAL WEEKDAY(applied_at) DAY), '%Y-%m-%d') AS week_start,
             COUNT(*) AS count
        FROM applications
       WHERE organization_id = ?
@@ -184,6 +186,11 @@ export async function getApplicationsTrend(
 
   // Build a continuous, zero-filled series of the last `weeks` Mondays so the
   // chart has no gaps even in weeks with no applications.
+  // BUG-05: format the Monday key from LOCAL date parts, not toISOString(),
+  // which converts to UTC and (in timezones ahead of UTC like IST) shifts every
+  // Monday back a day — so no week ever matched and the chart showed all zeros.
+  const fmtLocal = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const series: { weekStart: string; count: number }[] = [];
   const monday = new Date();
   const day = (monday.getDay() + 6) % 7; // days since Monday (0 = Monday)
@@ -192,7 +199,7 @@ export async function getApplicationsTrend(
   for (let i = weeks - 1; i >= 0; i--) {
     const d = new Date(monday);
     d.setDate(monday.getDate() - i * 7);
-    const key = d.toISOString().slice(0, 10);
+    const key = fmtLocal(d);
     series.push({ weekStart: key, count: counts.get(key) ?? 0 });
   }
 
