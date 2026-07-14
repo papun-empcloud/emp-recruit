@@ -19,6 +19,11 @@ interface InterviewState {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Does the candidate's reply count as "yes, I can hear you"? Deliberately
+// conservative so a negation ("no, I can't") doesn't slip through.
+const AFFIRMATIVE = /\b(yes|yeah|yep|yup|sure|okay|ok|ready|go ahead)\b/i;
+const isAffirmative = (text: string) => AFFIRMATIVE.test(text.trim());
+
 // Web Speech API (not in standard TS lib types).
 const SpeechRecognitionCtor: any =
   typeof window !== "undefined"
@@ -36,6 +41,7 @@ export function AiInterviewPage() {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [left, setLeft] = useState(false);
+  const [soundChecked, setSoundChecked] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   function quit() {
@@ -87,13 +93,29 @@ export function AiInterviewPage() {
     };
   }, [token]);
 
-  // Speak each new question once the candidate has started.
+  // Speak each new question — but only after the sound check has passed.
   useEffect(() => {
-    if (started && state && !state.done && state.question) {
+    if (started && soundChecked && state && !state.done && state.question) {
       say(state.question);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.current_index, started, state?.done]);
+  }, [state?.current_index, started, soundChecked, state?.done]);
+
+  // Advance past the sound check as soon as the candidate confirms — by voice
+  // (the mic fills the box) or by typing "yes".
+  useEffect(() => {
+    if (started && !soundChecked && isAffirmative(answer)) {
+      proceedToQuestions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answer, started, soundChecked]);
+
+  // Confirm the sound check and move on to the first question.
+  function proceedToQuestions() {
+    stopListening();
+    setAnswer("");
+    setSoundChecked(true);
+  }
 
   function stopListening() {
     try {
@@ -232,14 +254,16 @@ export function AiInterviewPage() {
           <h1 className="mt-5 text-2xl font-bold text-gray-900">AI Interview</h1>
           {state.job_title && <p className="mt-1 text-sm font-medium text-brand-600">{state.job_title}</p>}
           <p className="mt-4 text-sm text-gray-600">
-            Hi {state.candidate_name}, I'm your AI interviewer. I'll ask you {state.total} questions tailored to
-            your background. You can answer by <strong>speaking</strong> (tap the mic) or by <strong>typing</strong>.
-            Take your time.
+            Hi {state.candidate_name}, I'm your AI interviewer. First we'll do a quick sound check, then I'll ask
+            you {state.total} questions tailored to your background. You can answer by <strong>speaking</strong>{" "}
+            (tap the mic) or by <strong>typing</strong>. Take your time.
           </p>
           <button
             onClick={() => {
               setStarted(true);
-              if (state.question) say(state.question);
+              say(
+                `Hi ${state.candidate_name}! Before we begin, please make sure your sound is on. Can you hear me okay? Say "yes" when you're ready.`,
+              );
             }}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700"
           >
@@ -255,17 +279,21 @@ export function AiInterviewPage() {
     );
   }
 
-  // Active question — Google Meet-style call layout: two participant tiles, the
-  // question as a live caption, an answer bar, and a call control bar with mic +
-  // a red Leave button. The speaking participant's tile is highlighted.
+  // Active call — Google Meet-style layout. Before the first question we run a
+  // quick sound check: the AI asks "can you hear me?" and only advances to the
+  // questions once the candidate confirms (says or types "yes").
+  const inSoundCheck = !soundChecked;
   const isLast = state.current_index + 1 >= state.total;
+  const caption = inSoundCheck
+    ? `Hi ${state.candidate_name}! Please make sure your sound is on. Can you hear me okay? Say "yes" or type it below to begin.`
+    : state.question;
   return (
     <div className="flex min-h-screen flex-col bg-[#202124] text-white">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3">
         <span className="text-sm font-medium text-gray-200">{state.job_title || "AI Interview"}</span>
         <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
-          Question {state.current_index + 1} of {state.total}
+          {inSoundCheck ? "Sound check" : `Question ${state.current_index + 1} of ${state.total}`}
         </span>
       </div>
 
@@ -276,7 +304,7 @@ export function AiInterviewPage() {
           <MeetTile
             label="You"
             speaking={listening}
-            status={listening ? "Listening" : "Your turn"}
+            status={listening ? "Listening" : inSoundCheck ? "Say 'yes'" : "Your turn"}
             icon={Mic}
             accent="blue"
             muted={!listening}
@@ -284,13 +312,13 @@ export function AiInterviewPage() {
         </div>
       </div>
 
-      {/* Live caption — the current question */}
+      {/* Live caption — sound-check prompt, then the current question */}
       <div className="px-4 pb-3">
         <div className="mx-auto flex max-w-3xl items-start justify-center gap-2 rounded-xl bg-black/40 px-4 py-3">
-          <p className="text-center text-sm text-gray-100 sm:text-base">{state.question}</p>
+          <p className="text-center text-sm text-gray-100 sm:text-base">{caption}</p>
           <button
-            onClick={() => state.question && say(state.question)}
-            title="Replay question"
+            onClick={() => caption && say(caption)}
+            title="Replay"
             className="mt-0.5 flex-shrink-0 text-gray-400 hover:text-white"
           >
             <Volume2 className="h-4 w-4" />
@@ -298,24 +326,33 @@ export function AiInterviewPage() {
         </div>
       </div>
 
-      {/* Answer bar */}
+      {/* Answer / confirm bar */}
       <div className="mx-auto w-full max-w-3xl px-4">
         <div className="flex items-end gap-2 rounded-2xl bg-[#3c4043] p-2">
           <textarea
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             rows={2}
-            placeholder="Type your answer, or use the mic…"
+            placeholder={inSoundCheck ? "Say or type “yes” to begin…" : "Type your answer, or use the mic…"}
             className="max-h-32 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder:text-gray-400 focus:outline-none"
           />
-          <button
-            onClick={submitAnswer}
-            disabled={submitting || !answer.trim()}
-            className="flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {isLast ? "Finish" : "Send"}
-          </button>
+          {inSoundCheck ? (
+            <button
+              onClick={proceedToQuestions}
+              className="flex h-10 flex-shrink-0 items-center gap-2 rounded-xl bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              <CheckCircle2 className="h-4 w-4" /> I can hear you
+            </button>
+          ) : (
+            <button
+              onClick={submitAnswer}
+              disabled={submitting || !answer.trim()}
+              className="flex h-10 flex-shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isLast ? "Finish" : "Send"}
+            </button>
+          )}
         </div>
       </div>
 
