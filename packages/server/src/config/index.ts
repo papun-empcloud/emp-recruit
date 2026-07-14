@@ -132,6 +132,14 @@ export const config = {
       model: process.env.OPENAI_MODEL || process.env.AI_MODEL || "gpt-4o",
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
     },
+    // Retell AI powers the real-time voice interview (FoloUp-style). Create an
+    // agent in the Retell dashboard whose prompt uses the {{candidate_name}},
+    // {{job_title}} and {{questions}} dynamic variables, then set these and
+    // point its webhook at POST /api/v1/public/ai-interviews/retell-webhook.
+    retell: {
+      apiKey: process.env.RETELL_API_KEY || "",
+      agentId: process.env.RETELL_AGENT_ID || "",
+    },
     // Resume scoring uses the deterministic heuristic by default so an
     // individual score and a batch score for the same candidate always agree
     // and are reproducible. LLM scoring is non-deterministic and rate-limited
