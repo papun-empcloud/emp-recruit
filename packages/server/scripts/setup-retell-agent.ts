@@ -18,25 +18,37 @@ const API = "https://api.retellai.com";
 const key = process.env.RETELL_API_KEY;
 const webhookUrl = process.env.RETELL_WEBHOOK_URL || "";
 const voiceOverride = process.env.RETELL_VOICE_ID || "";
+const existingAgentId = process.env.RETELL_AGENT_ID || "";
 
 const GENERAL_PROMPT = `You are a friendly, professional AI interviewer for the {{job_title}} role, interviewing {{candidate_name}}.
 
-Greet the candidate warmly by name, then ask these questions ONE AT A TIME, in order. Wait for a complete answer before moving on. If an answer is vague or very short, ask ONE brief, natural follow-up, then continue.
+AUDIO CHECK — do this FIRST, before anything else:
+1. Greet {{candidate_name}} warmly by name and ask them to make sure they are unmuted.
+2. Ask "Can you hear me okay?" and then WAIT for their reply.
+3. Only after they clearly confirm they can hear you (for example they say "yes"), briefly tell them you'll ask a few questions and then begin.
+If they say they cannot hear you, don't respond, or are unclear, kindly ask them again to unmute and check their audio. Do NOT ask any interview question until they have confirmed they can hear you.
+
+Once the audio is confirmed, ask these questions ONE AT A TIME, in order. Wait for a complete answer before moving on. If an answer is vague or very short, ask ONE brief, natural follow-up, then continue.
 
 Questions:
 {{questions}}
 
 Keep your turns short and conversational. Do NOT read the question numbers aloud. After the final question, thank the candidate sincerely and end the call.`;
 
-async function post(path: string, body: unknown): Promise<any> {
+// The agent's very first spoken line — a deterministic audio check. The model
+// then waits (per the prompt above) for the candidate to confirm before asking.
+const BEGIN_MESSAGE = `Hi {{candidate_name}}! Before we begin, please make sure you're unmuted. Can you hear me okay?`;
+
+async function request(method: string, path: string, body?: unknown): Promise<any> {
   const res = await fetch(`${API}${path}`, {
-    method: "POST",
+    method,
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
-  if (!res.ok) throw new Error(`${path} -> ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`${method} ${path} -> ${res.status} ${await res.text()}`);
   return res.json();
 }
+const post = (path: string, body: unknown) => request("POST", path, body);
 
 async function pickVoice(): Promise<string> {
   if (voiceOverride) return voiceOverride;
@@ -50,16 +62,44 @@ async function pickVoice(): Promise<string> {
   return "11labs-Adrian";
 }
 
+// Update the prompt/begin-message of an agent you already created — so the new
+// audio-check behavior applies without minting a new RETELL_AGENT_ID. Re-run
+// `pnpm setup:retell` with your existing RETELL_AGENT_ID set to take this path.
+async function updateExistingAgent(agentId: string) {
+  console.log(`Updating existing agent ${agentId}…`);
+  const agent = await request("GET", `/get-agent/${agentId}`);
+  const llmId = agent?.response_engine?.llm_id;
+  if (!llmId) {
+    throw new Error(`Agent ${agentId} is not backed by a Retell LLM (cannot update its prompt).`);
+  }
+  await request("PATCH", `/update-retell-llm/${llmId}`, {
+    general_prompt: GENERAL_PROMPT,
+    begin_message: BEGIN_MESSAGE,
+  });
+  console.log(`\n✅ Updated Retell LLM ${llmId} on agent ${agentId}.`);
+  console.log("The AI now starts with an audio check and waits for confirmation before questions.");
+  console.log("No env change needed — your RETELL_AGENT_ID is unchanged.");
+}
+
 async function main() {
   if (!key) {
     console.error("Set RETELL_API_KEY (get it from https://dashboard.retellai.com → API Keys).");
     process.exit(1);
   }
 
+  // Already have an agent? Update it in place instead of creating a new one.
+  if (existingAgentId) {
+    await updateExistingAgent(existingAgentId);
+    return;
+  }
+
   const voiceId = await pickVoice();
   console.log(`Using voice: ${voiceId}`);
 
-  const llm = await post("/create-retell-llm", { general_prompt: GENERAL_PROMPT });
+  const llm = await post("/create-retell-llm", {
+    general_prompt: GENERAL_PROMPT,
+    begin_message: BEGIN_MESSAGE,
+  });
   console.log(`Created Retell LLM: ${llm.llm_id}`);
 
   const agent = await post("/create-agent", {

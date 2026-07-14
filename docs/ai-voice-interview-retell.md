@@ -28,6 +28,18 @@ pnpm setup:retell
 (`RETELL_WEBHOOK_URL` is optional here; you can also set the webhook in the
 dashboard — see step 3.)
 
+**Already have an agent?** Run the same command with your existing
+`RETELL_AGENT_ID` also set — the script updates that agent's prompt in place
+(no new ID, no env change):
+
+```bash
+RETELL_API_KEY=key_xxx RETELL_AGENT_ID=agent_xxx pnpm setup:retell
+```
+
+The interviewer starts with an audio check — it greets the candidate, asks them
+to unmute and "Can you hear me okay?", and only asks the interview questions once
+the candidate confirms they can hear it.
+
 **Or manually** in the [Retell dashboard](https://dashboard.retellai.com/): create
 a Retell LLM agent + a voice, with a prompt that uses the **dynamic variables**
 the app injects per candidate (`{{candidate_name}}`, `{{job_title}}`,
