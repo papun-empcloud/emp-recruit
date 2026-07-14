@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Brain, Plus, X, Search, Copy, Loader2, ChevronRight, ArrowLeft, Sparkles, Trash2 } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import { formatDate } from "@/lib/utils";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import { Pagination } from "@/components/Pagination";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
 
@@ -43,12 +45,14 @@ function candidateLink(token: string) {
 export function AiInterviewsListPage() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["ai-interviews"],
-    queryFn: () => apiGet<{ data: SessionRow[]; total: number }>("/ai-interviews", { limit: 50 }),
-  });
-  const sessions = data?.data?.data ?? [];
+  const { rows: sessions, total, perPage, isLoading } = usePaginatedList<SessionRow>(
+    ["ai-interviews"],
+    "/ai-interviews",
+    {},
+    page,
+  );
 
   return (
     <div className="space-y-6">
@@ -130,6 +134,10 @@ export function AiInterviewsListPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {!isLoading && total > 0 && (
+        <Pagination page={page} perPage={perPage} total={total} onPageChange={setPage} />
       )}
 
       {showModal && (
