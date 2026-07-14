@@ -35,7 +35,19 @@ export function AiInterviewPage() {
   const [listening, setListening] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [left, setLeft] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  function quit() {
+    if (!window.confirm("Leave the interview? You won't be able to resume it.")) return;
+    try {
+      recognitionRef.current?.stop();
+      window.speechSynthesis?.cancel();
+    } catch {
+      /* ignore */
+    }
+    setLeft(true);
+  }
 
   // Speak a question and track when the AI is talking (to highlight its side).
   function say(text: string) {
@@ -157,6 +169,21 @@ export function AiInterviewPage() {
     );
   }
 
+  // Candidate left the interview.
+  if (left) {
+    return (
+      <Shell>
+        <div className="text-center">
+          <PhoneOff className="mx-auto h-12 w-12 text-gray-400" />
+          <h1 className="mt-4 text-xl font-bold text-gray-900">You left the interview</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            No problem, {state.candidate_name}. You can reopen the link to try again if it's still active.
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
   // Already completed (either now or on a prior visit).
   if (state.done || state.status === "completed") {
     return (
@@ -228,114 +255,90 @@ export function AiInterviewPage() {
     );
   }
 
-  // Active question — polished side-by-side layout. The Interviewer side lights
-  // up while the AI reads the question; the You side lights up while recording.
+  // Active question — Google Meet-style call layout: two participant tiles, the
+  // question as a live caption, an answer bar, and a call control bar with mic +
+  // a red Leave button. The speaking participant's tile is highlighted.
   const isLast = state.current_index + 1 >= state.total;
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
-      <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        {/* Header + progress */}
-        <div className="border-b border-gray-100 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-900">{state.job_title || "AI Interview"}</p>
-            <span className="text-xs font-medium text-gray-400">
-              Question {state.current_index + 1} of {state.total}
-            </span>
-          </div>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-            <div
-              className="h-full rounded-full bg-brand-500 transition-all duration-500"
-              style={{ width: `${(state.current_index / state.total) * 100}%` }}
-            />
-          </div>
+    <div className="flex min-h-screen flex-col bg-[#202124] text-white">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <span className="text-sm font-medium text-gray-200">{state.job_title || "AI Interview"}</span>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
+          Question {state.current_index + 1} of {state.total}
+        </span>
+      </div>
+
+      {/* Participant tiles */}
+      <div className="flex flex-1 items-center justify-center px-4">
+        <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-2">
+          <MeetTile label="Interviewer" speaking={aiSpeaking} status={aiSpeaking ? "Speaking" : "Ready"} icon={Brain} accent="purple" />
+          <MeetTile
+            label="You"
+            speaking={listening}
+            status={listening ? "Listening" : "Your turn"}
+            icon={Mic}
+            accent="blue"
+            muted={!listening}
+          />
         </div>
+      </div>
 
-        {/* Split screen */}
-        <div className="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-          {/* Interviewer */}
-          <div className={`p-6 transition-colors ${aiSpeaking ? "bg-purple-50" : ""}`}>
-            <div className="flex items-center gap-3">
-              <div
-                className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
-                  aiSpeaking ? "bg-purple-100" : "bg-gray-100"
-                }`}
-              >
-                {aiSpeaking && <span className="absolute inset-0 animate-ping rounded-full bg-purple-300 opacity-40" />}
-                <Brain className={`relative h-6 w-6 ${aiSpeaking ? "text-purple-600" : "text-gray-400"}`} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Interviewer</p>
-                <p className={`text-xs ${aiSpeaking ? "text-purple-600" : "text-gray-400"}`}>
-                  {aiSpeaking ? "Speaking…" : "Ready"}
-                </p>
-              </div>
-            </div>
-            <p className="mt-5 text-base font-medium leading-relaxed text-gray-900">{state.question}</p>
-            <button
-              onClick={() => state.question && say(state.question)}
-              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700"
-            >
-              <Volume2 className="h-4 w-4" /> Replay question
-            </button>
-          </div>
-
-          {/* You */}
-          <div className={`p-6 transition-colors ${listening ? "bg-brand-50" : ""}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
-                    listening ? "bg-brand-100" : "bg-gray-100"
-                  }`}
-                >
-                  {listening && <span className="absolute inset-0 animate-ping rounded-full bg-brand-300 opacity-40" />}
-                  <Mic className={`relative h-6 w-6 ${listening ? "text-brand-600" : "text-gray-400"}`} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">You</p>
-                  <p className={`text-xs ${listening ? "text-brand-600" : "text-gray-400"}`}>
-                    {listening ? "Listening…" : "Your turn"}
-                  </p>
-                </div>
-              </div>
-              {SpeechRecognitionCtor && (
-                <button
-                  onClick={() => (listening ? stopListening() : startListening())}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                    listening
-                      ? "bg-red-50 text-red-600 ring-1 ring-red-200"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                  {listening ? "Stop" : "Speak"}
-                </button>
-              )}
-            </div>
-            <textarea
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              rows={7}
-              placeholder="Speak using the mic, or type your answer here…"
-              className="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
+      {/* Live caption — the current question */}
+      <div className="px-4 pb-3">
+        <div className="mx-auto flex max-w-3xl items-start justify-center gap-2 rounded-xl bg-black/40 px-4 py-3">
+          <p className="text-center text-sm text-gray-100 sm:text-base">{state.question}</p>
+          <button
+            onClick={() => state.question && say(state.question)}
+            title="Replay question"
+            className="mt-0.5 flex-shrink-0 text-gray-400 hover:text-white"
+          >
+            <Volume2 className="h-4 w-4" />
+          </button>
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
-          <p className="text-xs text-gray-400">
-            {listening ? "● Recording — tap Stop when you're done" : "Answer by voice or type, then submit"}
-          </p>
+      {/* Answer bar */}
+      <div className="mx-auto w-full max-w-3xl px-4">
+        <div className="flex items-end gap-2 rounded-2xl bg-[#3c4043] p-2">
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            rows={2}
+            placeholder="Type your answer, or use the mic…"
+            className="max-h-32 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-white placeholder:text-gray-400 focus:outline-none"
+          />
           <button
             onClick={submitAnswer}
             disabled={submitting || !answer.trim()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            className="flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {isLast ? "Finish interview" : "Submit & next"}
+            {isLast ? "Finish" : "Send"}
           </button>
         </div>
+      </div>
+
+      {/* Call control bar */}
+      <div className="flex items-center justify-center gap-4 py-5">
+        {SpeechRecognitionCtor && (
+          <button
+            onClick={() => (listening ? stopListening() : startListening())}
+            title={listening ? "Stop recording" : "Answer by voice"}
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
+              listening ? "bg-white text-gray-900" : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            {listening ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+          </button>
+        )}
+        <button
+          onClick={quit}
+          title="Leave interview"
+          className="flex h-12 w-16 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
+        >
+          <PhoneOff className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );
@@ -447,67 +450,60 @@ function VoiceInterview({
   }
 
   if (phase === "live" || phase === "finishing") {
-    // FoloUp-style split screen: interviewer on the left, candidate on the right,
-    // each showing their current line of the live conversation.
+    // Google Meet-style call: two participant tiles that light up for whoever's
+    // speaking, live captions along the bottom, and a call control bar.
+    const userSpeaking = !agentTalking && phase === "live";
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
-        <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-6 py-3 text-center">
-            <p className="text-sm font-semibold text-gray-900">{jobTitle || "AI Interview"}</p>
-            <p className="mt-0.5 flex items-center justify-center gap-1.5 text-xs text-red-500">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-              {phase === "finishing" ? "Wrapping up…" : "Live"}
-            </p>
-          </div>
+      <div className="flex min-h-screen flex-col bg-[#202124] text-white">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-5 py-3">
+          <span className="text-sm font-medium text-gray-200">{jobTitle || "AI Interview"}</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
+            <span className={`h-2 w-2 rounded-full ${phase === "finishing" ? "bg-yellow-400" : "animate-pulse bg-red-500"}`} />
+            {phase === "finishing" ? "Wrapping up…" : "Live"}
+          </span>
+        </div>
 
-          <div className="grid min-h-[22rem] grid-cols-2 divide-x divide-gray-100">
-            {/* Interviewer */}
-            <div className="flex flex-col items-center justify-between p-6 text-center">
-              <p className="min-h-[6rem] text-lg font-semibold leading-snug text-gray-900">
-                {agentText || "…"}
-              </p>
-              <div className="mt-6">
-                <div
-                  className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${
-                    agentTalking ? "bg-purple-100 ring-4 ring-purple-200" : "bg-purple-50"
-                  }`}
-                >
-                  <Brain className={`h-8 w-8 ${agentTalking ? "text-purple-600" : "text-purple-400"}`} />
-                </div>
-                <p className="mt-2 text-sm font-medium text-gray-700">Interviewer</p>
-              </div>
+        {/* Participant tiles */}
+        <div className="flex flex-1 items-center justify-center px-4">
+          <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-2">
+            <MeetTile
+              label="Interviewer"
+              speaking={agentTalking}
+              status={agentTalking ? "Speaking" : "Listening"}
+              icon={Brain}
+              accent="purple"
+              caption={agentText}
+            />
+            <MeetTile
+              label="You"
+              speaking={userSpeaking}
+              status={userSpeaking ? "Speaking" : "Muted"}
+              icon={Mic}
+              accent="blue"
+              muted={!userSpeaking}
+              caption={userText}
+            />
+          </div>
+        </div>
+
+        {/* Call control bar */}
+        <div className="flex items-center justify-center gap-4 py-5">
+          {phase === "live" ? (
+            <button
+              onClick={() => {
+                if (window.confirm("End the interview? This will finish and submit the call.")) endCall();
+              }}
+              title="Leave interview"
+              className="flex h-12 w-16 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
+            >
+              <PhoneOff className="h-5 w-5" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <Loader2 className="h-5 w-5 animate-spin" /> Wrapping up…
             </div>
-
-            {/* Candidate */}
-            <div className="flex flex-col items-center justify-between p-6 text-center">
-              <p className="min-h-[6rem] text-lg font-semibold leading-snug text-gray-900">
-                {userText || (agentTalking ? "" : "…")}
-              </p>
-              <div className="mt-6">
-                <div
-                  className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${
-                    !agentTalking && phase === "live" ? "bg-brand-100 ring-4 ring-brand-200" : "bg-gray-100"
-                  }`}
-                >
-                  <Mic className={`h-8 w-8 ${!agentTalking && phase === "live" ? "text-brand-600" : "text-gray-400"}`} />
-                </div>
-                <p className="mt-2 text-sm font-medium text-gray-700">You</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-center border-t border-gray-100 py-4">
-            {phase === "live" ? (
-              <button
-                onClick={endCall}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-5 py-2.5 text-sm font-medium text-red-600 ring-1 ring-red-200 hover:bg-red-100"
-              >
-                <PhoneOff className="h-4 w-4" /> End interview
-              </button>
-            ) : (
-              <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
-            )}
-          </div>
+          )}
         </div>
       </div>
     );
@@ -544,6 +540,73 @@ function VoiceInterview({
         </button>
       </div>
     </Shell>
+  );
+}
+
+// A Google Meet-style participant tile. Glows and shows an animated ring while
+// that participant is speaking; renders their live caption when provided.
+function MeetTile({
+  label,
+  speaking,
+  status,
+  icon: Icon,
+  accent,
+  muted = false,
+  caption,
+}: {
+  label: string;
+  speaking: boolean;
+  status: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accent: "purple" | "blue";
+  muted?: boolean;
+  caption?: string;
+}) {
+  const ring = accent === "purple" ? "ring-purple-500" : "ring-blue-500";
+  const avatar = accent === "purple" ? "bg-purple-600" : "bg-blue-600";
+  return (
+    <div
+      className={`relative flex aspect-video flex-col items-center justify-center rounded-2xl bg-[#3c4043] transition-all ${
+        speaking ? `ring-4 ${ring}` : "ring-1 ring-white/5"
+      }`}
+    >
+      {/* Avatar with speaking pulse */}
+      <div className="relative">
+        {speaking && <span className={`absolute inset-0 animate-ping rounded-full ${avatar} opacity-40`} />}
+        <div className={`relative flex h-20 w-20 items-center justify-center rounded-full ${avatar}`}>
+          <Icon className="h-10 w-10 text-white" />
+        </div>
+      </div>
+
+      {/* Live caption */}
+      {caption && (
+        <p className="mt-4 line-clamp-2 max-w-[90%] text-center text-sm text-gray-200">{caption}</p>
+      )}
+
+      {/* Name chip */}
+      <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-md bg-black/50 px-2 py-1 text-xs font-medium text-white">
+        {muted && <MicOff className="h-3 w-3 text-red-400" />}
+        {label}
+      </div>
+
+      {/* Status chip */}
+      <div className="absolute bottom-3 right-3 rounded-md bg-black/40 px-2 py-1 text-xs text-gray-300">
+        {status}
+      </div>
+
+      {/* Speaking equalizer */}
+      {speaking && (
+        <div className="absolute right-3 top-3 flex items-end gap-0.5">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="w-1 animate-pulse rounded-full bg-white"
+              style={{ height: `${8 + i * 4}px`, animationDelay: `${i * 120}ms` }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
