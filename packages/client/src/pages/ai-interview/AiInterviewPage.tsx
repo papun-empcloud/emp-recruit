@@ -43,9 +43,12 @@ export function AiInterviewPage() {
   const [left, setLeft] = useState(false);
   const [soundChecked, setSoundChecked] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const soundCheckStopRef = useRef(false);
+  const soundCheckTimerRef = useRef<number | null>(null);
 
   function quit() {
     if (!window.confirm("Leave the interview? You won't be able to resume it.")) return;
+    stopSoundCheck();
     try {
       recognitionRef.current?.stop();
       window.speechSynthesis?.cancel();
@@ -53,6 +56,45 @@ export function AiInterviewPage() {
       /* ignore */
     }
     setLeft(true);
+  }
+
+  // Repeat the sound-check prompt on a loop until the candidate confirms. Each
+  // time the utterance ends we pause briefly, then say it again — unless the
+  // sound check has been stopped (candidate confirmed, left, or unmounted).
+  function speakSoundCheck() {
+    if (soundCheckStopRef.current || !("speechSynthesis" in window)) return;
+    const name = state?.candidate_name || "there";
+    const sentence = `Hi ${name}! Please make sure your sound is on. Can you hear me okay? Say "yes" when you're ready.`;
+    const scheduleNext = () => {
+      setAiSpeaking(false);
+      if (!soundCheckStopRef.current) {
+        soundCheckTimerRef.current = window.setTimeout(speakSoundCheck, 2500);
+      }
+    };
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(sentence);
+      u.onstart = () => setAiSpeaking(true);
+      u.onend = scheduleNext;
+      u.onerror = scheduleNext;
+      window.speechSynthesis.speak(u);
+    } catch {
+      scheduleNext();
+    }
+  }
+
+  function stopSoundCheck() {
+    soundCheckStopRef.current = true;
+    if (soundCheckTimerRef.current != null) {
+      clearTimeout(soundCheckTimerRef.current);
+      soundCheckTimerRef.current = null;
+    }
+    try {
+      window.speechSynthesis?.cancel();
+    } catch {
+      /* ignore */
+    }
+    setAiSpeaking(false);
   }
 
   // Speak a question and track when the AI is talking (to highlight its side).
@@ -85,6 +127,8 @@ export function AiInterviewPage() {
     })();
     return () => {
       active = false;
+      soundCheckStopRef.current = true;
+      if (soundCheckTimerRef.current != null) clearTimeout(soundCheckTimerRef.current);
       try {
         window.speechSynthesis?.cancel();
       } catch {
@@ -112,6 +156,7 @@ export function AiInterviewPage() {
 
   // Confirm the sound check and move on to the first question.
   function proceedToQuestions() {
+    stopSoundCheck();
     stopListening();
     setAnswer("");
     setSoundChecked(true);
@@ -261,9 +306,8 @@ export function AiInterviewPage() {
           <button
             onClick={() => {
               setStarted(true);
-              say(
-                `Hi ${state.candidate_name}! Before we begin, please make sure your sound is on. Can you hear me okay? Say "yes" when you're ready.`,
-              );
+              soundCheckStopRef.current = false;
+              speakSoundCheck();
             }}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700"
           >
@@ -316,13 +360,15 @@ export function AiInterviewPage() {
       <div className="px-4 pb-3">
         <div className="mx-auto flex max-w-3xl items-start justify-center gap-2 rounded-xl bg-black/40 px-4 py-3">
           <p className="text-center text-sm text-gray-100 sm:text-base">{caption}</p>
-          <button
-            onClick={() => caption && say(caption)}
-            title="Replay"
-            className="mt-0.5 flex-shrink-0 text-gray-400 hover:text-white"
-          >
-            <Volume2 className="h-4 w-4" />
-          </button>
+          {!inSoundCheck && (
+            <button
+              onClick={() => caption && say(caption)}
+              title="Replay question"
+              className="mt-0.5 flex-shrink-0 text-gray-400 hover:text-white"
+            >
+              <Volume2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
