@@ -25,19 +25,6 @@ const SpeechRecognitionCtor: any =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : undefined;
 
-function speak(text: string) {
-  try {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
-  } catch {
-    /* TTS is best-effort */
-  }
-}
-
 export function AiInterviewPage() {
   const { token } = useParams<{ token: string }>();
   const [state, setState] = useState<InterviewState | null>(null);
@@ -46,8 +33,24 @@ export function AiInterviewPage() {
   const [started, setStarted] = useState(false);
   const [answer, setAnswer] = useState("");
   const [listening, setListening] = useState(false);
+  const [aiSpeaking, setAiSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  // Speak a question and track when the AI is talking (to highlight its side).
+  function say(text: string) {
+    try {
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.onstart = () => setAiSpeaking(true);
+      u.onend = () => setAiSpeaking(false);
+      u.onerror = () => setAiSpeaking(false);
+      window.speechSynthesis.speak(u);
+    } catch {
+      setAiSpeaking(false);
+    }
+  }
 
   // Load the interview state.
   useEffect(() => {
@@ -75,7 +78,7 @@ export function AiInterviewPage() {
   // Speak each new question once the candidate has started.
   useEffect(() => {
     if (started && state && !state.done && state.question) {
-      speak(state.question);
+      say(state.question);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.current_index, started, state?.done]);
@@ -209,7 +212,7 @@ export function AiInterviewPage() {
           <button
             onClick={() => {
               setStarted(true);
-              if (state.question) speak(state.question);
+              if (state.question) say(state.question);
             }}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700"
           >
@@ -225,78 +228,116 @@ export function AiInterviewPage() {
     );
   }
 
-  // Active question.
+  // Active question — polished side-by-side layout. The Interviewer side lights
+  // up while the AI reads the question; the You side lights up while recording.
+  const isLast = state.current_index + 1 >= state.total;
   return (
-    <Shell wide>
-      <div className="w-full">
-        <div className="mb-4 flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
-            Question {state.current_index + 1} of {state.total}
-          </span>
-          <div className="h-1.5 w-40 overflow-hidden rounded-full bg-gray-200">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+      <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {/* Header + progress */}
+        <div className="border-b border-gray-100 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-900">{state.job_title || "AI Interview"}</p>
+            <span className="text-xs font-medium text-gray-400">
+              Question {state.current_index + 1} of {state.total}
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
             <div
-              className="h-full rounded-full bg-brand-500 transition-all"
-              style={{ width: `${((state.current_index) / state.total) * 100}%` }}
+              className="h-full rounded-full bg-brand-500 transition-all duration-500"
+              style={{ width: `${(state.current_index / state.total) * 100}%` }}
             />
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
-              <Brain className="h-5 w-5 text-purple-600" />
+        {/* Split screen */}
+        <div className="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+          {/* Interviewer */}
+          <div className={`p-6 transition-colors ${aiSpeaking ? "bg-purple-50" : ""}`}>
+            <div className="flex items-center gap-3">
+              <div
+                className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+                  aiSpeaking ? "bg-purple-100" : "bg-gray-100"
+                }`}
+              >
+                {aiSpeaking && <span className="absolute inset-0 animate-ping rounded-full bg-purple-300 opacity-40" />}
+                <Brain className={`relative h-6 w-6 ${aiSpeaking ? "text-purple-600" : "text-gray-400"}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Interviewer</p>
+                <p className={`text-xs ${aiSpeaking ? "text-purple-600" : "text-gray-400"}`}>
+                  {aiSpeaking ? "Speaking…" : "Ready"}
+                </p>
+              </div>
             </div>
-            <p className="text-base font-medium text-gray-900">{state.question}</p>
-          </div>
-          <button
-            onClick={() => state.question && speak(state.question)}
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700"
-          >
-            <Volume2 className="h-4 w-4" /> Replay question
-          </button>
-        </div>
-
-        <div className="mt-4">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Your answer</label>
-          <textarea
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            rows={6}
-            placeholder="Speak using the mic, or type your answer here…"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-
-        <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {SpeechRecognitionCtor ? (
+            <p className="mt-5 text-base font-medium leading-relaxed text-gray-900">{state.question}</p>
             <button
-              onClick={() => (listening ? stopListening() : startListening())}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium ${
-                listening
-                  ? "bg-red-50 text-red-600 ring-1 ring-red-200"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              onClick={() => state.question && say(state.question)}
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700"
             >
-              {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {listening ? "Stop recording" : "Answer by voice"}
+              <Volume2 className="h-4 w-4" /> Replay question
             </button>
-          ) : (
-            <span />
-          )}
+          </div>
+
+          {/* You */}
+          <div className={`p-6 transition-colors ${listening ? "bg-brand-50" : ""}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+                    listening ? "bg-brand-100" : "bg-gray-100"
+                  }`}
+                >
+                  {listening && <span className="absolute inset-0 animate-ping rounded-full bg-brand-300 opacity-40" />}
+                  <Mic className={`relative h-6 w-6 ${listening ? "text-brand-600" : "text-gray-400"}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">You</p>
+                  <p className={`text-xs ${listening ? "text-brand-600" : "text-gray-400"}`}>
+                    {listening ? "Listening…" : "Your turn"}
+                  </p>
+                </div>
+              </div>
+              {SpeechRecognitionCtor && (
+                <button
+                  onClick={() => (listening ? stopListening() : startListening())}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    listening
+                      ? "bg-red-50 text-red-600 ring-1 ring-red-200"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                  {listening ? "Stop" : "Speak"}
+                </button>
+              )}
+            </div>
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              rows={7}
+              placeholder="Speak using the mic, or type your answer here…"
+              className="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
+          <p className="text-xs text-gray-400">
+            {listening ? "● Recording — tap Stop when you're done" : "Answer by voice or type, then submit"}
+          </p>
           <button
             onClick={submitAnswer}
             disabled={submitting || !answer.trim()}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {state.current_index + 1 >= state.total ? "Finish interview" : "Submit & next"}
+            {isLast ? "Finish interview" : "Submit & next"}
           </button>
         </div>
-        {listening && (
-          <p className="mt-2 text-center text-xs text-red-500">● Listening… speak your answer, then tap “Stop recording”.</p>
-        )}
       </div>
-    </Shell>
+    </div>
   );
 }
 
