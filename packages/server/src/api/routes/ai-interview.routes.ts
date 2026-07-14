@@ -1,0 +1,65 @@
+// ============================================================================
+// AI INTERVIEW ROUTES (HR / admin — authenticated)
+// POST /              — create an AI interview session for an application
+// GET  /              — list sessions
+// GET  /:id           — session detail (transcript + evaluation)
+// ============================================================================
+
+import { Router, Request, Response, NextFunction } from "express";
+import { authenticate, authorize } from "../middleware/auth.middleware";
+import * as aiInterviewService from "../../services/ai-interview/ai-interview.service";
+import { sendSuccess } from "../../utils/response";
+import { ValidationError } from "../../utils/errors";
+
+const router = Router();
+
+router.use(authenticate);
+router.use(authorize("super_admin", "org_admin", "hr_admin", "hr_manager"));
+
+// POST / — create a session for an application
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const applicationId = req.body.application_id;
+    if (!applicationId) throw new ValidationError("application_id is required");
+    const session = await aiInterviewService.createSession(
+      req.user!.empcloudOrgId,
+      String(applicationId),
+    );
+    sendSuccess(res, { id: session.id, token: session.token, questions: session.questions }, 201);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET / — list sessions
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await aiInterviewService.listSessions(req.user!.empcloudOrgId, {
+      page: req.query.page ? Number(req.query.page) : undefined,
+      limit: req.query.limit
+        ? Number(req.query.limit)
+        : req.query.perPage
+          ? Number(req.query.perPage)
+          : undefined,
+      status: req.query.status as string | undefined,
+    });
+    sendSuccess(res, result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /:id — detail
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const session = await aiInterviewService.getSession(
+      req.user!.empcloudOrgId,
+      String(req.params.id),
+    );
+    sendSuccess(res, session);
+  } catch (err) {
+    next(err);
+  }
+});
+
+export { router as aiInterviewRoutes };

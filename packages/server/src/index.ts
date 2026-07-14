@@ -29,6 +29,8 @@ import { referralRoutes } from "./api/routes/referral.routes";
 import { analyticsRoutes } from "./api/routes/analytics.routes";
 import { emailTemplateRoutes } from "./api/routes/email-template.routes";
 import { scoringRoutes } from "./api/routes/scoring.routes";
+import { aiInterviewRoutes } from "./api/routes/ai-interview.routes";
+import { aiInterviewPublicRoutes } from "./api/routes/ai-interview-public.routes";
 import { offerLetterRoutes } from "./api/routes/offer-letter.routes";
 import { comparisonRoutes } from "./api/routes/comparison.routes";
 import { pipelineRoutes } from "./api/routes/pipeline.routes";
@@ -133,6 +135,7 @@ v1.use("/career-pages", careerPageRoutes);
 v1.use("/analytics", analyticsRoutes);
 v1.use("/scoring", scoringRoutes);
 v1.use("/ai", scoringRoutes); // alias — /ai/batch-score -> /scoring/batch-score (#866)
+v1.use("/ai-interviews", aiInterviewRoutes);
 v1.use("/offer-letters", offerLetterRoutes);
 v1.use("/applications", comparisonRoutes);
 v1.use("/pipeline", pipelineRoutes);
@@ -147,7 +150,10 @@ v1.use("/meeting-providers", meetingProviderRoutes);
 v1.use("/job-boards", jobBoardRoutes);
 v1.use("/job-publishing", jobPublishingRoutes); // outbound job-board publishing (scaffold)
 
-// Public routes (no auth required) — career pages, job listings, applications
+// Public routes (no auth required) — career pages, job listings, applications.
+// The AI-interview public router is mounted first so its more specific prefix
+// is matched before the general public router.
+app.use("/api/v1/public/ai-interviews", aiInterviewPublicRoutes);
 app.use("/api/v1/public", publicRoutes);
 
 // Candidate portal routes (portal auth — separate from employee auth)
