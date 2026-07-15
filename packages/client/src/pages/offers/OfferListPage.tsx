@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { Offer } from "@emp-recruit/shared";
 
 type EnrichedOffer = Offer & { candidate_name: string; job_title_display: string };
@@ -65,6 +67,18 @@ function formatDate(dateStr: string) {
   });
 }
 
+const OFFER_COLUMNS: ExportColumn<EnrichedOffer>[] = [
+  { header: "Candidate", value: (o) => o.candidate_name },
+  { header: "Job", value: (o) => o.job_title_display },
+  { header: "Department", value: (o) => (o as any).department ?? "" },
+  {
+    header: "Salary",
+    value: (o) => (o.salary_amount != null ? formatCurrency(o.salary_amount, o.salary_currency) : ""),
+  },
+  { header: "Status", value: (o) => o.status },
+  { header: "Created", value: (o) => (o.created_at ? formatDate(o.created_at) : "") },
+];
+
 export function OfferListPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -95,13 +109,27 @@ export function OfferListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Offers</h1>
           <p className="mt-1 text-sm text-gray-500">Manage offer letters and approvals</p>
         </div>
-        <Link
-          to="/offers/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          New Offer
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="offers"
+            title="Offers"
+            subtitle={`${total} offer${total !== 1 ? "s" : ""}${activeTab !== "all" ? ` (${activeTab.replace("_", " ")})` : ""}`}
+            columns={OFFER_COLUMNS}
+            fetchRows={() =>
+              fetchAllRows<EnrichedOffer>("/offers", {
+                status: activeTab !== "all" ? activeTab : "",
+                search,
+              })
+            }
+          />
+          <Link
+            to="/offers/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Offer
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
