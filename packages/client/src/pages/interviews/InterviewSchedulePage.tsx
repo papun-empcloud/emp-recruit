@@ -1,13 +1,34 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Search,
+  Users,
+  Check,
+  CheckCircle2,
+  CalendarClock,
+  MapPin,
+} from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { DateInput } from "@/components/DateInput";
+import { cn, getInitials } from "@/lib/utils";
 import toast from "react-hot-toast";
 import type { Application, PaginatedResponse, InterviewType } from "@emp-recruit/shared";
 
 type ApplicationRow = Application & { candidate_name: string; job_title: string };
+
+const STAGE_BADGE: Record<string, string> = {
+  applied: "bg-blue-100 text-blue-700",
+  screened: "bg-indigo-100 text-indigo-700",
+  interview: "bg-purple-100 text-purple-700",
+  offer: "bg-amber-100 text-amber-700",
+  hired: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-700",
+  withdrawn: "bg-gray-100 text-gray-600",
+};
 
 const INTERVIEW_TYPES: { value: InterviewType; label: string }[] = [
   { value: "phone" as InterviewType, label: "Phone Screen" },
@@ -171,69 +192,126 @@ export function InterviewSchedulePage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Schedule Interview</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Schedule Interview</h1>
+          <p className="mt-0.5 text-sm text-gray-500">
+            Set up an interview for a candidate's application.
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Application Selection */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Select Application</h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+              <Users className="h-5 w-5 text-brand-600" />
+              Select Application
+            </h2>
+            {!loadingApps && applications.length > 0 && (
+              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+                {applications.length}
+              </span>
+            )}
+          </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search by candidate name..."
               value={appSearch}
               onChange={(e) => setAppSearch(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
           {loadingApps ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-400">
+              <Loader2 className="h-5 w-5 animate-spin" /> Loading applications…
             </div>
           ) : applications.length === 0 ? (
-            <p className="text-sm text-gray-500 py-2">
-              No applications yet. Interviews are scheduled for a candidate's
-              application to a specific job — add a candidate to a job posting
-              (or wait for a public application) first.
-            </p>
+            <div className="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center">
+              <Users className="mx-auto h-8 w-8 text-gray-300" />
+              <p className="mt-2 text-sm font-medium text-gray-700">No applications found</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Interviews are scheduled for a candidate's application to a job — add a candidate to a
+                job posting (or wait for a public application) first.
+              </p>
+            </div>
           ) : (
-            <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg border border-gray-200 p-2">
-              {applications.map((app) => (
-                <button
-                  key={app.id}
-                  type="button"
-                  onClick={() => setForm((p) => ({ ...p, application_id: app.id }))}
-                  className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                    form.application_id === app.id
-                      ? "bg-brand-50 border border-brand-200 text-brand-800"
-                      : "hover:bg-gray-50 text-gray-700"
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{app.candidate_name}</p>
-                    <p className="text-xs text-gray-500 truncate">{app.job_title} - Stage: {app.stage}</p>
-                  </div>
-                </button>
-              ))}
+            <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+              {applications.map((app) => {
+                const selected = form.application_id === app.id;
+                return (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, application_id: app.id }))}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
+                      selected
+                        ? "border-brand-400 bg-brand-50 ring-1 ring-brand-400"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                        selected ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600",
+                      )}
+                    >
+                      {getInitials(app.candidate_name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={cn(
+                          "truncate text-sm font-medium",
+                          selected ? "text-brand-900" : "text-gray-900",
+                        )}
+                      >
+                        {app.candidate_name}
+                      </p>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <span className="truncate text-xs text-gray-500">{app.job_title}</span>
+                        <span
+                          className={cn(
+                            "flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize",
+                            STAGE_BADGE[app.stage] ?? "bg-gray-100 text-gray-600",
+                          )}
+                        >
+                          {app.stage}
+                        </span>
+                      </div>
+                    </div>
+                    {selected && (
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {selectedApp && (
-            <div className="rounded-md bg-brand-50 border border-brand-200 px-3 py-2 text-sm">
-              <span className="font-medium text-brand-800">Selected:</span>{" "}
-              <span className="text-brand-700">{selectedApp.candidate_name}</span>
-              <span className="text-brand-500"> for {selectedApp.job_title}</span>
+            <div className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2.5 text-sm">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-brand-600" />
+              <span className="min-w-0 truncate text-brand-800">
+                <span className="font-medium">{selectedApp.candidate_name}</span>
+                <span className="text-brand-600"> · {selectedApp.job_title}</span>
+              </span>
             </div>
           )}
         </div>
 
         {/* Interview Details */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Interview Details</h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <CalendarClock className="h-5 w-5 text-brand-600" />
+            Interview Details
+          </h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -321,8 +399,11 @@ export function InterviewSchedulePage() {
         </div>
 
         {/* Location & Meeting */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Location & Meeting Link</h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4 shadow-sm">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <MapPin className="h-5 w-5 text-brand-600" />
+            Location &amp; Meeting Link
+          </h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
