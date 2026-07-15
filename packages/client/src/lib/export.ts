@@ -170,17 +170,31 @@ export function printTableReport<T>(opts: {
 export async function fetchAllRows<T>(
   endpoint: string,
   filters: Record<string, unknown> = {},
-  max = 10000,
+  opts: { pageSize?: number; maxRows?: number } = {},
 ): Promise<T[]> {
   const clean: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(filters)) {
     if (v !== "" && v !== null && v !== undefined) clean[k] = v;
   }
-  const res = await apiGet<PaginatedResponse<T>>(endpoint, {
-    ...clean,
-    page: 1,
-    limit: max,
-    perPage: max,
-  });
-  return (res.data?.data ?? []) as T[];
+  // List endpoints cap perPage at 100, so page through until we've collected the
+  // full result set (with a hard safety cap on rows/iterations).
+  const pageSize = opts.pageSize ?? 100;
+  const maxRows = opts.maxRows ?? 10000;
+  const all: T[] = [];
+  let page = 1;
+  for (let i = 0; i < 500; i++) {
+    const res = await apiGet<PaginatedResponse<T>>(endpoint, {
+      ...clean,
+      page,
+      limit: pageSize,
+      perPage: pageSize,
+    });
+    const payload = res.data;
+    const rows = (payload?.data ?? []) as T[];
+    all.push(...rows);
+    const total = payload?.total ?? all.length;
+    if (rows.length < pageSize || all.length >= total || all.length >= maxRows) break;
+    page += 1;
+  }
+  return all.slice(0, maxRows);
 }
