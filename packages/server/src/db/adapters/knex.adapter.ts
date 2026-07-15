@@ -34,6 +34,13 @@ export class KnexAdapter implements IDBAdapter {
       migrations: {
         directory: "./src/db/migrations/sql",
         extension: "ts",
+        // In dev, developers switch between branches whose migration sets differ,
+        // which leaves the knex_migrations table listing files not present on the
+        // current branch. Knex's default integrity check treats that as a "corrupt
+        // directory" and aborts startup, taking the whole server down. Skip that
+        // check outside production so a branch switch never crashes local dev;
+        // production keeps the safety net (its migration set is always consistent).
+        disableMigrationsListValidation: process.env.NODE_ENV === "production" ? false : true,
       },
       seeds: {
         directory: "./src/db/seeds/sql",
