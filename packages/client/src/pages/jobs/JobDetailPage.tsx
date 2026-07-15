@@ -250,9 +250,11 @@ export function JobDetailPage() {
   const rankings = rankingsData?.data ?? [];
   const customStages = stagesData?.data ?? [];
 
-  // Use custom pipeline stages if available, otherwise fall back to hardcoded
+  // Use custom pipeline stages if available, otherwise fall back to hardcoded.
+  // Standard stage slugs are localized via enums.stage; a genuinely custom stage
+  // keeps its user-defined name (defaultValue) since we can't translate those.
   const activePipelineStages: Array<{ slug: string; name: string; color: string }> = customStages.length > 0
-    ? customStages.map((s) => ({ slug: s.slug, name: s.name, color: s.color }))
+    ? customStages.map((s) => ({ slug: s.slug, name: t(`enums.stage.${s.slug}`, { defaultValue: s.name }), color: s.color }))
     : STAGE_ORDER.map((s) => ({ slug: s, name: enumLabel(t, "stage", s), color: "" }));
 
   // Group applications by stage
