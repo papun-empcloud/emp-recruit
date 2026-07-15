@@ -52,6 +52,10 @@ export function AiInterviewPage() {
   const soundCheckStopRef = useRef(false);
   const soundCheckTimerRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
 
   function quit() {
     if (!window.confirm("Leave the interview? You won't be able to resume it.")) return;
@@ -60,9 +64,12 @@ export function AiInterviewPage() {
     try {
       recognitionRef.current?.stop();
       window.speechSynthesis?.cancel();
+      mediaRecorderRef.current?.stop();
     } catch {
       /* ignore */
     }
+    mediaRecorderRef.current = null;
+    releaseMic();
     setLeft(true);
   }
 
@@ -162,6 +169,67 @@ export function AiInterviewPage() {
     startTimer();
   }
 
+  // Record the candidate's audio for the whole interview (separate from speech
+  // recognition, which only produces the transcript). Best-effort: if the mic
+  // is denied or MediaRecorder is unavailable, the interview still runs.
+  async function startRecording() {
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      const mr = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      mediaRecorderRef.current = mr;
+      mr.start(1000); // flush a chunk every second so nothing is lost on stop
+      setRecording(true);
+    } catch {
+      /* mic denied — proceed without a recording */
+    }
+  }
+
+  function releaseMic() {
+    try {
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+    } catch {
+      /* ignore */
+    }
+    mediaStreamRef.current = null;
+    setRecording(false);
+  }
+
+  // Stop recording, then upload the audio so it shows on the recruiter's view.
+  async function stopAndUploadRecording() {
+    const mr = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
+    if (!mr) {
+      releaseMic();
+      return;
+    }
+    const mime = mr.mimeType || "audio/webm";
+    const blob = await new Promise<Blob | null>((resolve) => {
+      mr.onstop = () => resolve(new Blob(audioChunksRef.current, { type: mime }));
+      try {
+        if (mr.state !== "inactive") mr.stop();
+        else resolve(new Blob(audioChunksRef.current, { type: mime }));
+      } catch {
+        resolve(null);
+      }
+    });
+    releaseMic();
+    if (!blob || blob.size === 0) return;
+    try {
+      const ext = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "mp4" : "webm";
+      const fd = new FormData();
+      fd.append("audio", blob, `interview.${ext}`);
+      await axios.post(`${PUBLIC_API}/${token}/recording`, fd);
+    } catch {
+      /* best-effort upload */
+    }
+  }
+
   // Load the interview state.
   useEffect(() => {
     let active = true;
@@ -182,6 +250,8 @@ export function AiInterviewPage() {
       if (timerRef.current != null) clearInterval(timerRef.current);
       try {
         window.speechSynthesis?.cancel();
+        mediaRecorderRef.current?.stop();
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
       } catch {
         /* ignore */
       }
@@ -288,6 +358,8 @@ export function AiInterviewPage() {
       setAnswer("");
       if (next.done) {
         await axios.post(`${PUBLIC_API}/${token}/complete`);
+        // Upload the recorded audio so it appears on the recruiter's view.
+        await stopAndUploadRecording();
         setState((s) => (s ? { ...s, done: true, status: "completed", question: null, current_index: next.current_index } : s));
       } else {
         setState((s) =>
@@ -384,10 +456,14 @@ export function AiInterviewPage() {
             you {state.total} questions tailored to your background. Just <strong>answer out loud</strong> — I'll
             listen, and you tap <strong>Next question</strong> when you're done with each one.
           </p>
+          <p className="mt-2 text-xs text-gray-400">
+            Your audio will be recorded and shared with the hiring team.
+          </p>
           <button
             onClick={() => {
               setStarted(true);
               soundCheckStopRef.current = false;
+              startRecording();
               speakSoundCheck();
             }}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700"
@@ -418,7 +494,14 @@ export function AiInterviewPage() {
     <div className="flex min-h-screen flex-col bg-[#202124] text-white">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3">
-        <span className="text-sm font-medium text-gray-200">{state.job_title || "AI Interview"}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-200">{state.job_title || "AI Interview"}</span>
+          {recording && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-medium text-red-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> REC
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {!inSoundCheck && timeLeft != null && (
             <span
