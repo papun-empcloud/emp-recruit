@@ -47,28 +47,33 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Recruitment",
+    title: "Jobs",
     items: [
       { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
+      { to: "/career-page", label: "Career Page", icon: Globe, adminOnly: true },
+    ],
+  },
+  {
+    title: "People",
+    items: [
       { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
       { to: "/applications", label: "Applications", icon: Inbox, adminOnly: true },
+      { to: "/referrals", label: "Referrals", icon: Gift },
+    ],
+  },
+  {
+    title: "Interviews",
+    items: [
       { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },
+      { to: "/ai-interviews", label: "AI Interviews", icon: Mic, adminOnly: true },
+      { to: "/scoring", label: "AI Scoring", icon: Brain, adminOnly: true },
+    ],
+  },
+  {
+    title: "Hiring",
+    items: [
       { to: "/offers", label: "Offers", icon: FileText, adminOnly: true },
       { to: "/onboarding", label: "Onboarding", icon: ClipboardList, adminOnly: true },
-    ],
-  },
-  {
-    title: "AI Tools",
-    items: [
-      { to: "/scoring", label: "AI Scoring", icon: Brain, adminOnly: true },
-      { to: "/ai-interviews", label: "AI Interviews", icon: Mic, adminOnly: true },
-    ],
-  },
-  {
-    title: "Sourcing",
-    items: [
-      { to: "/referrals", label: "Referrals", icon: Gift },
-      { to: "/career-page", label: "Career Page", icon: Globe, adminOnly: true },
     ],
   },
   {
