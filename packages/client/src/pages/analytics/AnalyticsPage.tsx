@@ -24,6 +24,7 @@ import {
 import { apiGet } from "@/api/client";
 import { useTranslation } from "react-i18next";
 import { enumLabel } from "@/lib/enums";
+import { activeLocale } from "@/lib/utils";
 
 // The Analytics page intentionally does NOT repeat the Dashboard's entity counts
 // (open jobs / candidates / applications) or its pipeline-stage distribution.
@@ -74,7 +75,7 @@ const OFFER_OUTCOMES: { key: keyof KpiMetrics["offers"]; labelKey: string; color
 
 function weekLabel(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  return d.toLocaleDateString(activeLocale(), { day: "numeric", month: "short" });
 }
 
 export function AnalyticsPage() {

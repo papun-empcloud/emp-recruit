@@ -11,7 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatCurrency as formatCurrencyShared } from "@/lib/utils";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { useTranslation } from "react-i18next";
 import type { Offer } from "@emp-recruit/shared";
@@ -53,11 +53,9 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: currency || "INR",
-    minimumFractionDigits: 0,
-  }).format(amount / 100);
+  // Amounts are stored in minor units; locale-aware formatting keeps grouping
+  // consistent with the rest of the app.
+  return formatCurrencyShared(amount / 100, currency || "INR");
 }
 
 export function OfferListPage() {

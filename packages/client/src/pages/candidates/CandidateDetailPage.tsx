@@ -229,17 +229,17 @@ export function CandidateDetailPage() {
                   <span className="text-gray-700">{candidate.current_title}</span>
                 </div>
               )}
-              {candidate.experience_years !== null && (
+              {candidate.experience_years != null && (
                 <div className="flex items-center gap-3 text-sm">
                   <Clock className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-700">
-                    {t("candidates.detail.experienceYears", { count: candidate.experience_years })}
+                    {t("candidates.detail.experienceYears", { count: Number(candidate.experience_years) })}
                   </span>
                 </div>
               )}
               <div className="flex items-center gap-3 text-sm">
                 <span className="text-xs font-medium uppercase text-gray-400">{t("candidates.detail.source")}</span>
-                <span className="capitalize text-gray-700">{candidate.source}</span>
+                <span className="capitalize text-gray-700">{enumLabel(t, "source", candidate.source)}</span>
               </div>
             </div>
           </div>
@@ -348,7 +348,7 @@ export function CandidateDetailPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
                     <span>{t("candidates.detail.appliedDate", { date: formatDate(app.applied_at) })}</span>
-                    <span className="capitalize">{t("candidates.detail.sourceValue", { source: app.source })}</span>
+                    <span className="capitalize">{t("candidates.detail.sourceValue", { source: enumLabel(t, "source", app.source) })}</span>
                     {app.rating !== null && <span>{t("candidates.detail.ratingValue", { rating: app.rating })}</span>}
                     {app.expected_salary != null && (
                       <span>{t("candidates.detail.expectedSalary", { amount: Number(app.expected_salary).toLocaleString() })}</span>

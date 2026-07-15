@@ -14,6 +14,7 @@ import axios from "axios";
 import { useTranslation } from "react-i18next";
 import type { JobPosting } from "@emp-recruit/shared";
 import { enumLabel } from "@/lib/enums";
+import { formatDate } from "@/lib/utils";
 
 const PUBLIC_API = "/api/v1/public";
 
@@ -205,11 +206,7 @@ export function CareerJobDetailPage() {
               <div className="text-sm">
                 <span className="text-gray-500">{t("careers.detail.applyBefore")}</span>
                 <p className="font-medium text-gray-900">
-                  {new Date(job.closes_at).toLocaleDateString("en-IN", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {formatDate(job.closes_at)}
                 </p>
               </div>
             )}

@@ -15,9 +15,31 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-/** The active i18n language, used so dates/times localize with the UI. */
-function activeLocale(): string {
+/** The active i18n language, used so dates/times/numbers localize with the UI. */
+export function activeLocale(): string {
   return i18n.language || "en";
+}
+
+/**
+ * Format a currency amount in the active language. Locale-aware grouping keeps
+ * it consistent app-wide (e.g. no "en-IN" lakh grouping on one page and standard
+ * grouping on another). `amount` must already be in major units.
+ */
+export function formatCurrency(
+  amount: number | null | undefined,
+  currency?: string | null,
+): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return "";
+  try {
+    return new Intl.NumberFormat(activeLocale(), {
+      style: "currency",
+      currency: currency || "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${currency ?? ""} ${amount.toLocaleString(activeLocale())}`.trim();
+  }
 }
 
 /**

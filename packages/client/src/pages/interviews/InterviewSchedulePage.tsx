@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { enumLabel } from "@/lib/enums";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
@@ -216,7 +217,7 @@ export function InterviewSchedulePage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{app.candidate_name}</p>
                     <p className="text-xs text-gray-500 truncate">
-                      {t("interviews.schedule.jobStage", { job: app.job_title, stage: app.stage })}
+                      {t("interviews.schedule.jobStage", { job: app.job_title, stage: enumLabel(t, "stage", app.stage) })}
                     </p>
                   </div>
                 </button>
