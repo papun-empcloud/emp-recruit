@@ -1457,7 +1457,8 @@
       "emailPlaceholder": "vous@exemple.com",
       "sending": "Envoi en cours...",
       "sendLink": "Envoyer le lien d'accès",
-      "footnote": "Vous devez avoir une candidature existante pour accéder au portail."
+      "footnote": "Vous devez avoir une candidature existante pour accéder au portail.",
+      "invalidEmail": "Veuillez saisir une adresse e-mail valide."
     }
   },
   "aiInterview": {

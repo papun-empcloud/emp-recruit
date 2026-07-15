@@ -126,7 +126,11 @@ export async function requestAccess(email: string): Promise<{ sent: boolean }> {
     return { sent: true };
   }
 
-  // Send a link for each org where the candidate exists
+  // Send a link for each org where the candidate exists. Email delivery is
+  // best-effort: a mail failure must NOT surface to the caller — otherwise the
+  // request would 500 (leaking internal infra) and behave differently from the
+  // unknown-email path, enabling account enumeration. We always return the same
+  // neutral result and log failures server-side instead.
   for (const c of candidates) {
     const token = generatePortalToken(c.id, c.email, c.organization_id);
     const portalUrl = `${config.cors.origin}/portal/dashboard?token=${token}`;
@@ -150,10 +154,19 @@ export async function requestAccess(email: string): Promise<{ sent: boolean }> {
       </div>
     `;
 
-    await sendEmail(c.email, "Your Candidate Portal Access Link", html);
+    try {
+      await sendEmail(c.email, "Your Candidate Portal Access Link", html);
+    } catch (err) {
+      logger.error(`Failed to send portal access email to ${c.email}:`, err);
+      // In non-production, surface the link in the logs so the portal is still
+      // usable without a running SMTP server (e.g. Mailhog on :1025).
+      if (config.env !== "production") {
+        logger.warn(`[dev] Portal access link for ${c.email}: ${portalUrl}`);
+      }
+    }
   }
 
-  logger.info(`Portal access links sent for email: ${email} (${candidates.length} org(s))`);
+  logger.info(`Portal access requested for email: ${email} (${candidates.length} org(s))`);
   return { sent: true };
 }
 

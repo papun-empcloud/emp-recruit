@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { Mail, CheckCircle, Loader2, ArrowRight } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function PortalRequestPage() {
   const { t } = useTranslation();
@@ -12,27 +13,36 @@ export function PortalRequestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const trimmed = email.trim();
+    if (!trimmed) return;
+
+    // Validate in JS (the form uses noValidate) so we can show a styled inline
+    // message instead of the native tooltip, which overlaps the submit button.
+    if (!EMAIL_RE.test(trimmed)) {
+      setStatus("error");
+      setErrorMsg(t("portal.request.invalidEmail"));
+      return;
+    }
 
     setStatus("loading");
     setErrorMsg("");
 
     try {
-      const res = await fetch(`${API_BASE}/portal/request-access`, {
+      await fetch(`${API_BASE}/portal/request-access`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: trimmed }),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error?.message || t("portal.request.genericError"));
-      }
-
+      // Always show the neutral confirmation regardless of the server's response.
+      // This prevents account enumeration and never surfaces internal errors to
+      // the candidate. Genuine failures are handled/logged server-side.
       setStatus("success");
-    } catch (err: any) {
+    } catch {
+      // Only a true network failure (server unreachable) reaches here — show a
+      // friendly generic message, never a raw backend error.
       setStatus("error");
-      setErrorMsg(err.message || t("portal.request.genericError"));
+      setErrorMsg(t("portal.request.genericError"));
     }
   };
 
@@ -81,7 +91,7 @@ export function PortalRequestPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               {t("portal.request.emailLabel")}
@@ -89,10 +99,13 @@ export function PortalRequestPage() {
             <input
               id="email"
               type="email"
-              required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (status === "error") setStatus("idle");
+              }}
               placeholder={t("portal.request.emailPlaceholder")}
+              aria-invalid={status === "error"}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           </div>

@@ -1433,7 +1433,8 @@
       "emailPlaceholder": "anda@example.com",
       "sending": "Mengirim...",
       "sendLink": "Kirim Tautan Akses",
-      "footnote": "Anda harus memiliki lamaran yang ada untuk mengakses portal."
+      "footnote": "Anda harus memiliki lamaran yang ada untuk mengakses portal.",
+      "invalidEmail": "Masukkan alamat email yang valid."
     }
   },
   "aiInterview": {

@@ -1434,7 +1434,8 @@
       "emailPlaceholder": "you@example.com",
       "sending": "Sending...",
       "sendLink": "Send Access Link",
-      "footnote": "You must have an existing application to access the portal."
+      "footnote": "You must have an existing application to access the portal.",
+      "invalidEmail": "Please enter a valid email address."
     }
   },
   "aiInterview": {

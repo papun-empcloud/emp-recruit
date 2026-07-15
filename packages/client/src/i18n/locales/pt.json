@@ -1457,7 +1457,8 @@
       "emailPlaceholder": "voce@exemplo.com",
       "sending": "Enviando...",
       "sendLink": "Enviar Link de Acesso",
-      "footnote": "Você precisa ter uma candidatura existente para acessar o portal."
+      "footnote": "Você precisa ter uma candidatura existente para acessar o portal.",
+      "invalidEmail": "Insira um endereço de e-mail válido."
     }
   },
   "aiInterview": {
