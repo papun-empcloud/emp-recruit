@@ -61,6 +61,19 @@ export interface ReportSection {
   rows: (string | number | null | undefined)[][];
 }
 
+/** Download a multi-section report as one CSV (sections separated by a blank row). */
+export function downloadCsvSections(baseName: string, sections: ReportSection[]): void {
+  const blocks = sections.map((sec) => {
+    const lines: string[] = [];
+    if (sec.heading) lines.push(csvEscape(sec.heading));
+    lines.push(sec.columns.map((c) => csvEscape(c.header)).join(","));
+    for (const row of sec.rows) lines.push(row.map((v) => csvEscape(cell(v))).join(","));
+    return lines.join("\r\n");
+  });
+  const blob = new Blob(["﻿" + blocks.join("\r\n\r\n")], { type: "text/csv;charset=utf-8;" });
+  triggerDownload(blob, `${baseName}_${stamp()}.csv`);
+}
+
 function esc(s: string): string {
   return String(s).replace(
     /[&<>"']/g,
