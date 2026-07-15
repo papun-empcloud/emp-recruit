@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Calendar, Users, Plus, Search, ShieldAlert } from "lucide-react";
+import { Calendar, Users, Plus, Search, ShieldAlert, AlertTriangle } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
 import { cn, formatDate } from "@/lib/utils";
 import { usePaginatedList } from "@/lib/usePaginatedList";
@@ -44,6 +44,14 @@ function formatTime(dateStr: string): string {
     minute: "2-digit",
     hour12: true,
   }).format(new Date(dateStr));
+}
+
+// An interview is overdue if its scheduled time has passed but it hasn't been
+// completed, cancelled, or marked no-show yet. (BUG-07)
+function isOverdue(interview: InterviewRow): boolean {
+  if (interview.status !== "scheduled" && interview.status !== "in_progress") return false;
+  const when = new Date(interview.scheduled_at).getTime();
+  return Number.isFinite(when) && when < Date.now();
 }
 
 const ADMIN_ROLES = ["org_admin", "hr_admin", "hr_manager"];
@@ -201,14 +209,21 @@ export function InterviewListPage() {
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
-                      STATUS_COLORS[interview.status] || "bg-gray-100 text-gray-800",
+                  <div className="flex flex-col items-start gap-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+                        STATUS_COLORS[interview.status] || "bg-gray-100 text-gray-800",
+                      )}
+                    >
+                      {interview.status.replace("_", " ")}
+                    </span>
+                    {isOverdue(interview) && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                        <AlertTriangle className="h-3 w-3" /> Overdue
+                      </span>
                     )}
-                  >
-                    {interview.status.replace("_", " ")}
-                  </span>
+                  </div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="flex items-center gap-1.5 text-sm text-gray-700">

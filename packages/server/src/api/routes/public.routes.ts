@@ -73,7 +73,20 @@ const applySchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
+  // Phone is optional; when given it must be a real number (7–15 digits, only
+  // digits and phone punctuation). BUG-02.
+  phone: z
+    .string()
+    .refine(
+      (v) => {
+        if (!v.trim()) return true;
+        if (/[^\d+\-()\s]/.test(v)) return false;
+        const digits = v.replace(/\D/g, "");
+        return digits.length >= 7 && digits.length <= 15;
+      },
+      { message: "Please enter a valid phone number" },
+    )
+    .optional(),
   cover_letter: z.string().optional(),
   current_company: z.string().optional(),
   experience_years: z.coerce.number().min(0, "Years of experience cannot be negative").optional(),

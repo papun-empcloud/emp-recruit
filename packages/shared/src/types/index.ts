@@ -176,6 +176,7 @@ export interface Application {
   stage: ApplicationStage;
   source: CandidateSource;
   cover_letter: string | null;
+  expected_salary: number | null;
   resume_path: string | null;
   rating: number | null;
   notes: string | null;

@@ -343,11 +343,20 @@ export function CandidateDetailPage() {
                       {app.stage}
                     </span>
                   </div>
-                  <div className="mt-2 flex gap-4 text-xs text-gray-500">
+                  <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
                     <span>Applied: {formatDate(app.applied_at)}</span>
                     <span className="capitalize">Source: {app.source}</span>
                     {app.rating !== null && <span>Rating: {app.rating}/5</span>}
+                    {app.expected_salary != null && (
+                      <span>Expected salary: {Number(app.expected_salary).toLocaleString()}</span>
+                    )}
                   </div>
+                  {app.cover_letter && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Cover Letter</p>
+                      <p className="mt-1 whitespace-pre-line text-xs text-gray-600">{app.cover_letter}</p>
+                    </div>
+                  )}
                   {app.notes && (
                     <p className="mt-2 text-xs text-gray-600 line-clamp-2">{app.notes}</p>
                   )}

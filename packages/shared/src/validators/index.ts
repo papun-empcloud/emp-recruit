@@ -49,9 +49,21 @@ const stripTags = (s: string) => s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").
 const plainText = (schema: z.ZodString) =>
   z.preprocess((v) => (typeof v === "string" ? stripTags(v) : v), schema);
 
+// The job title is the most user-visible field, so rather than silently
+// stripping markup we reject it outright with a clear error — the tester (and
+// any real user) gets told to remove the tags. BUG-08.
+const noMarkupTitle = z
+  .string()
+  .trim()
+  .min(2)
+  .max(200)
+  .refine((s) => !/[<>]/.test(s), {
+    message: "Title cannot contain HTML or script tags (the characters < or >)",
+  });
+
 // Base object (no refinements) — so both create and update can derive cleanly.
 const jobBaseSchema = z.object({
-  title: plainText(z.string().min(2).max(200)),
+  title: noMarkupTitle,
   department: plainText(z.string().max(100)).optional(),
   location: plainText(z.string().max(200)).optional(),
   employment_type: z.string().max(50).default("full_time"),

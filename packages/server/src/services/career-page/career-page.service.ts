@@ -6,7 +6,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
 import { findOrgById } from "../../db/empcloud";
-import { NotFoundError, ValidationError } from "../../utils/errors";
+import { NotFoundError, ValidationError, ConflictError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import type { CareerPage, JobPosting, Candidate, Application } from "@emp-recruit/shared";
 
@@ -299,7 +299,11 @@ export async function submitPublicApplication(
       candidate_id: existingCandidate.id,
     });
     if (existingApp) {
-      throw new ValidationError("You have already applied for this position");
+      // 409 so the client can recognise a duplicate specifically and show a
+      // clear message instead of silently doing nothing. (BUG-03)
+      throw new ConflictError(
+        "You've already applied for this job with this email address.",
+      );
     }
   } else {
     candidate = await db.create<Candidate>("candidates", {
@@ -323,6 +327,7 @@ export async function submitPublicApplication(
     stage: "applied",
     source: "direct",
     cover_letter: data.cover_letter || null,
+    expected_salary: data.expected_salary ?? null, // BUG-04: was collected but never stored
     resume_path: resumePath || candidate.resume_path || null,
   } as Partial<Application>);
 
