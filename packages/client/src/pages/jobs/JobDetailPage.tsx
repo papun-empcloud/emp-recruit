@@ -29,6 +29,7 @@ import {
 import { apiGet, apiPatch, apiPost, apiDelete } from "@/api/client";
 import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
 import { JobBoardsCard } from "@/components/JobBoardsCard";
@@ -252,7 +253,7 @@ export function JobDetailPage() {
   // Use custom pipeline stages if available, otherwise fall back to hardcoded
   const activePipelineStages: Array<{ slug: string; name: string; color: string }> = customStages.length > 0
     ? customStages.map((s) => ({ slug: s.slug, name: s.name, color: s.color }))
-    : STAGE_ORDER.map((s) => ({ slug: s, name: s, color: "" }));
+    : STAGE_ORDER.map((s) => ({ slug: s, name: enumLabel(t, "stage", s), color: "" }));
 
   // Group applications by stage
   const grouped: Record<string, AppWithCandidate[]> = {};
@@ -370,7 +371,7 @@ export function JobDetailPage() {
                   STATUS_BADGE[job.status] ?? "bg-gray-100 text-gray-700",
                 )}
               >
-                {job.status}
+                {enumLabel(t, "jobStatus", job.status)}
               </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-500">
@@ -385,12 +386,12 @@ export function JobDetailPage() {
                 </span>
               )}
               <span className="inline-flex items-center gap-1 capitalize">
-                <Clock className="h-4 w-4" /> {job.employment_type.replace(/_/g, " ")}
+                <Clock className="h-4 w-4" /> {enumLabel(t, "employmentType", job.employment_type)}
               </span>
               {/* #32 — remote policy chip next to employment type */}
               {(job as any).remote_policy && (
                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 capitalize">
-                  {(job as any).remote_policy === "onsite" ? t("jobs.detail.onsite") : (job as any).remote_policy}
+                  {enumLabel(t, "remotePolicy", (job as any).remote_policy)}
                 </span>
               )}
               {(job.salary_min || job.salary_max) && (
@@ -1062,7 +1063,7 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs text-gray-500">{b.requirements}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">{t(`jobs.detail.boardRequirements.${b.key}`, { defaultValue: b.requirements })}</span>
                     {b.liveCapable && b.feedUrl && (
                       <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                         <span className="text-gray-500">{t("jobs.detail.feedUrlLabel", { board: b.label })}</span>
@@ -1092,7 +1093,7 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
                         PUB_STATUS_CLS[pub.status] ?? "bg-gray-100 text-gray-500"
                       }`}
                     >
-                      {pub.status}
+                      {enumLabel(t, "pubStatus", pub.status)}
                     </span>
                   )}
                   {pub && pub.status !== "removed" && (

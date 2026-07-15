@@ -942,7 +942,13 @@
       "feedUrlLabel": "Feed URL (submit to {{board}} once):",
       "feedUrlCopied": "Feed URL copied",
       "copy": "Copy",
-      "remove": "Remove"
+      "remove": "Remove",
+      "boardRequirements": {
+        "linkedin": "Live. LinkedIn crawls this org's public XML job feed (free basic listings). Submit the feed URL below to LinkedIn once, then published jobs appear automatically.",
+        "indeed": "Live. Indeed crawls this org's public XML job feed (free organic listings). Submit the feed URL below to Indeed once, then published jobs appear automatically.",
+        "naukri": "Requires a Naukri employer/RMS subscription + employer API key. Not yet connected.",
+        "apna": "Requires an Apna enterprise account + employer API access. Not yet connected."
+      }
     },
     "form": {
       "employmentType": {
@@ -1715,5 +1721,65 @@
     "clear": "Clear",
     "noJobsMatch": "No jobs match these filters.",
     "removeJob": "Remove {{title}}"
+  },
+  "enums": {
+    "jobStatus": {
+      "draft": "Draft",
+      "open": "Open",
+      "paused": "Paused",
+      "closed": "Closed",
+      "filled": "Filled"
+    },
+    "employmentType": {
+      "full_time": "Full Time",
+      "part_time": "Part Time",
+      "contract": "Contract",
+      "internship": "Internship",
+      "freelance": "Freelance",
+      "temporary": "Contract"
+    },
+    "remotePolicy": {
+      "onsite": "On-site",
+      "on_site": "On-site",
+      "remote": "Remote",
+      "hybrid": "Hybrid"
+    },
+    "interviewStatus": {
+      "scheduled": "Scheduled",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "No Show"
+    },
+    "source": {
+      "direct": "Direct",
+      "referral": "Referral",
+      "linkedin": "LinkedIn",
+      "indeed": "Indeed",
+      "naukri": "Naukri",
+      "other": "Other"
+    },
+    "stage": {
+      "applied": "Applied",
+      "screened": "Screened",
+      "interview": "Interview",
+      "offer": "Offer",
+      "hired": "Hired",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "pubStatus": {
+      "published": "Posted",
+      "queued": "Publishing…",
+      "pending": "Publishing…",
+      "failed": "Failed",
+      "removed": "Not published",
+      "skipped": "Not connected"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "subtitle": "The page you're looking for doesn't exist or has moved.",
+    "backHome": "Back to Dashboard"
   }
 }

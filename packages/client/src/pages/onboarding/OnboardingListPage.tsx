@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { apiGet } from "@/api/client";
+import { formatDate } from "@/lib/utils";
 import type { OnboardingStatus, PaginatedResponse } from "@emp-recruit/shared";
 
 interface EnrichedChecklist {
@@ -41,15 +42,6 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   in_progress: { label: "onboarding.status.inProgress", className: "bg-blue-100 text-blue-700" },
   completed: { label: "onboarding.status.completed", className: "bg-green-100 text-green-700" },
 };
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "---";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function ProgressBar({ percentage }: { percentage: number }) {
   return (

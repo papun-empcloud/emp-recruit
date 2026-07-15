@@ -962,7 +962,13 @@
       "copy": "Copiar",
       "remove": "Remover",
       "batchScored_many": "{{count}} candidatos pontuados",
-      "pipelineTitle_many": "Funil de Candidaturas ({{count}} candidatos)"
+      "pipelineTitle_many": "Funil de Candidaturas ({{count}} candidatos)",
+      "boardRequirements": {
+        "linkedin": "Ativo. O LinkedIn rastreia o feed XML público de vagas desta organização (anúncios básicos gratuitos). Envie a URL do feed ao LinkedIn uma vez e as vagas publicadas aparecerão automaticamente.",
+        "indeed": "Ativo. O Indeed rastreia o feed XML público de vagas desta organização (anúncios orgânicos gratuitos). Envie a URL do feed ao Indeed uma vez e as vagas publicadas aparecerão automaticamente.",
+        "naukri": "Requer uma assinatura de empregador/RMS da Naukri + chave de API de empregador. Ainda não conectado.",
+        "apna": "Requer uma conta empresarial da Apna + acesso à API de empregador. Ainda não conectado."
+      }
     },
     "form": {
       "employmentType": {
@@ -1740,5 +1746,65 @@
     "removeJob": "Remover {{title}}",
     "moreOpenPositions_many": "+{{count}} vagas abertas a mais",
     "jobsSelected_many": "{{count}} vagas selecionadas"
+  },
+  "enums": {
+    "jobStatus": {
+      "draft": "Rascunho",
+      "open": "Aberta",
+      "paused": "Pausada",
+      "closed": "Fechada",
+      "filled": "Preenchida"
+    },
+    "employmentType": {
+      "full_time": "Tempo Integral",
+      "part_time": "Meio Período",
+      "contract": "Contrato",
+      "internship": "Estágio",
+      "freelance": "Freelance",
+      "temporary": "Contrato"
+    },
+    "remotePolicy": {
+      "onsite": "Presencial",
+      "on_site": "Presencial",
+      "remote": "Remoto",
+      "hybrid": "Híbrido"
+    },
+    "interviewStatus": {
+      "scheduled": "Agendada",
+      "in_progress": "Em Andamento",
+      "completed": "Concluída",
+      "cancelled": "Cancelada",
+      "no_show": "Não Compareceu"
+    },
+    "source": {
+      "direct": "Direto",
+      "referral": "Indicação",
+      "linkedin": "LinkedIn",
+      "indeed": "Indeed",
+      "naukri": "Naukri",
+      "other": "Outro"
+    },
+    "stage": {
+      "applied": "Candidatou-se",
+      "screened": "Triado",
+      "interview": "Entrevista",
+      "offer": "Proposta",
+      "hired": "Contratado",
+      "rejected": "Rejeitado",
+      "withdrawn": "Desistiu"
+    },
+    "pubStatus": {
+      "published": "Publicada",
+      "queued": "Publicando…",
+      "pending": "Publicando…",
+      "failed": "Falhou",
+      "removed": "Não publicada",
+      "skipped": "Não conectado"
+    }
+  },
+  "notFound": {
+    "title": "Página não encontrada",
+    "subtitle": "A página que você procura não existe ou foi movida.",
+    "backHome": "Voltar ao painel"
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { enumLabel } from "@/lib/enums";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,7 +32,7 @@ import toast from "react-hot-toast";
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AiAnalysisCard } from "@/components/AiAnalysisCard";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatTime } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
 import type {
   Interview,
@@ -103,14 +104,6 @@ const RECOMMENDATION_ICONS: Record<string, typeof ThumbsUp> = {
   no: ThumbsDown,
   strong_no: ThumbsDown,
 };
-
-function formatTime(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(dateStr));
-}
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -1034,7 +1027,7 @@ export function InterviewDetailPage() {
               STATUS_COLORS[interview.status] || "bg-gray-100 text-gray-800",
             )}
           >
-            {interview.status.replace("_", " ")}
+            {enumLabel(t, "interviewStatus", interview.status)}
           </span>
         </div>
       </div>

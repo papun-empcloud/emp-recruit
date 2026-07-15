@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import { apiGet } from "@/api/client";
 import { useTranslation } from "react-i18next";
+import { enumLabel } from "@/lib/enums";
 
 // The Analytics page intentionally does NOT repeat the Dashboard's entity counts
 // (open jobs / candidates / applications) or its pipeline-stage distribution.
@@ -250,7 +251,7 @@ export function AnalyticsPage() {
                         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
                         style={{ backgroundColor: SOURCE_COLORS[i % SOURCE_COLORS.length] }}
                       />
-                      <span className="truncate capitalize text-gray-700">{src.source}</span>
+                      <span className="truncate capitalize text-gray-700">{enumLabel(t, "source", src.source)}</span>
                     </span>
                     <span className="flex flex-shrink-0 items-center gap-2">
                       <span className="text-xs text-gray-400">

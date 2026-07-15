@@ -1022,7 +1022,13 @@
       "pipelineTitle_zero": "مسار الطلبات ({{count}} متقدّمين)",
       "pipelineTitle_two": "مسار الطلبات ({{count}} متقدّمين)",
       "pipelineTitle_few": "مسار الطلبات ({{count}} متقدّمين)",
-      "pipelineTitle_many": "مسار الطلبات ({{count}} متقدّمين)"
+      "pipelineTitle_many": "مسار الطلبات ({{count}} متقدّمين)",
+      "boardRequirements": {
+        "linkedin": "مباشر. يزحف LinkedIn إلى موجز XML العام لوظائف هذه المؤسسة (قوائم أساسية مجانية). أرسل رابط الموجز إلى LinkedIn مرة واحدة، ثم تظهر الوظائف المنشورة تلقائيًا.",
+        "indeed": "مباشر. يزحف Indeed إلى موجز XML العام لوظائف هذه المؤسسة (قوائم عضوية مجانية). أرسل رابط الموجز إلى Indeed مرة واحدة، ثم تظهر الوظائف المنشورة تلقائيًا.",
+        "naukri": "يتطلب اشتراك صاحب عمل/RMS في Naukri + مفتاح API لصاحب العمل. غير متصل بعد.",
+        "apna": "يتطلب حساب مؤسسة Apna + وصولاً إلى API صاحب العمل. غير متصل بعد."
+      }
     },
     "form": {
       "employmentType": {
@@ -1815,5 +1821,65 @@
     "jobsSelected_two": "{{count}} وظائف مُختارة",
     "jobsSelected_few": "{{count}} وظائف مُختارة",
     "jobsSelected_many": "{{count}} وظائف مُختارة"
+  },
+  "enums": {
+    "jobStatus": {
+      "draft": "مسودة",
+      "open": "مفتوحة",
+      "paused": "متوقفة مؤقتًا",
+      "closed": "مغلقة",
+      "filled": "مشغولة"
+    },
+    "employmentType": {
+      "full_time": "دوام كامل",
+      "part_time": "دوام جزئي",
+      "contract": "عقد",
+      "internship": "تدريب",
+      "freelance": "عمل حر",
+      "temporary": "عقد"
+    },
+    "remotePolicy": {
+      "onsite": "في الموقع",
+      "on_site": "في الموقع",
+      "remote": "عن بُعد",
+      "hybrid": "هجين"
+    },
+    "interviewStatus": {
+      "scheduled": "مجدولة",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتملة",
+      "cancelled": "ملغاة",
+      "no_show": "لم يحضر"
+    },
+    "source": {
+      "direct": "مباشر",
+      "referral": "ترشيح",
+      "linkedin": "LinkedIn",
+      "indeed": "Indeed",
+      "naukri": "Naukri",
+      "other": "أخرى"
+    },
+    "stage": {
+      "applied": "مُقدَّم",
+      "screened": "تمت التصفية",
+      "interview": "مقابلة",
+      "offer": "عرض",
+      "hired": "تم التوظيف",
+      "rejected": "مرفوض",
+      "withdrawn": "منسحب"
+    },
+    "pubStatus": {
+      "published": "منشور",
+      "queued": "جارٍ النشر…",
+      "pending": "جارٍ النشر…",
+      "failed": "فشل",
+      "removed": "غير منشور",
+      "skipped": "غير متصل"
+    }
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "subtitle": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "backHome": "العودة إلى لوحة التحكم"
   }
 }

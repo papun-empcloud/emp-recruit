@@ -941,7 +941,13 @@
       "feedUrlLabel": "URL Feed (kirim ke {{board}} sekali):",
       "feedUrlCopied": "URL Feed disalin",
       "copy": "Salin",
-      "remove": "Hapus"
+      "remove": "Hapus",
+      "boardRequirements": {
+        "linkedin": "Aktif. LinkedIn merayapi umpan XML publik lowongan organisasi ini (daftar dasar gratis). Kirim URL umpan ke LinkedIn sekali, lalu lowongan yang dipublikasikan muncul otomatis.",
+        "indeed": "Aktif. Indeed merayapi umpan XML publik lowongan organisasi ini (daftar organik gratis). Kirim URL umpan ke Indeed sekali, lalu lowongan yang dipublikasikan muncul otomatis.",
+        "naukri": "Memerlukan langganan pemberi kerja/RMS Naukri + kunci API pemberi kerja. Belum terhubung.",
+        "apna": "Memerlukan akun perusahaan Apna + akses API pemberi kerja. Belum terhubung."
+      }
     },
     "form": {
       "employmentType": {
@@ -1714,5 +1720,65 @@
     "clear": "Bersihkan",
     "noJobsMatch": "Tidak ada pekerjaan yang cocok dengan filter ini.",
     "removeJob": "Hapus {{title}}"
+  },
+  "enums": {
+    "jobStatus": {
+      "draft": "Draf",
+      "open": "Terbuka",
+      "paused": "Dijeda",
+      "closed": "Ditutup",
+      "filled": "Terisi"
+    },
+    "employmentType": {
+      "full_time": "Penuh Waktu",
+      "part_time": "Paruh Waktu",
+      "contract": "Kontrak",
+      "internship": "Magang",
+      "freelance": "Lepas",
+      "temporary": "Kontrak"
+    },
+    "remotePolicy": {
+      "onsite": "Di Lokasi",
+      "on_site": "Di Lokasi",
+      "remote": "Jarak Jauh",
+      "hybrid": "Hibrida"
+    },
+    "interviewStatus": {
+      "scheduled": "Terjadwal",
+      "in_progress": "Sedang Berlangsung",
+      "completed": "Selesai",
+      "cancelled": "Dibatalkan",
+      "no_show": "Tidak Hadir"
+    },
+    "source": {
+      "direct": "Langsung",
+      "referral": "Referal",
+      "linkedin": "LinkedIn",
+      "indeed": "Indeed",
+      "naukri": "Naukri",
+      "other": "Lainnya"
+    },
+    "stage": {
+      "applied": "Melamar",
+      "screened": "Diseleksi",
+      "interview": "Wawancara",
+      "offer": "Penawaran",
+      "hired": "Direkrut",
+      "rejected": "Ditolak",
+      "withdrawn": "Ditarik"
+    },
+    "pubStatus": {
+      "published": "Diposting",
+      "queued": "Menerbitkan…",
+      "pending": "Menerbitkan…",
+      "failed": "Gagal",
+      "removed": "Belum diterbitkan",
+      "skipped": "Tidak terhubung"
+    }
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemukan",
+    "subtitle": "Halaman yang Anda cari tidak ada atau telah dipindahkan.",
+    "backHome": "Kembali ke Dasbor"
   }
 }

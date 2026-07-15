@@ -14,6 +14,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { apiPost, apiPatch } from "@/api/client";
 import { cn } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import toast from "react-hot-toast";
 
 interface InterviewSummary {
@@ -197,7 +198,7 @@ export function ComparisonPage() {
                   c.stage === "rejected" ? "bg-red-100 text-red-700" :
                   "bg-blue-100 text-blue-700"
                 )}>
-                  {c.stage}
+                  {enumLabel(t, "stage", c.stage)}
                 </span>
               </div>
 

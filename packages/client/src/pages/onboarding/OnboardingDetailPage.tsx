@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { api } from "@/api/client";
+import { formatDate } from "@/lib/utils";
 import type { OnboardingChecklist, OnboardingTask, OnboardingStatus } from "@emp-recruit/shared";
 
 interface ChecklistDetail extends OnboardingChecklist {
@@ -34,15 +35,6 @@ const TASK_STATUS_ICON: Record<string, { icon: typeof Circle; className: string 
   in_progress: { icon: Clock, className: "text-blue-500" },
   completed: { icon: CheckCircle2, className: "text-green-500" },
 };
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "---";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function isOverdue(dueDate: string | null, status: string) {
   if (!dueDate || status === "completed") return false;

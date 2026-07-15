@@ -17,6 +17,7 @@ import {
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import type { JobPosting, CareerPage } from "@emp-recruit/shared";
 
 const PUBLIC_API = "/api/v1/public";
@@ -147,7 +148,7 @@ export function CareerListPage() {
             setDepartment(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-48"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 w-full truncate pr-8 sm:w-auto sm:min-w-[12rem] sm:max-w-[18rem]"
         >
           <option value="">{t("careers.list.allDepartments")}</option>
           {departments.map((d) => (
@@ -231,7 +232,7 @@ export function CareerListPage() {
                     )}
                     <span className="flex items-center gap-1">
                       <Briefcase className="h-4 w-4" />
-                      {job.employment_type.replace(/_/g, " ")}
+                      {enumLabel(t, "employmentType", job.employment_type)}
                     </span>
                     {(job.experience_min != null || job.experience_max != null) && (
                       <span className="flex items-center gap-1">

@@ -962,7 +962,13 @@
       "copy": "Copier",
       "remove": "Retirer",
       "batchScored_many": "{{count}} candidats évalués",
-      "pipelineTitle_many": "Pipeline de candidatures ({{count}} candidats)"
+      "pipelineTitle_many": "Pipeline de candidatures ({{count}} candidats)",
+      "boardRequirements": {
+        "linkedin": "Actif. LinkedIn explore le flux XML public des offres de cette organisation (annonces de base gratuites). Soumettez l'URL du flux à LinkedIn une seule fois, puis les offres publiées apparaissent automatiquement.",
+        "indeed": "Actif. Indeed explore le flux XML public des offres de cette organisation (annonces organiques gratuites). Soumettez l'URL du flux à Indeed une seule fois, puis les offres publiées apparaissent automatiquement.",
+        "naukri": "Nécessite un abonnement employeur/RMS Naukri + une clé API employeur. Pas encore connecté.",
+        "apna": "Nécessite un compte entreprise Apna + un accès à l'API employeur. Pas encore connecté."
+      }
     },
     "form": {
       "employmentType": {
@@ -1740,5 +1746,65 @@
     "removeJob": "Retirer {{title}}",
     "moreOpenPositions_many": "+{{count}} postes ouverts supplémentaires",
     "jobsSelected_many": "{{count}} offres sélectionnées"
+  },
+  "enums": {
+    "jobStatus": {
+      "draft": "Brouillon",
+      "open": "Ouverte",
+      "paused": "Suspendue",
+      "closed": "Fermée",
+      "filled": "Pourvue"
+    },
+    "employmentType": {
+      "full_time": "Temps plein",
+      "part_time": "Temps partiel",
+      "contract": "CDD",
+      "internship": "Stage",
+      "freelance": "Freelance",
+      "temporary": "CDD"
+    },
+    "remotePolicy": {
+      "onsite": "Sur site",
+      "on_site": "Sur site",
+      "remote": "Télétravail",
+      "hybrid": "Hybride"
+    },
+    "interviewStatus": {
+      "scheduled": "Planifié",
+      "in_progress": "En cours",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "no_show": "Absent"
+    },
+    "source": {
+      "direct": "Direct",
+      "referral": "Cooptation",
+      "linkedin": "LinkedIn",
+      "indeed": "Indeed",
+      "naukri": "Naukri",
+      "other": "Autre"
+    },
+    "stage": {
+      "applied": "Postulé",
+      "screened": "Présélectionné",
+      "interview": "Entretien",
+      "offer": "Offre",
+      "hired": "Embauché",
+      "rejected": "Rejeté",
+      "withdrawn": "Retiré"
+    },
+    "pubStatus": {
+      "published": "Publiée",
+      "queued": "Publication…",
+      "pending": "Publication…",
+      "failed": "Échec",
+      "removed": "Non publiée",
+      "skipped": "Non connecté"
+    }
+  },
+  "notFound": {
+    "title": "Page introuvable",
+    "subtitle": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "backHome": "Retour au tableau de bord"
   }
 }

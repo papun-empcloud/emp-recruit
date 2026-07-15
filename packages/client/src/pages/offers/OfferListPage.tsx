@@ -11,6 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
+import { formatDate } from "@/lib/utils";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { useTranslation } from "react-i18next";
 import type { Offer } from "@emp-recruit/shared";
@@ -57,14 +58,6 @@ function formatCurrency(amount: number, currency: string) {
     currency: currency || "INR",
     minimumFractionDigits: 0,
   }).format(amount / 100);
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 export function OfferListPage() {

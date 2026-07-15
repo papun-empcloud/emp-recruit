@@ -21,6 +21,7 @@ import {
   Plus,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
+import { formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { Offer, OfferApprover } from "@emp-recruit/shared";
@@ -68,15 +69,6 @@ function formatCurrency(amount: number, currency: string) {
     currency: currency || "INR",
     minimumFractionDigits: 0,
   }).format(amount / 100);
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "---";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 export function OfferDetailPage() {

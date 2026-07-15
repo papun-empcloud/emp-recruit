@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import { Calendar, Users, Plus, Search, ShieldAlert, AlertTriangle } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatTime } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import type { InterviewStatus, InterviewType } from "@emp-recruit/shared";
@@ -38,14 +39,6 @@ const STATUS_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "cancelled", labelKey: "interviews.list.statusCancelled" },
   { value: "no_show", labelKey: "interviews.list.statusNoShow" },
 ];
-
-function formatTime(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(dateStr));
-}
 
 // An interview is overdue if its scheduled time has passed but it hasn't been
 // completed, cancelled, or marked no-show yet. (BUG-07)
@@ -221,7 +214,7 @@ export function InterviewListPage() {
                         STATUS_COLORS[interview.status] || "bg-gray-100 text-gray-800",
                       )}
                     >
-                      {interview.status.replace("_", " ")}
+                      {enumLabel(t, "interviewStatus", interview.status)}
                     </span>
                     {isOverdue(interview) && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">

@@ -13,6 +13,7 @@ import {
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import type { JobPosting } from "@emp-recruit/shared";
+import { enumLabel } from "@/lib/enums";
 
 const PUBLIC_API = "/api/v1/public";
 
@@ -93,7 +94,7 @@ export function CareerJobDetailPage() {
               )}
               <span className="flex items-center gap-1">
                 <Briefcase className="h-4 w-4" />
-                {job.employment_type.replace(/_/g, " ")}
+                {enumLabel(t, "employmentType", job.employment_type)}
               </span>
               {(job.experience_min != null || job.experience_max != null) && (
                 <span className="flex items-center gap-1">
@@ -186,7 +187,7 @@ export function CareerJobDetailPage() {
             <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("careers.detail.jobDetails")}</h3>
             <div className="text-sm">
               <span className="text-gray-500">{t("careers.detail.employmentType")}</span>
-              <p className="font-medium text-gray-900 capitalize">{job.employment_type.replace(/_/g, " ")}</p>
+              <p className="font-medium text-gray-900 capitalize">{enumLabel(t, "employmentType", job.employment_type)}</p>
             </div>
             {job.location && (
               <div className="text-sm">

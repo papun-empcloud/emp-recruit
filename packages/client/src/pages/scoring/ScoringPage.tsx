@@ -16,6 +16,7 @@ import { apiGet, apiPost } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { cn, formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 
 interface ScoredApplication {
@@ -165,7 +166,7 @@ export function ScoringPage() {
               >
                 <span className={`truncate ${selectedJob ? "text-gray-900" : "text-gray-400"}`}>
                   {selectedJob
-                    ? `${selectedJob.title}${selectedJob.status && selectedJob.status !== "open" ? ` (${selectedJob.status})` : ""}`
+                    ? `${selectedJob.title}${selectedJob.status && selectedJob.status !== "open" ? ` (${enumLabel(t, "jobStatus", selectedJob.status)})` : ""}`
                     : t("scoring.list.chooseJob")}
                 </span>
                 <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
@@ -204,7 +205,7 @@ export function ScoringPage() {
                             <span className="truncate">{job.title}</span>
                             {job.status && job.status !== "open" && (
                               <span className="ml-2 flex-shrink-0 text-xs capitalize text-gray-400">
-                                {job.status}
+                                {enumLabel(t, "jobStatus", job.status)}
                               </span>
                             )}
                           </button>

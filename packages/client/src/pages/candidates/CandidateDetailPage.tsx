@@ -23,6 +23,7 @@ import { resolveUploadUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
 import type { Candidate, Application, JobPosting, PaginatedResponse } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 
 const STAGE_BADGE: Record<string, string> = {
   applied: "bg-blue-100 text-blue-700",
@@ -342,7 +343,7 @@ export function CandidateDetailPage() {
                         STAGE_BADGE[app.stage] ?? "bg-gray-100 text-gray-700",
                       )}
                     >
-                      {app.stage}
+                      {enumLabel(t, "stage", app.stage)}
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">

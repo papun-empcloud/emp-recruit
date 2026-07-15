@@ -9,6 +9,7 @@ import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import toast from "react-hot-toast";
 
 const STATUS_TABS = [
@@ -178,10 +179,10 @@ export function JobListPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 capitalize">
                     {/* #32 — show remote policy next to employment type. */}
-                    <span className="block">{job.employment_type.replace(/_/g, " ")}</span>
+                    <span className="block">{enumLabel(t, "employmentType", job.employment_type)}</span>
                     {(job as any).remote_policy && (
                       <span className="mt-0.5 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 capitalize">
-                        {(job as any).remote_policy === "onsite" ? t("jobs.list.onsite") : (job as any).remote_policy}
+                        {enumLabel(t, "remotePolicy", (job as any).remote_policy)}
                       </span>
                     )}
                   </td>
@@ -204,7 +205,7 @@ export function JobListPage() {
                         STATUS_BADGE[job.status] ?? "bg-gray-100 text-gray-700",
                       )}
                     >
-                      {job.status}
+                      {enumLabel(t, "jobStatus", job.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(job.created_at)}</td>

@@ -6,6 +6,7 @@ import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import type { Candidate } from "@emp-recruit/shared";
 import { formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 
 const SOURCE_BADGE: Record<string, string> = {
   direct: "bg-gray-100 text-gray-700",
@@ -158,10 +159,10 @@ export function CandidateListPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {c.experience_years !== null ? (
+                    {c.experience_years != null ? (
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
-                        {t("candidates.list.years", { count: c.experience_years })}
+                        {t("candidates.list.years", { count: Number(c.experience_years) })}
                       </span>
                     ) : (
                       "--"
@@ -171,7 +172,7 @@ export function CandidateListPage() {
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${SOURCE_BADGE[c.source] ?? "bg-gray-100 text-gray-700"}`}
                     >
-                      {c.source}
+                      {enumLabel(t, "source", c.source)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(c.created_at)}</td>
