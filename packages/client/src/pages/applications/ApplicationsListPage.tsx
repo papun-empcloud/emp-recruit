@@ -5,6 +5,8 @@ import { Loader2, FileText, Calendar, Search, X } from "lucide-react";
 import { apiGet } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { PaginatedResponse, JobPosting } from "@emp-recruit/shared";
 import { cn, formatDate, getInitials } from "@/lib/utils";
 
@@ -32,6 +34,15 @@ interface AppRow {
   source: string;
   applied_at: string;
 }
+
+const APPLICATION_COLUMNS: ExportColumn<AppRow>[] = [
+  { header: "Candidate", value: (a) => `${a.candidate_first_name} ${a.candidate_last_name}`.trim() },
+  { header: "Job", value: (a) => a.job_title },
+  { header: "Department", value: (a) => a.job_department },
+  { header: "Stage", value: (a) => a.stage },
+  { header: "Source", value: (a) => a.source },
+  { header: "Applied", value: (a) => (a.applied_at ? formatDate(a.applied_at) : "") },
+];
 
 export function ApplicationsListPage() {
   const [stage, setStage] = useState("");
@@ -105,9 +116,30 @@ export function ApplicationsListPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-        <p className="mt-1 text-sm text-gray-500">Every application across your open roles.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
+          <p className="mt-1 text-sm text-gray-500">Every application across your open roles.</p>
+        </div>
+        <ExportButtons
+          baseName="applications"
+          title="Applications"
+          subtitle={`${total} application${total !== 1 ? "s" : ""}${filtersActive ? " (filtered)" : ""}`}
+          columns={APPLICATION_COLUMNS}
+          fetchRows={() =>
+            fetchAllRows<AppRow>("/applications", {
+              sort: "applied_at",
+              order: "desc",
+              stage,
+              job_id: jobId,
+              department,
+              location,
+              date_from: dateFrom,
+              date_to: dateTo,
+              search,
+            })
+          }
+        />
       </div>
 
       {/* Filters */}
