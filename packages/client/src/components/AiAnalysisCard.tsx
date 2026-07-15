@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Brain, Sparkles, Loader2, ThumbsUp, ThumbsDown, Minus, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { apiGet, apiPost } from "@/api/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -19,12 +20,12 @@ interface AiEvaluation {
   created_at: string;
 }
 
-const REC: Record<string, { label: string; cls: string; Icon: typeof ThumbsUp }> = {
-  strong_yes: { label: "Strong Yes", cls: "bg-green-100 text-green-800", Icon: ThumbsUp },
-  yes: { label: "Yes", cls: "bg-green-50 text-green-700", Icon: ThumbsUp },
-  neutral: { label: "Neutral", cls: "bg-gray-100 text-gray-600", Icon: Minus },
-  no: { label: "No", cls: "bg-red-50 text-red-600", Icon: ThumbsDown },
-  strong_no: { label: "Strong No", cls: "bg-red-100 text-red-800", Icon: ThumbsDown },
+const REC: Record<string, { labelKey: string; cls: string; Icon: typeof ThumbsUp }> = {
+  strong_yes: { labelKey: "components.aiAnalysis.recStrongYes", cls: "bg-green-100 text-green-800", Icon: ThumbsUp },
+  yes: { labelKey: "components.aiAnalysis.recYes", cls: "bg-green-50 text-green-700", Icon: ThumbsUp },
+  neutral: { labelKey: "components.aiAnalysis.recNeutral", cls: "bg-gray-100 text-gray-600", Icon: Minus },
+  no: { labelKey: "components.aiAnalysis.recNo", cls: "bg-red-50 text-red-600", Icon: ThumbsDown },
+  strong_no: { labelKey: "components.aiAnalysis.recStrongNo", cls: "bg-red-100 text-red-800", Icon: ThumbsDown },
 };
 
 function scoreColor(v: number): string {
@@ -48,6 +49,7 @@ export function AiAnalysisCard({
   interviewId: string;
   embedded?: boolean;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   // Lightweight transcript read (shares the cached query) so we know when a
@@ -72,11 +74,11 @@ export function AiAnalysisCard({
   const run = useMutation({
     mutationFn: () => apiPost<AiEvaluation>(`/interviews/${interviewId}/ai-evaluate`, {}),
     onSuccess: () => {
-      toast.success("AI analysis complete");
+      toast.success(t("components.aiAnalysis.analysisComplete"));
       qc.invalidateQueries({ queryKey: ["ai-evaluation", interviewId] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error?.message || "AI analysis failed"),
+      toast.error(err?.response?.data?.error?.message || t("components.aiAnalysis.analysisFailed")),
   });
 
   const errMsg = (run.error as any)?.response?.data?.error?.message as string | undefined;
@@ -92,7 +94,7 @@ export function AiAnalysisCard({
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Brain className="h-5 w-5 text-purple-500" /> AI Analysis
+          <Brain className="h-5 w-5 text-purple-500" /> {t("components.aiAnalysis.title")}
         </h3>
         <button
           onClick={() => run.mutate()}
@@ -100,7 +102,11 @@ export function AiAnalysisCard({
           className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 disabled:opacity-50 transition-colors"
         >
           {run.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {run.isPending ? "Analyzing…" : evaluation ? "Re-run analysis" : "Run AI Analysis"}
+          {run.isPending
+            ? t("components.aiAnalysis.analyzing")
+            : evaluation
+              ? t("components.aiAnalysis.rerun")
+              : t("components.aiAnalysis.run")}
         </button>
       </div>
 
@@ -112,9 +118,11 @@ export function AiAnalysisCard({
           <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
           {/no ai provider|not configured/i.test(errMsg) ? (
             <p className="text-sm text-amber-800">
-              AI analysis needs a language model. Add <code>ANTHROPIC_API_KEY</code> (Claude),{" "}
-              <code>OPENAI_API_KEY</code>, or an OpenAI-compatible key (with{" "}
-              <code>AI_PROVIDER=compatible</code>) to <code>.env</code> and restart.
+              {t("components.aiAnalysis.needModelText0")} <code>ANTHROPIC_API_KEY</code>{" "}
+              {t("components.aiAnalysis.needModelText1")} <code>OPENAI_API_KEY</code>
+              {t("components.aiAnalysis.needModelText2")} <code>AI_PROVIDER=compatible</code>
+              {t("components.aiAnalysis.needModelText3")} <code>.env</code>{" "}
+              {t("components.aiAnalysis.needModelText4")}
             </p>
           ) : (
             <p className="text-sm text-amber-800">{errMsg}</p>
@@ -128,8 +136,7 @@ export function AiAnalysisCard({
         </div>
       ) : !evaluation ? (
         <p className="text-sm text-gray-500">
-          Generate an AI evaluation of this candidate from the interview transcript and panelist
-          feedback — a 0–100 score with strengths, concerns, and a hiring recommendation.
+          {t("components.aiAnalysis.emptyState")}
         </p>
       ) : (
         <div className="space-y-4">
@@ -143,13 +150,13 @@ export function AiAnalysisCard({
             </div>
             {rec && (
               <span className={cn("inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium", rec.cls)}>
-                <rec.Icon className="h-4 w-4" /> {rec.label}
+                <rec.Icon className="h-4 w-4" /> {t(rec.labelKey)}
               </span>
             )}
             <div className="ml-auto grid grid-cols-3 gap-2">
-              <SubScore label="Technical" value={evaluation.technical_score} />
-              <SubScore label="Communication" value={evaluation.communication_score} />
-              <SubScore label="Cultural fit" value={evaluation.cultural_fit_score} />
+              <SubScore label={t("components.aiAnalysis.technical")} value={evaluation.technical_score} />
+              <SubScore label={t("components.aiAnalysis.communication")} value={evaluation.communication_score} />
+              <SubScore label={t("components.aiAnalysis.culturalFit")} value={evaluation.cultural_fit_score} />
             </div>
           </div>
 
@@ -157,13 +164,13 @@ export function AiAnalysisCard({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {evaluation.strengths && (
               <div className="rounded-lg border border-green-200 bg-green-50/50 p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-green-700">Strengths</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-green-700">{t("components.aiAnalysis.strengths")}</p>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{evaluation.strengths}</p>
               </div>
             )}
             {evaluation.weaknesses && (
               <div className="rounded-lg border border-red-200 bg-red-50/50 p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-700">Concerns</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-700">{t("components.aiAnalysis.concerns")}</p>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{evaluation.weaknesses}</p>
               </div>
             )}
@@ -172,13 +179,15 @@ export function AiAnalysisCard({
           {/* Summary */}
           {evaluation.summary && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Summary</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{t("components.aiAnalysis.summary")}</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{evaluation.summary}</p>
             </div>
           )}
 
           <p className="text-xs text-gray-400">
-            Generated by {evaluation.provider ?? "AI"}
+            {t("components.aiAnalysis.generatedBy", {
+              provider: evaluation.provider ?? t("components.aiAnalysis.providerFallback"),
+            })}
             {evaluation.model ? ` · ${evaluation.model}` : ""}
           </p>
         </div>

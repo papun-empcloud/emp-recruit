@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   ClipboardList,
   Plus,
@@ -39,6 +40,7 @@ const EMPTY_TASK: TaskFormData = { title: "", description: "", category: "genera
 const CATEGORIES = ["general", "documentation", "it_setup", "training", "compliance", "orientation", "equipment"];
 
 export function OnboardingTemplatesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
@@ -154,8 +156,8 @@ export function OnboardingTemplatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Onboarding Templates</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage reusable onboarding templates and their tasks</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("onboarding.templates.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("onboarding.templates.subtitle")}</p>
         </div>
         {!showForm && (
           <button
@@ -163,7 +165,7 @@ export function OnboardingTemplatesPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Template
+            {t("onboarding.templates.newTemplate")}
           </button>
         )}
       </div>
@@ -172,30 +174,30 @@ export function OnboardingTemplatesPage() {
       {showForm && (
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900">
-            {editingTemplate ? "Edit Template" : "Create Template"}
+            {editingTemplate ? t("onboarding.templates.editTemplate") : t("onboarding.templates.createTemplate")}
           </h2>
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Name *</label>
+                <label className="block text-sm font-medium text-gray-700">{t("onboarding.templates.nameLabel")}</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="e.g., Engineering Onboarding"
+                  placeholder={t("onboarding.templates.namePlaceholder")}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Department</label>
+                <label className="block text-sm font-medium text-gray-700">{t("onboarding.templates.department")}</label>
                 {departments.length > 0 ? (
                   <select
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   >
-                    <option value="">Select department</option>
+                    <option value="">{t("onboarding.templates.selectDepartment")}</option>
                     {departments.map((d) => (
                       <option key={d.id} value={d.name}>{d.name}</option>
                     ))}
@@ -206,19 +208,19 @@ export function OnboardingTemplatesPage() {
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    placeholder="e.g., Engineering"
+                    placeholder={t("onboarding.templates.departmentPlaceholder")}
                   />
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <label className="block text-sm font-medium text-gray-700">{t("onboarding.templates.description")}</label>
               <textarea
                 rows={2}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                placeholder="What is this template for?"
+                placeholder={t("onboarding.templates.descriptionPlaceholder")}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -229,7 +231,7 @@ export function OnboardingTemplatesPage() {
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
                 className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
               />
-              <label htmlFor="is_default" className="text-sm text-gray-700">Set as default template</label>
+              <label htmlFor="is_default" className="text-sm text-gray-700">{t("onboarding.templates.setDefault")}</label>
             </div>
             <div className="flex gap-2">
               <button
@@ -238,14 +240,14 @@ export function OnboardingTemplatesPage() {
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
               >
                 <Save className="h-4 w-4" />
-                {editingTemplate ? "Update" : "Create"}
+                {editingTemplate ? t("onboarding.templates.update") : t("onboarding.templates.create")}
               </button>
               <button
                 type="button"
                 onClick={cancelForm}
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                {t("onboarding.templates.cancel")}
               </button>
             </div>
           </form>
@@ -260,8 +262,8 @@ export function OnboardingTemplatesPage() {
       ) : templates.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white">
           <ClipboardList className="h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-sm font-medium text-gray-900">No templates yet</h3>
-          <p className="mt-1 text-sm text-gray-500">Create your first onboarding template to get started.</p>
+          <h3 className="mt-4 text-sm font-medium text-gray-900">{t("onboarding.templates.emptyTitle")}</h3>
+          <p className="mt-1 text-sm text-gray-500">{t("onboarding.templates.emptyDescription")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -286,7 +288,7 @@ export function OnboardingTemplatesPage() {
                       <h3 className="font-medium text-gray-900">{template.name}</h3>
                       {template.is_default && (
                         <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">
-                          Default
+                          {t("onboarding.templates.defaultBadge")}
                         </span>
                       )}
                       {template.department && (
@@ -304,8 +306,8 @@ export function OnboardingTemplatesPage() {
                       card header. Only count + label when > 0. */}
                   <span className="text-sm text-gray-500">
                     {template.task_count > 0
-                      ? `${template.task_count} task${template.task_count === 1 ? "" : "s"}`
-                      : "No tasks"}
+                      ? t("onboarding.templates.taskCount", { count: template.task_count })
+                      : t("onboarding.templates.noTasks")}
                   </span>
                   <button
                     onClick={() => startEdit(template)}
@@ -320,7 +322,7 @@ export function OnboardingTemplatesPage() {
                   <div className="border-t border-gray-200 bg-gray-50 p-4">
                     {tasks.length === 0 ? (
                       <p className="py-4 text-center text-sm text-gray-500">
-                        No tasks yet. Add your first task to this template.
+                        {t("onboarding.templates.noTasksInTemplate")}
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -340,10 +342,12 @@ export function OnboardingTemplatesPage() {
                                   {task.category}
                                 </span>
                                 <span className="text-xs text-gray-400">
-                                  Due: {task.due_days > 0 ? `+${task.due_days} days` : "On joining day"}
+                                  {task.due_days > 0
+                                    ? t("onboarding.templates.dueInDays", { days: task.due_days })
+                                    : t("onboarding.templates.dueOnJoiningDay")}
                                 </span>
                                 {task.is_required && (
-                                  <span className="text-xs font-medium text-red-500">Required</span>
+                                  <span className="text-xs font-medium text-red-500">{t("onboarding.templates.required")}</span>
                                 )}
                               </div>
                             </div>
@@ -367,18 +371,18 @@ export function OnboardingTemplatesPage() {
                       >
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">Title *</label>
+                            <label className="block text-xs font-medium text-gray-700">{t("onboarding.templates.taskTitleLabel")}</label>
                             <input
                               type="text"
                               required
                               value={taskFormData.title}
                               onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
                               className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                              placeholder="Task title"
+                              placeholder={t("onboarding.templates.taskTitlePlaceholder")}
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">Category *</label>
+                            <label className="block text-xs font-medium text-gray-700">{t("onboarding.templates.taskCategoryLabel")}</label>
                             <select
                               value={taskFormData.category}
                               onChange={(e) => setTaskFormData({ ...taskFormData, category: e.target.value })}
@@ -393,18 +397,18 @@ export function OnboardingTemplatesPage() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700">Description</label>
+                          <label className="block text-xs font-medium text-gray-700">{t("onboarding.templates.taskDescriptionLabel")}</label>
                           <input
                             type="text"
                             value={taskFormData.description}
                             onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
                             className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                            placeholder="Optional description"
+                            placeholder={t("onboarding.templates.taskDescriptionPlaceholder")}
                           />
                         </div>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">Due (days after joining)</label>
+                            <label className="block text-xs font-medium text-gray-700">{t("onboarding.templates.dueDaysLabel")}</label>
                             <input
                               type="number"
                               min={0}
@@ -414,7 +418,7 @@ export function OnboardingTemplatesPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">Order</label>
+                            <label className="block text-xs font-medium text-gray-700">{t("onboarding.templates.orderLabel")}</label>
                             <input
                               type="number"
                               min={1}
@@ -424,13 +428,13 @@ export function OnboardingTemplatesPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700">Assignee Role</label>
+                            <label className="block text-xs font-medium text-gray-700">{t("onboarding.templates.assigneeRoleLabel")}</label>
                             <input
                               type="text"
                               value={taskFormData.assignee_role}
                               onChange={(e) => setTaskFormData({ ...taskFormData, assignee_role: e.target.value })}
                               className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                              placeholder="e.g., hr_admin"
+                              placeholder={t("onboarding.templates.assigneeRolePlaceholder")}
                             />
                           </div>
                         </div>
@@ -442,7 +446,7 @@ export function OnboardingTemplatesPage() {
                             onChange={(e) => setTaskFormData({ ...taskFormData, is_required: e.target.checked })}
                             className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                           />
-                          <label htmlFor="task_required" className="text-xs text-gray-700">Required task</label>
+                          <label htmlFor="task_required" className="text-xs text-gray-700">{t("onboarding.templates.requiredTask")}</label>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -451,14 +455,14 @@ export function OnboardingTemplatesPage() {
                             className="inline-flex items-center gap-1 rounded bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
                           >
                             <Save className="h-3 w-3" />
-                            Add Task
+                            {t("onboarding.templates.addTask")}
                           </button>
                           <button
                             type="button"
                             onClick={() => { setShowTaskForm(null); setTaskFormData(EMPTY_TASK); }}
                             className="rounded border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                           >
-                            Cancel
+                            {t("onboarding.templates.cancel")}
                           </button>
                         </div>
                       </form>
@@ -468,7 +472,7 @@ export function OnboardingTemplatesPage() {
                         className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                       >
                         <Plus className="h-4 w-4" />
-                        Add Task
+                        {t("onboarding.templates.addTask")}
                       </button>
                     )}
                   </div>

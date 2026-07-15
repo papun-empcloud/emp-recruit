@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   Briefcase,
@@ -53,6 +54,7 @@ function getPortalToken(): string | null {
 }
 
 function StagePipeline({ currentStage }: { currentStage: string }) {
+  const { t } = useTranslation();
   const currentIdx = PIPELINE_STAGES.indexOf(currentStage);
   const isTerminal = currentStage === "rejected" || currentStage === "withdrawn";
 
@@ -72,7 +74,7 @@ function StagePipeline({ currentStage }: { currentStage: string }) {
                     : "bg-brand-400"
                   : "bg-gray-200"
               }`}
-              title={STAGE_CONFIG[stage]?.label || stage}
+              title={STAGE_CONFIG[stage] ? t(`portal.stages.${stage}`) : stage}
             />
           </div>
         );
@@ -82,6 +84,7 @@ function StagePipeline({ currentStage }: { currentStage: string }) {
 }
 
 export function PortalDashboardPage() {
+  const { t } = useTranslation();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +92,7 @@ export function PortalDashboardPage() {
   useEffect(() => {
     const token = getPortalToken();
     if (!token) {
-      setError("No access token found. Please request a new portal link.");
+      setError(t("portal.errors.noToken"));
       setLoading(false);
       return;
     }
@@ -104,9 +107,9 @@ export function PortalDashboardPage() {
           const body = await res.json().catch(() => null);
           if (res.status === 401) {
             localStorage.removeItem("portal_token");
-            throw new Error("Your access link has expired. Please request a new one.");
+            throw new Error(t("portal.errors.expired"));
           }
-          throw new Error(body?.error?.message || "Failed to load portal data");
+          throw new Error(body?.error?.message || t("portal.errors.loadDashboard"));
         }
 
         const json = await res.json();
@@ -137,7 +140,7 @@ export function PortalDashboardPage() {
             to="/portal"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
           >
-            Request New Link
+            {t("portal.actions.requestNewLink")}
           </Link>
         </div>
       </div>
@@ -153,10 +156,10 @@ export function PortalDashboardPage() {
       {/* Greeting */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {candidate.first_name}
+          {t("portal.dashboard.welcome", { name: candidate.first_name })}
         </h1>
         <p className="mt-1 text-gray-600">
-          Track your applications and upcoming interviews.
+          {t("portal.dashboard.subtitle")}
         </p>
       </div>
 
@@ -169,7 +172,7 @@ export function PortalDashboardPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
-              <p className="text-sm text-gray-500">Total Applications</p>
+              <p className="text-sm text-gray-500">{t("portal.dashboard.totalApplications")}</p>
             </div>
           </div>
         </div>
@@ -182,7 +185,7 @@ export function PortalDashboardPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {applications.filter((a) => a.stage === "interview").length}
               </p>
-              <p className="text-sm text-gray-500">In Interview</p>
+              <p className="text-sm text-gray-500">{t("portal.dashboard.inInterview")}</p>
             </div>
           </div>
         </div>
@@ -195,19 +198,19 @@ export function PortalDashboardPage() {
               <p className="text-2xl font-bold text-gray-900">
                 {applications.filter((a) => a.stage === "offer" || a.stage === "hired").length}
               </p>
-              <p className="text-sm text-gray-500">Offers / Hired</p>
+              <p className="text-sm text-gray-500">{t("portal.dashboard.offersHired")}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Applications */}
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Your Applications</h2>
+      <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("portal.dashboard.yourApplications")}</h2>
 
       {applications.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
           <Briefcase className="mx-auto mb-4 h-10 w-10 text-gray-400" />
-          <p className="text-gray-600">No applications found.</p>
+          <p className="text-gray-600">{t("portal.dashboard.noApplications")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -217,6 +220,7 @@ export function PortalDashboardPage() {
               bg: "bg-gray-100",
               label: app.stage,
             };
+            const stageLabel = STAGE_CONFIG[app.stage] ? t(`portal.stages.${app.stage}`) : app.stage;
 
             return (
               <Link
@@ -233,7 +237,7 @@ export function PortalDashboardPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${stageInfo.bg} ${stageInfo.color}`}
                       >
-                        {stageInfo.label}
+                        {stageLabel}
                       </span>
                     </div>
                     {app.job_department && (
@@ -242,11 +246,11 @@ export function PortalDashboardPage() {
                     <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
-                        Applied {new Date(app.applied_at).toLocaleDateString()}
+                        {t("portal.common.appliedOn", { date: new Date(app.applied_at).toLocaleDateString() })}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" />
-                        Updated {new Date(app.updated_at).toLocaleDateString()}
+                        {t("portal.common.updatedOn", { date: new Date(app.updated_at).toLocaleDateString() })}
                       </span>
                     </div>
                     <StagePipeline currentStage={app.stage} />

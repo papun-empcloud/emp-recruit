@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Bold,
   Italic,
@@ -42,6 +43,7 @@ export function RichTextEditor({
   id,
   "aria-label": ariaLabel,
 }: RichTextEditorProps) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState(false);
   const [empty, setEmpty] = useState(true);
@@ -123,7 +125,7 @@ export function RichTextEditor({
   };
 
   const addLink = () => {
-    const url = window.prompt("Enter the link URL");
+    const url = window.prompt(t("components.richTextEditor.linkPrompt"));
     if (url) exec("createLink", url.trim());
   };
 
@@ -166,46 +168,46 @@ export function RichTextEditor({
     >
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1.5">
-        <Btn onClick={() => exec("bold")} label="Bold" isActive={active.bold}>
+        <Btn onClick={() => exec("bold")} label={t("components.richTextEditor.bold")} isActive={active.bold}>
           <Bold className="h-4 w-4" />
         </Btn>
-        <Btn onClick={() => exec("italic")} label="Italic" isActive={active.italic}>
+        <Btn onClick={() => exec("italic")} label={t("components.richTextEditor.italic")} isActive={active.italic}>
           <Italic className="h-4 w-4" />
         </Btn>
-        <Btn onClick={() => exec("underline")} label="Underline" isActive={active.underline}>
+        <Btn onClick={() => exec("underline")} label={t("components.richTextEditor.underline")} isActive={active.underline}>
           <Underline className="h-4 w-4" />
         </Btn>
         <Btn
           onClick={() => exec("strikeThrough")}
-          label="Strikethrough"
+          label={t("components.richTextEditor.strikethrough")}
           isActive={active.strikeThrough}
         >
           <Strikethrough className="h-4 w-4" />
         </Btn>
         <Divider />
-        <Btn onClick={() => toggleBlock("h2")} label="Heading" isActive={active.h2}>
+        <Btn onClick={() => toggleBlock("h2")} label={t("components.richTextEditor.heading")} isActive={active.h2}>
           <Heading2 className="h-4 w-4" />
         </Btn>
-        <Btn onClick={() => toggleBlock("h3")} label="Subheading" isActive={active.h3}>
+        <Btn onClick={() => toggleBlock("h3")} label={t("components.richTextEditor.subheading")} isActive={active.h3}>
           <Heading3 className="h-4 w-4" />
         </Btn>
         <Divider />
         <Btn
           onClick={() => exec("insertUnorderedList")}
-          label="Bulleted list"
+          label={t("components.richTextEditor.bulletedList")}
           isActive={active.insertUnorderedList}
         >
           <List className="h-4 w-4" />
         </Btn>
         <Btn
           onClick={() => exec("insertOrderedList")}
-          label="Numbered list"
+          label={t("components.richTextEditor.numberedList")}
           isActive={active.insertOrderedList}
         >
           <ListOrdered className="h-4 w-4" />
         </Btn>
         <Divider />
-        <Btn onClick={addLink} label="Insert link">
+        <Btn onClick={addLink} label={t("components.richTextEditor.insertLink")}>
           <Link2 className="h-4 w-4" />
         </Btn>
         <Btn
@@ -213,15 +215,15 @@ export function RichTextEditor({
             exec("removeFormat");
             exec("unlink");
           }}
-          label="Clear formatting"
+          label={t("components.richTextEditor.clearFormatting")}
         >
           <Eraser className="h-4 w-4" />
         </Btn>
         <Divider />
-        <Btn onClick={() => exec("undo")} label="Undo">
+        <Btn onClick={() => exec("undo")} label={t("components.richTextEditor.undo")}>
           <Undo className="h-4 w-4" />
         </Btn>
-        <Btn onClick={() => exec("redo")} label="Redo">
+        <Btn onClick={() => exec("redo")} label={t("components.richTextEditor.redo")}>
           <Redo className="h-4 w-4" />
         </Btn>
       </div>

@@ -19,40 +19,43 @@ import {
   Globe,
   Inbox,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { isLoggedIn, getUser, useAuthStore } from "@/lib/auth-store";
 import { cn, getInitials } from "@/lib/utils";
 import { BackToDashboard } from "@/components/BackToDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAdminRole } from "@/lib/roles";
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: any;
   adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
-  { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
-  { to: "/applications", label: "Applications", icon: Inbox, adminOnly: true },
-  { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },
-  { to: "/offers", label: "Offers", icon: FileText, adminOnly: true },
-  { to: "/onboarding", label: "Onboarding", icon: ClipboardList, adminOnly: true },
-  { to: "/scoring", label: "AI Scoring", icon: Brain, adminOnly: true },
-  { to: "/ai-interviews", label: "AI Interviews", icon: Mic, adminOnly: true },
-  { to: "/referrals", label: "Referrals", icon: Gift },
-  { to: "/analytics", label: "Analytics", icon: BarChart3, adminOnly: true },
-  { to: "/career-page", label: "Career Page", icon: Globe, adminOnly: true },
-  { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+  { to: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/jobs", labelKey: "nav.jobPostings", icon: Briefcase, adminOnly: true },
+  { to: "/candidates", labelKey: "nav.candidates", icon: Users, adminOnly: true },
+  { to: "/applications", labelKey: "nav.applications", icon: Inbox, adminOnly: true },
+  { to: "/interviews", labelKey: "nav.interviews", icon: Calendar, adminOnly: true },
+  { to: "/offers", labelKey: "nav.offers", icon: FileText, adminOnly: true },
+  { to: "/onboarding", labelKey: "nav.onboarding", icon: ClipboardList, adminOnly: true },
+  { to: "/scoring", labelKey: "nav.aiScoring", icon: Brain, adminOnly: true },
+  { to: "/ai-interviews", labelKey: "nav.aiInterviews", icon: Mic, adminOnly: true },
+  { to: "/referrals", labelKey: "nav.referrals", icon: Gift },
+  { to: "/analytics", labelKey: "nav.analytics", icon: BarChart3, adminOnly: true },
+  { to: "/career-page", labelKey: "nav.careerPage", icon: Globe, adminOnly: true },
+  { to: "/settings", labelKey: "nav.settings", icon: Settings, adminOnly: true },
 ];
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const logout = useAuthStore((s) => s.logout);
+  const { t } = useTranslation();
 
   // Close the mobile drawer on navigation. Must run before any early return so
   // hooks are called unconditionally on every render (rules of hooks).
@@ -64,7 +67,7 @@ export function DashboardLayout() {
 
   const user = getUser();
   const displayName = user ? `${user.firstName} ${user.lastName}` : "User";
-  const roleLabel = isAdminRole(user?.role) ? "Admin" : "Employee";
+  const roleLabel = isAdminRole(user?.role) ? t("nav.admin") : t("nav.employee");
 
   function SidebarContent() {
     return (
@@ -74,7 +77,7 @@ export function DashboardLayout() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600">
             <UserPlus className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-gray-900">EMP Recruit</span>
+          <span className="text-lg font-bold text-gray-900">{t("brand")}</span>
         </div>
 
         {/* Nav */}
@@ -96,7 +99,7 @@ export function DashboardLayout() {
               }
             >
               <item.icon className="h-5 w-5" />
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
@@ -114,7 +117,7 @@ export function DashboardLayout() {
             <button
               onClick={logout}
               className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              title="Logout"
+              title={t("nav.logout")}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -153,6 +156,7 @@ export function DashboardLayout() {
           <BackToDashboard />
           <div className="flex-1" />
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <ThemeToggle />
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-semibold">
               {getInitials(displayName)}

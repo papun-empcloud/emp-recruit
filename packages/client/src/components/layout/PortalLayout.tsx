@@ -1,6 +1,8 @@
 import { Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export function PortalLayout() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       {/* Header */}
@@ -12,7 +14,7 @@ export function PortalLayout() {
             </div>
             <div>
               <span className="text-lg font-semibold text-gray-900">
-                Candidate Portal
+                {t("components.portalLayout.title")}
               </span>
             </div>
           </div>
@@ -21,7 +23,7 @@ export function PortalLayout() {
               href="/portal"
               className="rounded-md px-3 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
             >
-              Request Access
+              {t("components.portalLayout.requestAccess")}
             </a>
           </nav>
         </div>
@@ -35,7 +37,7 @@ export function PortalLayout() {
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white py-6">
         <div className="mx-auto max-w-5xl px-4 text-center text-sm text-gray-500">
-          Powered by EMP Recruit
+          {t("components.portalLayout.poweredBy")}
         </div>
       </footer>
     </div>

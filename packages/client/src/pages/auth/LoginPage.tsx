@@ -4,19 +4,22 @@ import { Briefcase, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { useLogin } from "@/api/hooks";
 import { useAuthStore } from "@/lib/auth-store";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
-const features = [
-  "Job postings",
-  "Applicant tracking",
-  "Interview scheduling",
-  "Resume parsing",
-  "Offer management",
-  "Onboarding",
-  "AI scoring",
-  "Analytics",
+const featureKeys = [
+  "auth.featureJobPostings",
+  "auth.featureApplicantTracking",
+  "auth.featureInterviewScheduling",
+  "auth.featureResumeParsing",
+  "auth.featureOfferManagement",
+  "auth.featureOnboarding",
+  "auth.featureAiScoring",
+  "auth.featureAnalytics",
 ];
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const loginMutation = useLogin();
@@ -43,18 +46,22 @@ export function LoginPage() {
       const res = await loginMutation.mutateAsync({ email, password });
       if (res.success) {
         login(res.data.user, res.data.tokens);
-        toast.success(`Welcome back, ${res.data.user.firstName}!`);
+        toast.success(t("auth.welcomeToast", { firstName: res.data.user.firstName }));
         navigate("/dashboard");
       } else {
-        toast.error(res.error?.message || "Login failed");
+        toast.error(res.error?.message || t("auth.loginFailed"));
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error?.message || "Login failed. Check your credentials.");
+      toast.error(err.response?.data?.error?.message || t("auth.loginFailedCredentials"));
     }
   }
 
   return (
     <div className="flex min-h-screen">
+      {/* Language switcher — top corner, before login */}
+      <div className="absolute end-4 top-4 z-10">
+        <LanguageSwitcher />
+      </div>
       {/* Left panel — brand */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-gradient-to-br from-brand-600 to-brand-800 p-12">
         <div className="max-w-md text-white">
@@ -65,17 +72,16 @@ export function LoginPage() {
             <span className="text-2xl font-bold">EMP Recruit</span>
           </div>
           <h2 className="text-3xl font-bold leading-tight mb-4">
-            Hire the best talent faster
+            {t("auth.heroTitle")}
           </h2>
           <p className="text-brand-100 text-lg leading-relaxed">
-            Post jobs, track applicants, schedule interviews, parse resumes, and
-            manage offers &mdash; all in one place.
+            {t("auth.heroSubtitle")}
           </p>
           <div className="mt-10 grid grid-cols-2 gap-4">
-            {features.map((f) => (
+            {featureKeys.map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm">
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-300" />
-                <span className="text-brand-100">{f}</span>
+                <span className="text-brand-100">{t(f)}</span>
               </div>
             ))}
           </div>
@@ -94,9 +100,9 @@ export function LoginPage() {
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t("auth.welcomeBack")}</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Sign in to manage recruitment
+              {t("auth.signInSubtitle")}
             </p>
 
             {sessionExpired && (
@@ -105,7 +111,7 @@ export function LoginPage() {
                 className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <span>Your session has expired. Please log in again.</span>
+                <span>{t("auth.sessionExpired")}</span>
               </div>
             )}
 
@@ -115,7 +121,7 @@ export function LoginPage() {
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Email address
+                  {t("auth.emailLabel")}
                 </label>
                 <input
                   id="email"
@@ -131,7 +137,7 @@ export function LoginPage() {
                   htmlFor="password"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Password
+                  {t("auth.passwordLabel")}
                 </label>
                 <div className="relative mt-1">
                   <input
@@ -163,17 +169,17 @@ export function LoginPage() {
                 {loginMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in...
+                    {t("auth.signingIn")}
                   </>
                 ) : (
-                  "Sign in"
+                  t("auth.signIn")
                 )}
               </button>
             </form>
           </div>
 
           <p className="mt-6 text-center text-xs text-gray-400">
-            Part of the EMP HRMS ecosystem
+            {t("auth.ecosystemNote")}
           </p>
         </div>
       </div>

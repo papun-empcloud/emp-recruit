@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { apiGet, apiPut } from "@/api/client";
 import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { Offer } from "@emp-recruit/shared";
 
 interface FormData {
@@ -41,6 +42,7 @@ const INITIAL: FormData = {
 };
 
 export function OfferEditPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -74,13 +76,13 @@ export function OfferEditPage() {
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, any>) => apiPut<Offer>(`/offers/${id}`, data),
     onSuccess: () => {
-      toast.success("Offer updated");
+      toast.success(t("offers.form.toastUpdated"));
       queryClient.invalidateQueries({ queryKey: ["offer", id] });
       queryClient.invalidateQueries({ queryKey: ["offers"] });
       navigate(`/offers/${id}`);
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || "Failed to update offer";
+      const msg = err?.response?.data?.error?.message || t("offers.form.toastUpdateFailed");
       toast.error(msg);
     },
   });
@@ -90,22 +92,22 @@ export function OfferEditPage() {
     if (form.salary_amount) {
       const salary = Number(form.salary_amount);
       if (!Number.isFinite(salary) || salary < 0) {
-        toast.error("Salary cannot be negative");
+        toast.error(t("offers.form.errSalaryNegativeShort"));
         return;
       }
     }
     const today = todayIso();
     if (form.joining_date && form.joining_date < today) {
-      toast.error("Joining date cannot be in the past");
+      toast.error(t("offers.form.errJoiningPast"));
       return;
     }
     if (form.expiry_date && form.expiry_date < today) {
-      toast.error("Expiry date cannot be in the past");
+      toast.error(t("offers.form.errExpiryPast"));
       return;
     }
     // Expiry (accept-by deadline) must be on or before the joining date.
     if (form.joining_date && form.expiry_date && form.expiry_date > form.joining_date) {
-      toast.error("Offer expiry date must be on or before the joining date");
+      toast.error(t("offers.form.errExpiryAfterJoining"));
       return;
     }
     const payload: Record<string, any> = {
@@ -133,7 +135,7 @@ export function OfferEditPage() {
   const offer = offerData?.data;
   if (!offer) {
     return (
-      <div className="py-12 text-center text-gray-500">Offer not found.</div>
+      <div className="py-12 text-center text-gray-500">{t("offers.form.offerNotFound")}</div>
     );
   }
 
@@ -144,10 +146,10 @@ export function OfferEditPage() {
           onClick={() => navigate(`/offers/${id}`)}
           className="inline-flex items-center gap-2 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
-          <ArrowLeft className="h-5 w-5" /> Back
+          <ArrowLeft className="h-5 w-5" /> {t("offers.form.back")}
         </button>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
-          Only draft offers can be edited. This offer is currently
+          {t("offers.form.onlyDraftEditable")}
           <strong className="mx-1">{offer.status.replace("_", " ")}</strong>.
         </div>
       </div>
@@ -163,15 +165,15 @@ export function OfferEditPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Offer</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("offers.form.editTitle")}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Offer Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.offerDetails")}</h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.jobTitleShort")} *</label>
             <input
               type="text"
               required
@@ -182,7 +184,7 @@ export function OfferEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.department")}</label>
             <input
               type="text"
               value={form.department}
@@ -193,7 +195,7 @@ export function OfferEditPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Annual Salary *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.annualSalary")} *</label>
               <input
                 type="number"
                 required
@@ -204,11 +206,11 @@ export function OfferEditPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
               <p className="mt-1 text-xs text-gray-400">
-                In {form.salary_currency === "INR" ? "rupees" : form.salary_currency === "USD" ? "dollars" : form.salary_currency === "EUR" ? "euros" : form.salary_currency === "GBP" ? "pounds" : form.salary_currency}.
+                {t("offers.form.salaryUnitNote", { unit: form.salary_currency === "INR" ? t("offers.form.unitRupees") : form.salary_currency === "USD" ? t("offers.form.unitDollars") : form.salary_currency === "EUR" ? t("offers.form.unitEuros") : form.salary_currency === "GBP" ? t("offers.form.unitPounds") : form.salary_currency })}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.currency")}</label>
               <select
                 value={form.salary_currency}
                 onChange={(e) => setForm((p) => ({ ...p, salary_currency: e.target.value }))}
@@ -224,7 +226,7 @@ export function OfferEditPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.joiningDate")} *</label>
               <DateInput
                 required
                 value={form.joining_date}
@@ -235,7 +237,7 @@ export function OfferEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.expiryDate")} *</label>
               <DateInput
                 required
                 value={form.expiry_date}
@@ -248,7 +250,7 @@ export function OfferEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Benefits</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.benefits")}</label>
             <textarea
               value={form.benefits}
               onChange={(e) => setForm((p) => ({ ...p, benefits: e.target.value }))}
@@ -258,7 +260,7 @@ export function OfferEditPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.notes")}</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
@@ -274,7 +276,7 @@ export function OfferEditPage() {
             onClick={() => navigate(`/offers/${id}`)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("offers.form.cancel")}
           </button>
           <button
             type="submit"
@@ -286,7 +288,7 @@ export function OfferEditPage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            Save Changes
+            {t("offers.form.saveChanges")}
           </button>
         </div>
       </form>

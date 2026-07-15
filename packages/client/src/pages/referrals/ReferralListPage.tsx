@@ -7,17 +7,18 @@ import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { formatDate } from "@/lib/utils";
 import { getUser } from "@/lib/auth-store";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { JobPosting, PaginatedResponse } from "@emp-recruit/shared";
 
 const ADMIN_ROLES = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
 
 const STATUS_OPTIONS = [
-  { value: "submitted", label: "Submitted" },
-  { value: "under_review", label: "Under Review" },
-  { value: "hired", label: "Hired" },
-  { value: "rejected", label: "Rejected" },
-  { value: "bonus_eligible", label: "Bonus Eligible" },
-  { value: "bonus_paid", label: "Bonus Paid" },
+  { value: "submitted", labelKey: "referrals.statusSubmitted" },
+  { value: "under_review", labelKey: "referrals.statusUnderReview" },
+  { value: "hired", labelKey: "referrals.statusHired" },
+  { value: "rejected", labelKey: "referrals.statusRejected" },
+  { value: "bonus_eligible", labelKey: "referrals.statusBonusEligible" },
+  { value: "bonus_paid", labelKey: "referrals.statusBonusPaid" },
 ];
 
 interface ReferralRow {
@@ -46,6 +47,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function ReferralListPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingRef, setEditingRef] = useState<ReferralRow | null>(null);
@@ -126,13 +128,13 @@ export function ReferralListPage() {
   const submitMutation = useMutation({
     mutationFn: (data: typeof form) => apiPost("/referrals", data),
     onSuccess: () => {
-      toast.success("Referral submitted successfully");
+      toast.success(t("referrals.submitSuccess"));
       queryClient.invalidateQueries({ queryKey: ["referrals"] });
       setShowForm(false);
       setForm({ job_id: "", first_name: "", last_name: "", email: "", phone: "", relationship: "", notes: "" });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || "Failed to submit referral");
+      toast.error(err.response?.data?.error?.message || t("referrals.submitError"));
     },
   });
 
@@ -143,12 +145,12 @@ export function ReferralListPage() {
         ...(payload.bonus_amount !== undefined ? { bonus_amount: payload.bonus_amount } : {}),
       }).then((r) => r.data),
     onSuccess: () => {
-      toast.success("Referral updated");
+      toast.success(t("referrals.updateSuccess"));
       queryClient.invalidateQueries({ queryKey: ["referrals"] });
       setEditingRef(null);
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.error?.message || "Failed to update referral");
+      toast.error(err?.response?.data?.error?.message || t("referrals.updateError"));
     },
   });
 
@@ -163,7 +165,7 @@ export function ReferralListPage() {
   function submitEdit() {
     if (!editingRef) return;
     if (!editForm.status) {
-      toast.error("Pick a status");
+      toast.error(t("referrals.pickStatus"));
       return;
     }
     const payload: { id: string; status: string; bonus_amount?: number } = {
@@ -173,7 +175,7 @@ export function ReferralListPage() {
     if (editForm.bonus_amount) {
       const amount = Number(editForm.bonus_amount);
       if (!Number.isFinite(amount) || amount < 0) {
-        toast.error("Bonus amount cannot be negative");
+        toast.error(t("referrals.bonusNegative"));
         return;
       }
       payload.bonus_amount = Math.round(amount * 100);
@@ -184,15 +186,15 @@ export function ReferralListPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.job_id) {
-      toast.error("Please select a job position");
+      toast.error(t("referrals.selectJobPosition"));
       return;
     }
     if (!form.first_name.trim() || !form.last_name.trim()) {
-      toast.error("Please enter the candidate's full name");
+      toast.error(t("referrals.enterFullName"));
       return;
     }
     if (!form.email.trim()) {
-      toast.error("Please enter the candidate's email");
+      toast.error(t("referrals.enterEmail"));
       return;
     }
     submitMutation.mutate(form);
@@ -204,30 +206,30 @@ export function ReferralListPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Referrals</h1>
-          <p className="mt-1 text-sm text-gray-500">Track employee referrals and bonus eligibility.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("referrals.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("referrals.subtitle")}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? "Cancel" : "Refer Someone"}
+          {showForm ? t("referrals.cancel") : t("referrals.referSomeone")}
         </button>
       </div>
 
       {/* Submit form */}
       {showForm && (
         <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900">Submit a Referral</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t("referrals.submitFormTitle")}</h3>
 
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <label className="block text-sm font-medium text-gray-700">Pick from existing candidates</label>
+            <label className="block text-sm font-medium text-gray-700">{t("referrals.pickExisting")}</label>
             <input
               type="text"
               value={candidateSearch}
               onChange={(e) => setCandidateSearch(e.target.value)}
-              placeholder="Search by name or email..."
+              placeholder={t("referrals.searchByNameEmail")}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             {candidateOptions.length > 0 && (
@@ -257,30 +259,30 @@ export function ReferralListPage() {
                       </p>
                       <p className="truncate text-xs text-gray-500">{c.email}</p>
                     </div>
-                    <span className="text-xs text-brand-600">Use</span>
+                    <span className="text-xs text-brand-600">{t("referrals.use")}</span>
                   </button>
                 ))}
               </div>
             )}
             {debouncedSearch && candidateOptions.length === 0 && !candidatesQuery.isLoading && (
-              <p className="mt-2 text-xs text-gray-500">No matching candidates. Fill the form below to refer a new person.</p>
+              <p className="mt-2 text-xs text-gray-500">{t("referrals.noMatchingCandidates")}</p>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">Job Position *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.jobPosition")} *</label>
               <select
                 required
                 value={form.job_id}
                 onChange={(e) => setForm((p) => ({ ...p, job_id: e.target.value }))}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
-                <option value="">Select a job position...</option>
+                <option value="">{t("referrals.selectJobPositionOption")}</option>
                 {jobsQuery.isLoading ? (
-                  <option disabled>Loading jobs...</option>
+                  <option disabled>{t("referrals.loadingJobs")}</option>
                 ) : openJobs.length === 0 ? (
-                  <option disabled>No open positions available</option>
+                  <option disabled>{t("referrals.noOpenPositions")}</option>
                 ) : (
                   openJobs.map((job) => (
                     <option key={job.id} value={job.id}>
@@ -291,7 +293,7 @@ export function ReferralListPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">First Name *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.firstName")} *</label>
               <input
                 type="text"
                 required
@@ -301,7 +303,7 @@ export function ReferralListPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.lastName")} *</label>
               <input
                 type="text"
                 required
@@ -311,7 +313,7 @@ export function ReferralListPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.email")} *</label>
               <input
                 type="email"
                 required
@@ -321,7 +323,7 @@ export function ReferralListPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Phone</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.phone")}</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -330,17 +332,17 @@ export function ReferralListPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Relationship</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.relationship")}</label>
               <input
                 type="text"
                 value={form.relationship}
                 onChange={(e) => setForm((p) => ({ ...p, relationship: e.target.value }))}
-                placeholder="e.g. Former colleague"
+                placeholder={t("referrals.relationshipPlaceholder")}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <label className="block text-sm font-medium text-gray-700">{t("referrals.notes")}</label>
               <input
                 type="text"
                 value={form.notes}
@@ -354,7 +356,7 @@ export function ReferralListPage() {
                 disabled={submitMutation.isPending}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               >
-                {submitMutation.isPending ? "Submitting..." : "Submit Referral"}
+                {submitMutation.isPending ? t("referrals.submitting") : t("referrals.submitReferral")}
               </button>
             </div>
           </form>
@@ -370,7 +372,7 @@ export function ReferralListPage() {
               type="text"
               value={listSearchInput}
               onChange={(e) => setListSearchInput(e.target.value)}
-              placeholder="Search candidate, email or job…"
+              placeholder={t("referrals.searchPlaceholder")}
               className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -382,10 +384,10 @@ export function ReferralListPage() {
             }}
             className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
-            <option value="">All statuses</option>
+            <option value="">{t("referrals.allStatuses")}</option>
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -399,13 +401,14 @@ export function ReferralListPage() {
               }}
               className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
-              <X className="h-4 w-4" /> Clear
+              <X className="h-4 w-4" /> {t("referrals.clear")}
             </button>
           )}
         </div>
         <p className="text-sm text-gray-500">
-          {refTotal} referral{refTotal !== 1 ? "s" : ""}
-          {filtersActive ? " match your filters" : ""}
+          {filtersActive
+            ? t("referrals.countMatch", { count: refTotal })
+            : t("referrals.count", { count: refTotal })}
         </p>
       </div>
 
@@ -420,8 +423,8 @@ export function ReferralListPage() {
             <Gift className="h-12 w-12 text-gray-300" />
             <p className="mt-3 text-sm text-gray-500">
               {filtersActive
-                ? "No referrals match your filters."
-                : "No referrals yet. Refer someone to get started!"}
+                ? t("referrals.noMatch")
+                : t("referrals.emptyState")}
             </p>
           </div>
         ) : (
@@ -429,11 +432,11 @@ export function ReferralListPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-gray-600">Referred Candidate</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Job Applied For</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Status</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Bonus Amount</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">Date</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t("referrals.colCandidate")}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t("referrals.colJob")}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t("referrals.status")}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t("referrals.colBonus")}</th>
+                  <th className="px-4 py-3 font-medium text-gray-600">{t("referrals.colDate")}</th>
                   {isAdmin && <th className="px-4 py-3 font-medium text-gray-600 w-12"></th>}
                 </tr>
               </thead>
@@ -446,7 +449,10 @@ export function ReferralListPage() {
                       <span
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[ref.status] || "bg-gray-100 text-gray-700"}`}
                       >
-                        {ref.status.replace(/_/g, " ")}
+                        {(() => {
+                          const opt = STATUS_OPTIONS.find((o) => o.value === ref.status);
+                          return opt ? t(opt.labelKey) : ref.status.replace(/_/g, " ");
+                        })()}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
@@ -458,7 +464,7 @@ export function ReferralListPage() {
                         <button
                           onClick={() => openEdit(ref)}
                           className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                          title="Update status / bonus"
+                          title={t("referrals.updateTitle")}
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -487,7 +493,7 @@ export function ReferralListPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <h3 className="text-base font-semibold text-gray-900">Update Referral</h3>
+              <h3 className="text-base font-semibold text-gray-900">{t("referrals.modalTitle")}</h3>
               <button
                 onClick={() => setEditingRef(null)}
                 className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -498,33 +504,33 @@ export function ReferralListPage() {
             <div className="px-6 py-4 space-y-4">
               <p className="text-sm text-gray-600">
                 <span className="font-medium">{editingRef.candidate_name}</span>
-                <span className="text-gray-400"> for {editingRef.job_title}</span>
+                <span className="text-gray-400"> {t("referrals.forJob", { job: editingRef.job_title })}</span>
               </p>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <label className="block text-sm font-medium text-gray-700">{t("referrals.status")}</label>
                 <select
                   value={editForm.status}
                   onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value }))}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Bonus Amount (INR)</label>
+                <label className="block text-sm font-medium text-gray-700">{t("referrals.bonusAmountInr")}</label>
                 <input
                   type="number"
                   min={0}
                   step="0.01"
                   value={editForm.bonus_amount}
                   onChange={(e) => setEditForm((p) => ({ ...p, bonus_amount: e.target.value }))}
-                  placeholder="e.g. 25000"
+                  placeholder={t("referrals.bonusPlaceholder")}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <p className="mt-1 text-xs text-gray-400">
-                  Leave blank to keep current amount. Stored as paise; entered value is multiplied by 100.
+                  {t("referrals.bonusHelp")}
                 </p>
               </div>
             </div>
@@ -534,7 +540,7 @@ export function ReferralListPage() {
                 onClick={() => setEditingRef(null)}
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t("referrals.cancel")}
               </button>
               <button
                 type="button"
@@ -542,7 +548,7 @@ export function ReferralListPage() {
                 disabled={updateStatusMutation.isPending}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               >
-                {updateStatusMutation.isPending ? "Saving..." : "Save"}
+                {updateStatusMutation.isPending ? t("referrals.saving") : t("referrals.save")}
               </button>
             </div>
           </div>

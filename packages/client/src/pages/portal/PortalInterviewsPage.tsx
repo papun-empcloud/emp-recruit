@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   Calendar,
@@ -42,6 +43,7 @@ interface InterviewData {
 }
 
 export function PortalInterviewsPage() {
+  const { t } = useTranslation();
   const [interviews, setInterviews] = useState<InterviewData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function PortalInterviewsPage() {
   useEffect(() => {
     const token = localStorage.getItem("portal_token");
     if (!token) {
-      setError("No access token found. Please request a new portal link.");
+      setError(t("portal.errors.noToken"));
       setLoading(false);
       return;
     }
@@ -64,9 +66,9 @@ export function PortalInterviewsPage() {
           const body = await res.json().catch(() => null);
           if (res.status === 401) {
             localStorage.removeItem("portal_token");
-            throw new Error("Your access link has expired. Please request a new one.");
+            throw new Error(t("portal.errors.expired"));
           }
-          throw new Error(body?.error?.message || "Failed to load interviews");
+          throw new Error(body?.error?.message || t("portal.errors.loadInterviews"));
         }
 
         const json = await res.json();
@@ -97,7 +99,7 @@ export function PortalInterviewsPage() {
             to="/portal"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
-            Request New Link
+            {t("portal.actions.requestNewLink")}
           </Link>
         </div>
       </div>
@@ -107,21 +109,21 @@ export function PortalInterviewsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Upcoming Interviews</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("portal.interviews.title")}</h1>
         <p className="mt-1 text-gray-600">
-          Your scheduled interviews and meeting details.
+          {t("portal.interviews.subtitle")}
         </p>
       </div>
 
       {interviews.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
           <Calendar className="mx-auto mb-4 h-10 w-10 text-gray-400" />
-          <p className="text-gray-600">No upcoming interviews scheduled.</p>
+          <p className="text-gray-600">{t("portal.interviews.noInterviews")}</p>
           <Link
             to="/portal/dashboard"
             className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
           >
-            Back to Dashboard
+            {t("portal.actions.backToDashboard")}
           </Link>
         </div>
       ) : (
@@ -133,6 +135,9 @@ export function PortalInterviewsPage() {
               color: "text-gray-700",
               bg: "bg-gray-100",
             };
+            const typeLabel = INTERVIEW_TYPE_CONFIG[interview.type]
+              ? t(`portal.interviewTypes.${interview.type}`)
+              : interview.type;
 
             const scheduledDate = new Date(interview.scheduled_at);
             const isToday =
@@ -147,8 +152,8 @@ export function PortalInterviewsPage() {
               day: "numeric",
               year: "numeric",
             });
-            if (isToday) dateLabel = "Today";
-            if (isTomorrow) dateLabel = "Tomorrow";
+            if (isToday) dateLabel = t("portal.interviews.today");
+            if (isTomorrow) dateLabel = t("portal.interviews.tomorrow");
 
             return (
               <div
@@ -167,11 +172,11 @@ export function PortalInterviewsPage() {
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${typeConfig.bg} ${typeConfig.color}`}
                       >
                         {typeConfig.icon}
-                        {typeConfig.label}
+                        {typeLabel}
                       </span>
                       {isToday && (
                         <span className="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700">
-                          Today
+                          {t("portal.interviews.today")}
                         </span>
                       )}
                     </div>
@@ -197,7 +202,7 @@ export function PortalInterviewsPage() {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}{" "}
-                        ({interview.duration_minutes} min)
+                        {t("portal.interviews.durationMin", { minutes: interview.duration_minutes })}
                       </span>
                     </div>
 
@@ -209,7 +214,7 @@ export function PortalInterviewsPage() {
                     )}
 
                     <p className="mt-1 text-xs text-gray-400">
-                      Round {interview.round}
+                      {t("portal.interviews.round", { round: interview.round })}
                     </p>
                   </div>
 
@@ -220,7 +225,7 @@ export function PortalInterviewsPage() {
                       rel="noopener noreferrer"
                       className="ml-4 flex-shrink-0 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-700 transition-colors"
                     >
-                      Join Meeting
+                      {t("portal.actions.joinMeeting")}
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   )}

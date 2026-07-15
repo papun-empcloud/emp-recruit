@@ -11,6 +11,7 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { apiPost, apiPatch } from "@/api/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -59,12 +60,13 @@ function bestValue(candidates: ComparisonCandidate[], getValue: (c: ComparisonCa
 }
 
 function ScoreCell({ value, best }: { value: number | null; best: number | null }) {
+  const { t } = useTranslation();
   if (value === null) return <span className="text-gray-400">--</span>;
   const isBest = best !== null && value === best;
   return (
     <span className={cn("text-sm font-semibold", isBest ? "text-green-700" : "text-gray-700")}>
       {value}
-      {isBest && <span className="ml-1 text-xs text-green-500">Best</span>}
+      {isBest && <span className="ml-1 text-xs text-green-500">{t("candidates.compare.best")}</span>}
     </span>
   );
 }
@@ -81,6 +83,7 @@ const RECOMMENDATION_BADGE: Record<string, { label: string; className: string }>
 };
 
 export function ComparisonPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const appIds = searchParams.get("ids")?.split(",").filter(Boolean) || [];
@@ -98,10 +101,10 @@ export function ComparisonPage() {
     mutationFn: ({ appId, stage }: { appId: string; stage: string }) =>
       apiPatch(`/applications/${appId}/stage`, { stage }),
     onSuccess: () => {
-      toast.success("Stage updated");
+      toast.success(t("candidates.compare.stageUpdated"));
       queryClient.invalidateQueries({ queryKey: ["compare-candidates"] });
     },
-    onError: () => toast.error("Failed to update stage"),
+    onError: () => toast.error(t("candidates.compare.stageUpdateFailed")),
   });
 
   const candidates = data || [];
@@ -110,9 +113,9 @@ export function ComparisonPage() {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <Users className="h-12 w-12 text-gray-300" />
-        <h2 className="mt-4 text-lg font-semibold text-gray-900">Select Candidates to Compare</h2>
+        <h2 className="mt-4 text-lg font-semibold text-gray-900">{t("candidates.compare.selectTitle")}</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Select 2-3 candidates from a job pipeline and click "Compare" to see them side-by-side.
+          {t("candidates.compare.selectDescription")}
         </p>
       </div>
     );
@@ -130,8 +133,8 @@ export function ComparisonPage() {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <XCircle className="h-12 w-12 text-red-300" />
-        <h2 className="mt-4 text-lg font-semibold text-gray-900">Failed to load comparison</h2>
-        <Link to="/jobs" className="mt-2 text-sm text-brand-600 hover:underline">Back to jobs</Link>
+        <h2 className="mt-4 text-lg font-semibold text-gray-900">{t("candidates.compare.loadFailed")}</h2>
+        <Link to="/jobs" className="mt-2 text-sm text-brand-600 hover:underline">{t("candidates.compare.backToJobs")}</Link>
       </div>
     );
   }
@@ -156,9 +159,12 @@ export function ComparisonPage() {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Candidate Comparison</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("candidates.compare.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Comparing {candidates.length} candidates for {candidates[0]?.job_title}
+            {t("candidates.compare.comparingSubtitle", {
+              count: candidates.length,
+              jobTitle: candidates[0]?.job_title,
+            })}
           </p>
         </div>
       </div>
@@ -198,19 +204,19 @@ export function ComparisonPage() {
               <div className="p-4 space-y-4">
                 {/* Experience */}
                 <div>
-                  <h4 className="text-xs font-semibold uppercase text-gray-500">Experience</h4>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500">{t("candidates.compare.experience")}</h4>
                   <p className="mt-1">
                     <ScoreCell
                       value={c.experience_years}
                       best={bestExpYears}
                     />
-                    <span className="ml-1 text-xs text-gray-500">years</span>
+                    <span className="ml-1 text-xs text-gray-500">{t("candidates.compare.years")}</span>
                   </p>
                 </div>
 
                 {/* Skills */}
                 <div>
-                  <h4 className="text-xs font-semibold uppercase text-gray-500">Skills</h4>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500">{t("candidates.compare.skills")}</h4>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {(c.skills || []).slice(0, 8).map((skill) => {
                       const isMatched = c.matched_skills?.includes(skill);
@@ -227,7 +233,7 @@ export function ComparisonPage() {
                       );
                     })}
                     {(c.skills?.length || 0) > 8 && (
-                      <span className="text-xs text-gray-400">+{(c.skills?.length || 0) - 8} more</span>
+                      <span className="text-xs text-gray-400">{t("candidates.compare.moreSkills", { count: (c.skills?.length || 0) - 8 })}</span>
                     )}
                   </div>
                 </div>
@@ -235,19 +241,19 @@ export function ComparisonPage() {
                 {/* AI Scores */}
                 <div>
                   <h4 className="text-xs font-semibold uppercase text-gray-500 flex items-center gap-1">
-                    <Brain className="h-3 w-3" /> AI Scores
+                    <Brain className="h-3 w-3" /> {t("candidates.compare.aiScores")}
                   </h4>
                   <div className="mt-2 space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-xs text-gray-500">Overall</span>
+                      <span className="text-xs text-gray-500">{t("candidates.compare.overall")}</span>
                       <ScoreCell value={c.overall_score} best={bestOverall} />
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-xs text-gray-500">Skills</span>
+                      <span className="text-xs text-gray-500">{t("candidates.compare.skills")}</span>
                       <ScoreCell value={c.skills_score} best={bestSkills} />
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-xs text-gray-500">Experience</span>
+                      <span className="text-xs text-gray-500">{t("candidates.compare.experience")}</span>
                       <ScoreCell value={c.experience_score} best={bestExperience} />
                     </div>
                   </div>
@@ -256,16 +262,16 @@ export function ComparisonPage() {
                       "mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium",
                       RECOMMENDATION_BADGE[c.recommendation].className,
                     )}>
-                      {RECOMMENDATION_BADGE[c.recommendation].label}
+                      {t(`candidates.compare.recommendation_${c.recommendation}`)}
                     </span>
                   )}
                 </div>
 
                 {/* Interview Feedback */}
                 <div>
-                  <h4 className="text-xs font-semibold uppercase text-gray-500">Interview Ratings</h4>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500">{t("candidates.compare.interviewRatings")}</h4>
                   {c.interviews.length === 0 ? (
-                    <p className="mt-1 text-xs text-gray-400">No interviews yet</p>
+                    <p className="mt-1 text-xs text-gray-400">{t("candidates.compare.noInterviews")}</p>
                   ) : (
                     <div className="mt-2 space-y-2">
                       {c.interviews.map((interview) => (
@@ -273,7 +279,7 @@ export function ComparisonPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-medium text-gray-700">{interview.title}</span>
                             {interview.overall_score !== null && (
-                              <span className="text-xs font-semibold text-gray-700">{interview.overall_score}/5</span>
+                              <span className="text-xs font-semibold text-gray-700">{t("candidates.compare.scoreOutOf5", { score: interview.overall_score })}</span>
                             )}
                           </div>
                           {interview.recommendation && RECOMMENDATION_BADGE[interview.recommendation] && (
@@ -281,25 +287,25 @@ export function ComparisonPage() {
                               "mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
                               RECOMMENDATION_BADGE[interview.recommendation].className,
                             )}>
-                              {RECOMMENDATION_BADGE[interview.recommendation].label}
+                              {t(`candidates.compare.recommendation_${interview.recommendation}`)}
                             </span>
                           )}
                           {interview.strengths && (
                             <p className="mt-1 text-xs text-green-700">
-                              <span className="font-medium">Strengths: </span>
+                              <span className="font-medium">{t("candidates.compare.strengths")}</span>
                               {interview.strengths}
                             </p>
                           )}
                           {interview.weaknesses && (
                             <p className="mt-1 text-xs text-red-600">
-                              <span className="font-medium">Weaknesses: </span>
+                              <span className="font-medium">{t("candidates.compare.weaknesses")}</span>
                               {interview.weaknesses}
                             </p>
                           )}
                         </div>
                       ))}
                       <div className="flex justify-between border-t border-gray-200 pt-1">
-                        <span className="text-xs text-gray-500">Avg Interview Score</span>
+                        <span className="text-xs text-gray-500">{t("candidates.compare.avgInterviewScore")}</span>
                         <ScoreCell value={avgInterviewScore} best={bestInterviewScore} />
                       </div>
                     </div>
@@ -314,7 +320,7 @@ export function ComparisonPage() {
                     className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-3 w-3" />
-                    Shortlist
+                    {t("candidates.compare.shortlist")}
                   </button>
                   <button
                     onClick={() => moveStage.mutate({ appId: c.application_id, stage: "rejected" })}
@@ -322,7 +328,7 @@ export function ComparisonPage() {
                     className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-red-300 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                   >
                     <XCircle className="h-3 w-3" />
-                    Reject
+                    {t("candidates.compare.reject")}
                   </button>
                 </div>
               </div>

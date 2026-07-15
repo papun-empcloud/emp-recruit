@@ -13,17 +13,19 @@ import {
 } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { EmailTemplate } from "@emp-recruit/shared";
 import { PipelineSettingsPage } from "./PipelineSettingsPage";
 import { JobBoardSettings } from "./JobBoardSettings";
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"email" | "pipeline" | "boards">("email");
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-      <p className="mt-1 text-sm text-gray-500">Configure your email templates, pipeline, and job boards.</p>
+      <h1 className="text-2xl font-bold text-gray-900">{t("settings.title")}</h1>
+      <p className="mt-1 text-sm text-gray-500">{t("settings.subtitle")}</p>
 
       {/* Tab buttons */}
       <div className="mt-6 flex gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 w-fit">
@@ -34,7 +36,7 @@ export function SettingsPage() {
           }`}
         >
           <Mail className="h-4 w-4" />
-          Email Templates
+          {t("settings.tabs.email")}
         </button>
         <button
           onClick={() => setTab("pipeline")}
@@ -43,7 +45,7 @@ export function SettingsPage() {
           }`}
         >
           <GitBranch className="h-4 w-4" />
-          Pipeline
+          {t("settings.tabs.pipeline")}
         </button>
         <button
           onClick={() => setTab("boards")}
@@ -52,7 +54,7 @@ export function SettingsPage() {
           }`}
         >
           <Share2 className="h-4 w-4" />
-          Job Boards
+          {t("settings.tabs.boards")}
         </button>
       </div>
 
@@ -73,6 +75,7 @@ export function SettingsPage() {
 // Email Template Settings
 // ===========================================================================
 function EmailTemplateSettings() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -97,13 +100,13 @@ function EmailTemplateSettings() {
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => apiPost("/email-templates", data),
     onSuccess: () => {
-      toast.success("Template created");
+      toast.success(t("settings.email.templateCreated"));
       queryClient.invalidateQueries({ queryKey: ["email-templates"] });
       setShowCreate(false);
       resetForm();
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || "Failed to create template");
+      toast.error(err.response?.data?.error?.message || t("settings.email.createFailed"));
     },
   });
 
@@ -111,13 +114,13 @@ function EmailTemplateSettings() {
     mutationFn: ({ id, data }: { id: string; data: typeof form }) =>
       apiPut(`/email-templates/${id}`, data),
     onSuccess: () => {
-      toast.success("Template updated");
+      toast.success(t("settings.email.templateUpdated"));
       queryClient.invalidateQueries({ queryKey: ["email-templates"] });
       setEditingId(null);
       resetForm();
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || "Failed to update template");
+      toast.error(err.response?.data?.error?.message || t("settings.email.updateFailed"));
     },
   });
 
@@ -127,7 +130,7 @@ function EmailTemplateSettings() {
       setPreviewHtml(res.data?.body || "");
     },
     onError: () => {
-      toast.error("Failed to generate preview");
+      toast.error(t("settings.email.previewFailed"));
     },
   });
 
@@ -135,15 +138,15 @@ function EmailTemplateSettings() {
     setForm({ name: "", trigger: "", subject: "", body: "", is_active: true });
   }
 
-  function startEdit(t: EmailTemplate) {
-    setEditingId(t.id);
+  function startEdit(tpl: EmailTemplate) {
+    setEditingId(tpl.id);
     setShowCreate(false);
     setForm({
-      name: t.name,
-      trigger: t.trigger,
-      subject: t.subject,
-      body: t.body,
-      is_active: Boolean(t.is_active),
+      name: tpl.name,
+      trigger: tpl.trigger,
+      subject: tpl.subject,
+      body: tpl.body,
+      is_active: Boolean(tpl.is_active),
     });
   }
 
@@ -170,7 +173,7 @@ function EmailTemplateSettings() {
             >
               <X className="h-5 w-5" />
             </button>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Preview</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("settings.email.emailPreview")}</h3>
             <div
               className="prose prose-sm max-w-none border border-gray-200 rounded-lg p-4"
               dangerouslySetInnerHTML={{ __html: previewHtml }}
@@ -180,7 +183,7 @@ function EmailTemplateSettings() {
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Email Templates</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t("settings.email.heading")}</h2>
         <button
           onClick={() => {
             setShowCreate(!showCreate);
@@ -190,7 +193,7 @@ function EmailTemplateSettings() {
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showCreate ? "Cancel" : "New Template"}
+          {showCreate ? t("settings.email.cancel") : t("settings.email.newTemplate")}
         </button>
       </div>
 
@@ -198,12 +201,12 @@ function EmailTemplateSettings() {
       {(showCreate || editingId) && (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h3 className="text-base font-semibold text-gray-900">
-            {editingId ? "Edit Template" : "Create Template"}
+            {editingId ? t("settings.email.editTemplate") : t("settings.email.createTemplate")}
           </h3>
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Name *</label>
+                <label className="block text-sm font-medium text-gray-700">{t("settings.email.nameLabel")}</label>
                 <input
                   type="text"
                   required
@@ -213,42 +216,42 @@ function EmailTemplateSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Trigger *</label>
+                <label className="block text-sm font-medium text-gray-700">{t("settings.email.triggerLabel")}</label>
                 <select
                   required
                   value={form.trigger}
                   onChange={(e) => setForm((p) => ({ ...p, trigger: e.target.value }))}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="">Select trigger...</option>
-                  <option value="application_received">Application Received</option>
-                  <option value="interview_scheduled">Interview Scheduled</option>
-                  <option value="offer_sent">Offer Sent</option>
-                  <option value="application_rejected">Application Rejected</option>
-                  <option value="referral_submitted">Referral Submitted</option>
-                  <option value="custom">Custom</option>
+                  <option value="">{t("settings.email.selectTrigger")}</option>
+                  <option value="application_received">{t("settings.email.triggers.applicationReceived")}</option>
+                  <option value="interview_scheduled">{t("settings.email.triggers.interviewScheduled")}</option>
+                  <option value="offer_sent">{t("settings.email.triggers.offerSent")}</option>
+                  <option value="application_rejected">{t("settings.email.triggers.applicationRejected")}</option>
+                  <option value="referral_submitted">{t("settings.email.triggers.referralSubmitted")}</option>
+                  <option value="custom">{t("settings.email.triggers.custom")}</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Subject *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("settings.email.subjectLabel")}</label>
               <input
                 type="text"
                 required
                 value={form.subject}
                 onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                placeholder="e.g. Thank you for applying to {{jobTitle}}"
+                placeholder={t("settings.email.subjectPlaceholder", { jobTitle: "{{jobTitle}}" })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Body (HTML + Handlebars) *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("settings.email.bodyLabel")}</label>
               <textarea
                 required
                 rows={8}
                 value={form.body}
                 onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
-                placeholder="<p>Dear {{candidateName}},</p>..."
+                placeholder={t("settings.email.bodyPlaceholder", { candidateName: "{{candidateName}}" })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
               {/* #31 — live rendered preview under the raw HTML textarea so
@@ -257,7 +260,7 @@ function EmailTemplateSettings() {
               {form.body && (
                 <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Preview
+                    {t("settings.email.preview")}
                   </p>
                   <div
                     className="prose prose-sm max-w-none rounded-md bg-white p-3"
@@ -274,7 +277,7 @@ function EmailTemplateSettings() {
                 onChange={(e) => setForm((p) => ({ ...p, is_active: e.target.checked }))}
                 className="h-4 w-4 rounded border-gray-300 text-brand-600"
               />
-              <label htmlFor="is_active" className="text-sm text-gray-700">Active</label>
+              <label htmlFor="is_active" className="text-sm text-gray-700">{t("settings.email.activeLabel")}</label>
             </div>
             <div className="flex gap-3">
               <button
@@ -283,14 +286,14 @@ function EmailTemplateSettings() {
                 className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 <Save className="h-4 w-4" />
-                {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : editingId ? "Update" : "Create"}
+                {(createMutation.isPending || updateMutation.isPending) ? t("settings.email.saving") : editingId ? t("settings.email.update") : t("settings.email.create")}
               </button>
               <button
                 type="button"
                 onClick={() => { setEditingId(null); setShowCreate(false); resetForm(); }}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t("settings.email.cancel")}
               </button>
             </div>
           </form>
@@ -305,47 +308,47 @@ function EmailTemplateSettings() {
       ) : templates.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Mail className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">No email templates. Create one to get started.</p>
+          <p className="mt-3 text-sm text-gray-500">{t("settings.email.emptyState")}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {templates.map((t) => (
+          {templates.map((tpl) => (
             <div
-              key={t.id}
+              key={tpl.id}
               className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-gray-900">
-                    {(t.name || "").replace(/<[^>]+>/g, "")}
+                    {(tpl.name || "").replace(/<[^>]+>/g, "")}
                   </h3>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      t.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      tpl.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                     }`}
                   >
-                    {t.is_active ? "Active" : "Inactive"}
+                    {tpl.is_active ? t("settings.email.statusActive") : t("settings.email.statusInactive")}
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  Trigger: <span className="font-mono">{t.trigger}</span>
+                  {t("settings.email.triggerColon")} <span className="font-mono">{tpl.trigger}</span>
                 </p>
                 <p className="mt-0.5 text-xs text-gray-400 truncate">
-                  {(t.subject || "").replace(/<[^>]+>/g, "")}
+                  {(tpl.subject || "").replace(/<[^>]+>/g, "")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => previewMutation.mutate(t.id)}
+                  onClick={() => previewMutation.mutate(tpl.id)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  title="Preview"
+                  title={t("settings.email.preview")}
                 >
                   <Eye className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => startEdit(t)}
+                  onClick={() => startEdit(tpl)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  title="Edit"
+                  title={t("settings.email.edit")}
                 >
                   <Pencil className="h-4 w-4" />
                 </button>

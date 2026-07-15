@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Upload, FileText, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { api, apiPost } from "@/api/client";
 import type { Candidate } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
@@ -50,6 +51,7 @@ const INITIAL: FormData = {
 };
 
 export function CandidateCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -74,7 +76,7 @@ export function CandidateCreatePage() {
             headers: { "Content-Type": "multipart/form-data" },
           });
         } catch {
-          toast.error("Candidate created, but the résumé upload failed. Add it from the candidate page.");
+          toast.error(t("candidates.form.resumeUploadFailed"));
         }
       }
 
@@ -86,13 +88,13 @@ export function CandidateCreatePage() {
             source: data.source || "direct",
           });
         } catch {
-          toast.error("Candidate created, but linking to job failed. Add manually from the job page.");
+          toast.error(t("candidates.form.jobLinkFailed"));
         }
       }
       return created;
     },
     onSuccess: (res) => {
-      toast.success(targetJobId ? "Candidate added to job" : "Candidate added successfully");
+      toast.success(targetJobId ? t("candidates.form.addedToJob") : t("candidates.form.addedSuccess"));
       queryClient.invalidateQueries({ queryKey: ["candidates"] });
       if (targetJobId) {
         queryClient.invalidateQueries({ queryKey: ["job-applications", targetJobId] });
@@ -102,7 +104,7 @@ export function CandidateCreatePage() {
       }
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error?.message ?? "Failed to add candidate";
+      const msg = err.response?.data?.error?.message ?? t("candidates.form.addError");
       toast.error(msg);
     },
   });
@@ -113,11 +115,11 @@ export function CandidateCreatePage() {
     const years = form.experience_years ? Number(form.experience_years) : 0;
     const months = form.experience_months ? Number(form.experience_months) : 0;
     if (!Number.isFinite(years) || years < 0) {
-      toast.error("Experience years cannot be negative");
+      toast.error(t("candidates.form.expYearsNegative"));
       return;
     }
     if (!Number.isFinite(months) || months < 0 || months > 11) {
-      toast.error("Experience months must be between 0 and 11");
+      toast.error(t("candidates.form.expMonthsRange"));
       return;
     }
 
@@ -170,31 +172,31 @@ export function CandidateCreatePage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Add Candidate</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("candidates.form.addCandidate")}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Personal Info */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.personalInformation")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {field("First Name", "first_name", "text", { required: true, placeholder: "John" })}
-            {field("Last Name", "last_name", "text", { required: true, placeholder: "Doe" })}
+            {field(t("candidates.form.firstName"), "first_name", "text", { required: true, placeholder: t("candidates.form.firstNamePlaceholder") })}
+            {field(t("candidates.form.lastName"), "last_name", "text", { required: true, placeholder: t("candidates.form.lastNamePlaceholder") })}
           </div>
-          {field("Email", "email", "email", { required: true, placeholder: "john@example.com" })}
-          {field("Phone", "phone", "tel", { placeholder: "+91 98765 43210" })}
+          {field(t("candidates.form.email"), "email", "email", { required: true, placeholder: t("candidates.form.emailPlaceholder") })}
+          {field(t("candidates.form.phone"), "phone", "tel", { placeholder: t("candidates.form.phonePlaceholder") })}
         </div>
 
         {/* Professional Info */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Professional Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.professionalDetails")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {field("Current Company", "current_company", "text", { placeholder: "Acme Corp" })}
-            {field("Current Title", "current_title", "text", { placeholder: "Software Engineer" })}
+            {field(t("candidates.form.currentCompany"), "current_company", "text", { placeholder: t("candidates.form.currentCompanyPlaceholder") })}
+            {field(t("candidates.form.currentTitle"), "current_title", "text", { placeholder: t("candidates.form.currentTitlePlaceholder") })}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Experience (years)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.experienceYears")}</label>
               <input
                 type="number"
                 min={0}
@@ -206,7 +208,7 @@ export function CandidateCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Months</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.months")}</label>
               <input
                 type="number"
                 min={0}
@@ -219,7 +221,7 @@ export function CandidateCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.source")}</label>
               <select
                 value={form.source}
                 onChange={(e) => setForm((p) => ({ ...p, source: e.target.value }))}
@@ -227,7 +229,7 @@ export function CandidateCreatePage() {
               >
                 {SOURCES.map((s) => (
                   <option key={s.value} value={s.value}>
-                    {s.label}
+                    {t(`candidates.form.source_${s.value}`)}
                   </option>
                 ))}
               </select>
@@ -237,17 +239,17 @@ export function CandidateCreatePage() {
 
         {/* Links & Skills */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Links & Skills</h2>
-          {field("LinkedIn URL", "linkedin_url", "url", { placeholder: "https://linkedin.com/in/..." })}
-          {field("Portfolio URL", "portfolio_url", "url", { placeholder: "https://..." })}
-          {field("Skills (comma separated)", "skills", "text", { placeholder: "React, TypeScript, Node.js" })}
-          {field("Tags (comma separated)", "tags", "text", { placeholder: "senior, frontend, remote" })}
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.linksSkills")}</h2>
+          {field(t("candidates.form.linkedinUrl"), "linkedin_url", "url", { placeholder: "https://linkedin.com/in/..." })}
+          {field(t("candidates.form.portfolioUrl"), "portfolio_url", "url", { placeholder: "https://..." })}
+          {field(t("candidates.form.skillsCommaSeparated"), "skills", "text", { placeholder: "React, TypeScript, Node.js" })}
+          {field(t("candidates.form.tagsCommaSeparated"), "tags", "text", { placeholder: t("candidates.form.tagsPlaceholder") })}
         </div>
 
         {/* Resume (optional) */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-3">
           <h2 className="text-lg font-semibold text-gray-900">
-            Resume <span className="text-sm font-normal text-gray-400">(optional)</span>
+            {t("candidates.form.resume")} <span className="text-sm font-normal text-gray-400">{t("candidates.form.optional")}</span>
           </h2>
           {resumeFile ? (
             <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
@@ -259,7 +261,7 @@ export function CandidateCreatePage() {
                 type="button"
                 onClick={() => setResumeFile(null)}
                 className="rounded p-1 text-gray-400 hover:text-gray-600"
-                aria-label="Remove resume"
+                aria-label={t("candidates.form.removeResume")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -267,8 +269,8 @@ export function CandidateCreatePage() {
           ) : (
             <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 hover:border-brand-400 hover:bg-gray-50">
               <Upload className="h-5 w-5" />
-              <span>Click to upload a resume</span>
-              <span className="text-xs text-gray-400">PDF, DOC, or DOCX</span>
+              <span>{t("candidates.form.clickToUpload")}</span>
+              <span className="text-xs text-gray-400">{t("candidates.form.fileTypes")}</span>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx"
@@ -278,18 +280,18 @@ export function CandidateCreatePage() {
             </label>
           )}
           <p className="text-xs text-gray-400">
-            Optional — enables AI resume scoring. You can also add it later from the candidate page.
+            {t("candidates.form.resumeHint")}
           </p>
         </div>
 
         {/* Notes */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.notes")}</h2>
           <textarea
             value={form.notes}
             onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             rows={4}
-            placeholder="Any internal notes about the candidate..."
+            placeholder={t("candidates.form.notesPlaceholder")}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -301,7 +303,7 @@ export function CandidateCreatePage() {
             onClick={() => navigate(-1)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("candidates.form.cancel")}
           </button>
           <button
             type="submit"
@@ -313,7 +315,7 @@ export function CandidateCreatePage() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            Add Candidate
+            {t("candidates.form.addCandidate")}
           </button>
         </div>
       </form>

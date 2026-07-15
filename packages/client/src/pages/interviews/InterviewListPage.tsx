@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import { Calendar, Users, Plus, Search, ShieldAlert, AlertTriangle } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
@@ -29,13 +30,13 @@ const STATUS_COLORS: Record<string, string> = {
   no_show: "bg-red-100 text-red-800",
 };
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "All Statuses" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "no_show", label: "No Show" },
+const STATUS_OPTIONS: { value: string; labelKey: string }[] = [
+  { value: "", labelKey: "interviews.list.statusAll" },
+  { value: "scheduled", labelKey: "interviews.list.statusScheduled" },
+  { value: "in_progress", labelKey: "interviews.list.statusInProgress" },
+  { value: "completed", labelKey: "interviews.list.statusCompleted" },
+  { value: "cancelled", labelKey: "interviews.list.statusCancelled" },
+  { value: "no_show", labelKey: "interviews.list.statusNoShow" },
 ];
 
 function formatTime(dateStr: string): string {
@@ -57,6 +58,7 @@ function isOverdue(interview: InterviewRow): boolean {
 const ADMIN_ROLES = ["org_admin", "hr_admin", "hr_manager"];
 
 export function InterviewListPage() {
+  const { t } = useTranslation();
   const user = getUser();
 
   // RBAC: only admin/HR roles can access interview management
@@ -71,11 +73,11 @@ export function InterviewListPage() {
 
   // Debounce the search box so we don't fire a request per keystroke.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setSearch(searchInput);
       setPage(1);
     }, 400);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [searchInput]);
 
   const { rows, total, isLoading, isError } = usePaginatedList<InterviewRow>(
@@ -90,9 +92,9 @@ export function InterviewListPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Interviews</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("interviews.list.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage interview schedules, panelists, and feedback.
+            {t("interviews.list.subtitle")}
           </p>
         </div>
         <Link
@@ -100,7 +102,7 @@ export function InterviewListPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Schedule Interview
+          {t("interviews.list.scheduleInterview")}
         </Link>
       </div>
 
@@ -112,7 +114,7 @@ export function InterviewListPage() {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search candidate or job…"
+            placeholder={t("interviews.list.searchPlaceholder")}
             className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -127,7 +129,7 @@ export function InterviewListPage() {
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
@@ -140,25 +142,25 @@ export function InterviewListPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Candidate
+                {t("interviews.list.colCandidate")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Job
+                {t("interviews.list.colJob")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Type / Round
+                {t("interviews.list.colTypeRound")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Schedule
+                {t("interviews.list.colSchedule")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Status
+                {t("interviews.list.colStatus")}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Panelists
+                {t("interviews.list.colPanelists")}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                Actions
+                {t("interviews.list.colActions")}
               </th>
             </tr>
           </thead>
@@ -166,21 +168,21 @@ export function InterviewListPage() {
             {isLoading && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
-                  Loading interviews...
+                  {t("interviews.list.loading")}
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-sm text-red-500">
-                  Failed to load interviews.
+                  {t("interviews.list.loadError")}
                 </td>
               </tr>
             )}
             {!isLoading && !isError && rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-500">
-                  No interviews found.
+                  {t("interviews.list.empty")}
                 </td>
               </tr>
             )}
@@ -197,7 +199,7 @@ export function InterviewListPage() {
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="text-sm text-gray-900 capitalize">{interview.type}</div>
-                  <div className="text-xs text-gray-500">Round {interview.round}</div>
+                  <div className="text-xs text-gray-500">{t("interviews.list.round", { round: interview.round })}</div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="flex items-center gap-1.5 text-sm text-gray-900">
@@ -205,7 +207,10 @@ export function InterviewListPage() {
                     {formatDate(interview.scheduled_at)}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {formatTime(interview.scheduled_at)} ({interview.duration_minutes} min)
+                    {t("interviews.list.timeDuration", {
+                      time: formatTime(interview.scheduled_at),
+                      minutes: interview.duration_minutes,
+                    })}
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
@@ -220,7 +225,7 @@ export function InterviewListPage() {
                     </span>
                     {isOverdue(interview) && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                        <AlertTriangle className="h-3 w-3" /> Overdue
+                        <AlertTriangle className="h-3 w-3" /> {t("interviews.list.overdue")}
                       </span>
                     )}
                   </div>
@@ -236,7 +241,7 @@ export function InterviewListPage() {
                     to={`/interviews/${interview.id}`}
                     className="text-sm font-medium text-brand-600 hover:text-brand-800"
                   >
-                    View
+                    {t("interviews.list.view")}
                   </Link>
                 </td>
               </tr>

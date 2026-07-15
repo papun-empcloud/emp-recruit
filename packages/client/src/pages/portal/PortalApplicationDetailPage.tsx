@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -83,6 +84,7 @@ interface DetailData {
 }
 
 export function PortalApplicationDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ export function PortalApplicationDetailPage() {
   useEffect(() => {
     const token = localStorage.getItem("portal_token");
     if (!token) {
-      setError("No access token found. Please request a new portal link.");
+      setError(t("portal.errors.noToken"));
       setLoading(false);
       return;
     }
@@ -106,9 +108,9 @@ export function PortalApplicationDetailPage() {
           const body = await res.json().catch(() => null);
           if (res.status === 401) {
             localStorage.removeItem("portal_token");
-            throw new Error("Your access link has expired. Please request a new one.");
+            throw new Error(t("portal.errors.expired"));
           }
-          throw new Error(body?.error?.message || "Failed to load application details");
+          throw new Error(body?.error?.message || t("portal.errors.loadApplication"));
         }
 
         const json = await res.json();
@@ -139,7 +141,7 @@ export function PortalApplicationDetailPage() {
             to="/portal"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
-            Request New Link
+            {t("portal.actions.requestNewLink")}
           </Link>
         </div>
       </div>
@@ -155,6 +157,9 @@ export function PortalApplicationDetailPage() {
     label: application.stage,
     icon: "bg-gray-500",
   };
+  const stageLabel = STAGE_CONFIG[application.stage]
+    ? t(`portal.stages.${application.stage}`)
+    : application.stage;
 
   const upcomingInterviews = interviews.filter(
     (i) => i.status === "scheduled" && new Date(i.scheduled_at) >= new Date(),
@@ -170,7 +175,7 @@ export function PortalApplicationDetailPage() {
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-brand-600 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
+        {t("portal.actions.backToDashboard")}
       </Link>
 
       {/* Header */}
@@ -190,18 +195,18 @@ export function PortalApplicationDetailPage() {
             <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
-                Applied {new Date(application.applied_at).toLocaleDateString()}
+                {t("portal.common.appliedOn", { date: new Date(application.applied_at).toLocaleDateString() })}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                Updated {new Date(application.updated_at).toLocaleDateString()}
+                {t("portal.common.updatedOn", { date: new Date(application.updated_at).toLocaleDateString() })}
               </span>
             </div>
           </div>
           <span
             className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${stageInfo.bg} ${stageInfo.color}`}
           >
-            {stageInfo.label}
+            {stageLabel}
           </span>
         </div>
       </div>
@@ -209,10 +214,10 @@ export function PortalApplicationDetailPage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Timeline — left/main column */}
         <div className="lg:col-span-2">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Application Timeline</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">{t("portal.application.timelineTitle")}</h2>
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             {timeline.length === 0 ? (
-              <p className="text-gray-500">No timeline events yet.</p>
+              <p className="text-gray-500">{t("portal.application.noTimeline")}</p>
             ) : (
               <div className="relative">
                 {/* Vertical line */}
@@ -239,7 +244,7 @@ export function PortalApplicationDetailPage() {
                         <div className="flex-1 pb-1">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium text-gray-900">
-                              {entryStage?.label || entry.to_stage}
+                              {entryStage ? t(`portal.stages.${entry.to_stage}`) : entry.to_stage}
                             </p>
                             <span className="text-xs text-gray-400">
                               {new Date(entry.created_at).toLocaleDateString()}{" "}
@@ -267,7 +272,7 @@ export function PortalApplicationDetailPage() {
           {/* Upcoming Interviews */}
           {upcomingInterviews.length > 0 && (
             <div>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">Upcoming Interviews</h2>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">{t("portal.application.upcomingInterviews")}</h2>
               <div className="space-y-3">
                 {upcomingInterviews.map((interview) => (
                   <div
@@ -281,14 +286,16 @@ export function PortalApplicationDetailPage() {
                       <span className="text-sm font-medium text-gray-900">{interview.title}</span>
                     </div>
                     <p className="text-sm text-gray-600">
-                      {new Date(interview.scheduled_at).toLocaleDateString()} at{" "}
-                      {new Date(interview.scheduled_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
+                      {t("portal.application.dateAtTime", {
+                        date: new Date(interview.scheduled_at).toLocaleDateString(),
+                        time: new Date(interview.scheduled_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }),
                       })}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {interview.duration_minutes} minutes
+                      {t("portal.application.durationMinutes", { minutes: interview.duration_minutes })}
                       {interview.type && ` \u00b7 ${interview.type}`}
                     </p>
                     {interview.meeting_link && (
@@ -298,7 +305,7 @@ export function PortalApplicationDetailPage() {
                         rel="noopener noreferrer"
                         className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
                       >
-                        Join Meeting
+                        {t("portal.actions.joinMeeting")}
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
@@ -317,7 +324,7 @@ export function PortalApplicationDetailPage() {
           {/* Offers */}
           {activeOffers.length > 0 && (
             <div>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">Offers</h2>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">{t("portal.application.offers")}</h2>
               <div className="space-y-3">
                 {activeOffers.map((offer) => (
                   <div
@@ -329,10 +336,10 @@ export function PortalApplicationDetailPage() {
                       <span className="text-sm font-medium text-emerald-900">{offer.job_title}</span>
                     </div>
                     <p className="text-xs text-emerald-700">
-                      Joining date: {new Date(offer.joining_date).toLocaleDateString()}
+                      {t("portal.application.joiningDate", { date: new Date(offer.joining_date).toLocaleDateString() })}
                     </p>
                     <p className="text-xs text-emerald-700">
-                      Expires: {new Date(offer.expiry_date).toLocaleDateString()}
+                      {t("portal.application.expires", { date: new Date(offer.expiry_date).toLocaleDateString() })}
                     </p>
                   </div>
                 ))}

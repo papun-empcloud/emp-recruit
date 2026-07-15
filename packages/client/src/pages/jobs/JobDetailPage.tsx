@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -80,11 +81,11 @@ const STAGE_HEADER: Record<string, string> = {
   withdrawn: "bg-gray-100 text-gray-800",
 };
 
-const RECOMMENDATION_BADGE: Record<string, { label: string; className: string }> = {
-  strong_match: { label: "Strong Match", className: "bg-green-100 text-green-800" },
-  good_match: { label: "Good Match", className: "bg-blue-100 text-blue-800" },
-  partial_match: { label: "Partial Match", className: "bg-yellow-100 text-yellow-800" },
-  weak_match: { label: "Weak Match", className: "bg-red-100 text-red-800" },
+const RECOMMENDATION_BADGE: Record<string, { labelKey: string; className: string }> = {
+  strong_match: { labelKey: "jobs.detail.recommendation.strongMatch", className: "bg-green-100 text-green-800" },
+  good_match: { labelKey: "jobs.detail.recommendation.goodMatch", className: "bg-blue-100 text-blue-800" },
+  partial_match: { labelKey: "jobs.detail.recommendation.partialMatch", className: "bg-yellow-100 text-yellow-800" },
+  weak_match: { labelKey: "jobs.detail.recommendation.weakMatch", className: "bg-red-100 text-red-800" },
 };
 
 interface AppWithCandidate {
@@ -136,6 +137,7 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export function JobDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -178,10 +180,10 @@ export function JobDetailPage() {
   const statusMutation = useMutation({
     mutationFn: (status: string) => apiPatch<JobPosting>(`/jobs/${id}/status`, { status }),
     onSuccess: () => {
-      toast.success("Job status updated");
+      toast.success(t("jobs.detail.statusUpdated"));
       queryClient.invalidateQueries({ queryKey: ["job", id] });
     },
-    onError: () => toast.error("Failed to update status"),
+    onError: () => toast.error(t("jobs.detail.statusUpdateFailed")),
   });
 
   // Closing a job stops accepting applications and (unlike Pause) is a final
@@ -197,7 +199,7 @@ export function JobDetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => apiDelete(`/jobs/${id}`),
     onSuccess: () => {
-      toast.success("Job posting deleted");
+      toast.success(t("jobs.detail.deleted"));
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       navigate("/jobs");
     },
@@ -205,7 +207,7 @@ export function JobDetailPage() {
       setShowDeleteConfirm(false);
       toast.error(
         err?.response?.data?.error?.message ||
-          "Could not delete this job. Close it instead if it has applicants.",
+          t("jobs.detail.deleteFailed"),
       );
     },
   });
@@ -217,12 +219,12 @@ export function JobDetailPage() {
       if (score !== undefined) {
         setAppScores((prev) => ({ ...prev, [appId]: score }));
       }
-      toast.success("Candidate scored successfully");
+      toast.success(t("jobs.detail.candidateScored"));
       queryClient.invalidateQueries({ queryKey: ["job-rankings", id] });
       setScoringAppId(null);
     },
     onError: () => {
-      toast.error("Failed to score candidate");
+      toast.error(t("jobs.detail.scoreFailed"));
       setScoringAppId(null);
     },
   });
@@ -236,10 +238,10 @@ export function JobDetailPage() {
         newScores[r.applicationId] = r.overallScore;
       }
       setAppScores((prev) => ({ ...prev, ...newScores }));
-      toast.success(`Scored ${data?.data?.scored ?? 0} candidates`);
+      toast.success(t("jobs.detail.batchScored", { count: data?.data?.scored ?? 0 }));
       queryClient.invalidateQueries({ queryKey: ["job-rankings", id] });
     },
-    onError: () => toast.error("Failed to batch score candidates"),
+    onError: () => toast.error(t("jobs.detail.batchScoreFailed")),
   });
 
   const job = jobData?.data;
@@ -287,9 +289,9 @@ export function JobDetailPage() {
     },
     onError: (_err, _vars, ctx: any) => {
       if (ctx?.prev) queryClient.setQueryData(["job-applications", id], ctx.prev);
-      toast.error("Couldn't move the candidate to that stage.");
+      toast.error(t("jobs.detail.moveFailed"));
     },
-    onSuccess: () => toast.success("Candidate moved"),
+    onSuccess: () => toast.success(t("jobs.detail.candidateMoved")),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["job-applications", id] }),
   });
 
@@ -312,7 +314,7 @@ export function JobDetailPage() {
       } else if (next.size < 3) {
         next.add(appId);
       } else {
-        toast.error("Maximum 3 candidates can be compared");
+        toast.error(t("jobs.detail.maxCompare"));
       }
       return next;
     });
@@ -329,7 +331,7 @@ export function JobDetailPage() {
   if (!job) {
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-500">Job not found.</p>
+        <p className="text-gray-500">{t("jobs.detail.notFound")}</p>
       </div>
     );
   }
@@ -388,7 +390,7 @@ export function JobDetailPage() {
               {/* #32 — remote policy chip next to employment type */}
               {(job as any).remote_policy && (
                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 capitalize">
-                  {(job as any).remote_policy === "onsite" ? "On-site" : (job as any).remote_policy}
+                  {(job as any).remote_policy === "onsite" ? t("jobs.detail.onsite") : (job as any).remote_policy}
                 </span>
               )}
               {(job.salary_min || job.salary_max) && (
@@ -416,7 +418,7 @@ export function JobDetailPage() {
               onClick={() => statusMutation.mutate("open")}
               className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
-              Publish
+              {t("jobs.detail.publish")}
             </button>
           )}
           {job.status === "open" && (
@@ -425,13 +427,13 @@ export function JobDetailPage() {
                 onClick={() => statusMutation.mutate("paused")}
                 className="rounded-lg bg-yellow-600 px-3 py-2 text-sm font-medium text-white hover:bg-yellow-700"
               >
-                Pause
+                {t("jobs.detail.pause")}
               </button>
               <button
                 onClick={handleClose}
                 className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                Close
+                {t("jobs.detail.close")}
               </button>
             </>
           )}
@@ -441,13 +443,13 @@ export function JobDetailPage() {
                 onClick={() => statusMutation.mutate("open")}
                 className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
               >
-                Resume
+                {t("jobs.detail.resume")}
               </button>
               <button
                 onClick={handleClose}
                 className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                Close
+                {t("jobs.detail.close")}
               </button>
             </>
           )}
@@ -456,14 +458,14 @@ export function JobDetailPage() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <Edit className="h-4 w-4" />
-            Edit
+            {t("jobs.detail.edit")}
           </Link>
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
           >
             <Trash2 className="h-4 w-4" />
-            Delete
+            {t("jobs.detail.delete")}
           </button>
         </div>
       </div>
@@ -471,7 +473,7 @@ export function JobDetailPage() {
       {/* Job details card */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
         <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Description</h2>
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.description")}</h2>
           <div
             className="rte-content mt-2 text-gray-700"
             dangerouslySetInnerHTML={{ __html: job.description || "" }}
@@ -479,7 +481,7 @@ export function JobDetailPage() {
         </div>
         {job.requirements && (
           <div>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Requirements</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.requirements")}</h2>
             <div
               className="rte-content mt-2 text-gray-700"
               dangerouslySetInnerHTML={{ __html: job.requirements || "" }}
@@ -488,7 +490,7 @@ export function JobDetailPage() {
         )}
         {skills.length > 0 && (
           <div>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Skills</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.skills")}</h2>
             <div className="mt-2 flex flex-wrap gap-2">
               {skills.map((skill: string) => (
                 <span
@@ -503,16 +505,16 @@ export function JobDetailPage() {
         )}
         {(job.experience_min !== null || job.experience_max !== null) && (
           <div>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Experience</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.experience")}</h2>
             <p className="mt-2 text-gray-700">
-              {job.experience_min ?? 0} - {job.experience_max ?? "any"} years
+              {t("jobs.detail.experienceRange", { min: job.experience_min ?? 0, max: job.experience_max ?? t("jobs.detail.experienceAny") })}
             </p>
           </div>
         )}
         <div className="flex gap-6 text-sm text-gray-500">
-          <span>Created: {formatDate(job.created_at)}</span>
-          {job.published_at && <span>Published: {formatDate(job.published_at)}</span>}
-          {job.closes_at && <span>Closes: {formatDate(job.closes_at)}</span>}
+          <span>{t("jobs.detail.createdOn", { date: formatDate(job.created_at) })}</span>
+          {job.published_at && <span>{t("jobs.detail.publishedOn", { date: formatDate(job.published_at) })}</span>}
+          {job.closes_at && <span>{t("jobs.detail.closesOn", { date: formatDate(job.closes_at) })}</span>}
         </div>
       </div>
 
@@ -527,10 +529,10 @@ export function JobDetailPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Application Pipeline ({applications.length} applicant{applications.length !== 1 ? "s" : ""})
+              {t("jobs.detail.pipelineTitle", { count: applications.length })}
             </h2>
             {applications.length > 0 && (
-              <p className="mt-0.5 text-xs text-gray-400">Drag a card to move a candidate between stages.</p>
+              <p className="mt-0.5 text-xs text-gray-400">{t("jobs.detail.dragHint")}</p>
             )}
           </div>
 
@@ -540,14 +542,14 @@ export function JobDetailPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
             >
               <Users className="h-4 w-4" />
-              Add Candidate
+              {t("jobs.detail.addCandidate")}
             </Link>
             <button
               onClick={() => setShowBulkUpload(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
             >
               <Upload className="h-4 w-4" />
-              Bulk Upload
+              {t("jobs.detail.bulkUpload")}
             </button>
             {applications.length > 0 && compareSelection.size >= 2 && (
               <Link
@@ -555,7 +557,7 @@ export function JobDetailPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
               >
                 <GitCompareArrows className="h-4 w-4" />
-                Compare ({compareSelection.size})
+                {t("jobs.detail.compare", { count: compareSelection.size })}
               </Link>
             )}
             {applications.length > 0 && (
@@ -570,7 +572,7 @@ export function JobDetailPage() {
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                  Batch Score All
+                  {t("jobs.detail.batchScoreAll")}
                 </button>
                 <button
                   onClick={() => {
@@ -580,7 +582,7 @@ export function JobDetailPage() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50"
                 >
                   <BarChart className="h-4 w-4" />
-                  Rankings
+                  {t("jobs.detail.rankings")}
                 </button>
               </>
             )}
@@ -594,7 +596,7 @@ export function JobDetailPage() {
         ) : applications.length === 0 ? (
           <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
             <Users className="mx-auto h-10 w-10 text-gray-400" />
-            <p className="mt-2 text-sm text-gray-500">No applications yet for this job.</p>
+            <p className="mt-2 text-sm text-gray-500">{t("jobs.detail.noApplications")}</p>
           </div>
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-4">
@@ -644,7 +646,7 @@ export function JobDetailPage() {
                     )}
                   >
                     {cards.length === 0 ? (
-                      <p className="py-4 text-center text-xs text-gray-400">No applicants</p>
+                      <p className="py-4 text-center text-xs text-gray-400">{t("jobs.detail.noApplicants")}</p>
                     ) : (
                       cards.map((app) => (
                         <div
@@ -677,7 +679,7 @@ export function JobDetailPage() {
                               checked={compareSelection.has(app.id)}
                               onChange={() => toggleCompare(app.id)}
                               className="ml-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                              title="Select for comparison"
+                              title={t("jobs.detail.selectForComparison")}
                             />
                           </div>
                           <div className="mt-2 flex items-center justify-between">
@@ -706,22 +708,22 @@ export function JobDetailPage() {
                               }}
                               disabled={scoringAppId === app.id}
                               className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50"
-                              title="AI Score this candidate"
+                              title={t("jobs.detail.aiScoreTitle")}
                             >
                               {scoringAppId === app.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
                                 <Brain className="h-3 w-3" />
                               )}
-                              AI Score
+                              {t("jobs.detail.aiScore")}
                             </button>
                             <Link
                               to={`/scoring/${app.id}`}
                               className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100"
-                              title="View score report"
+                              title={t("jobs.detail.viewReport")}
                             >
                               <Target className="h-3 w-3" />
-                              Report
+                              {t("jobs.detail.report")}
                             </Link>
                           </div>
                         </div>
@@ -746,7 +748,7 @@ export function JobDetailPage() {
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 inline-flex items-center gap-2">
                 <BarChart className="h-5 w-5 text-purple-600" />
-                AI Score Rankings
+                {t("jobs.detail.aiScoreRankings")}
               </h3>
               <button
                 onClick={() => setShowRankings(false)}
@@ -765,7 +767,7 @@ export function JobDetailPage() {
                 <div className="py-8 text-center">
                   <Brain className="mx-auto h-10 w-10 text-gray-300" />
                   <p className="mt-2 text-sm text-gray-500">
-                    No candidates have been scored yet. Use "Batch Score All" to score all candidates.
+                    {t("jobs.detail.noRankings")}
                   </p>
                 </div>
               ) : (
@@ -813,15 +815,15 @@ export function JobDetailPage() {
 
                       <div className="mt-3 flex gap-4 text-xs">
                         <div>
-                          <span className="text-gray-500">Skills:</span>{" "}
+                          <span className="text-gray-500">{t("jobs.detail.skillsLabel")}</span>{" "}
                           <span className="font-medium">{r.skills_score}/100</span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Experience:</span>{" "}
+                          <span className="text-gray-500">{t("jobs.detail.experienceLabel")}</span>{" "}
                           <span className="font-medium">{r.experience_score}/100</span>
                         </div>
                         <div>
-                          <span className="text-gray-500">Stage:</span>{" "}
+                          <span className="text-gray-500">{t("jobs.detail.stageLabel")}</span>{" "}
                           <span className="font-medium capitalize">{r.application_stage}</span>
                         </div>
                       </div>
@@ -834,7 +836,7 @@ export function JobDetailPage() {
                               recBadge.className,
                             )}
                           >
-                            {recBadge.label}
+                            {t(recBadge.labelKey)}
                           </span>
                         </div>
                       )}
@@ -859,7 +861,7 @@ export function JobDetailPage() {
                           ))}
                           {matchedSkills.length + missingSkills.length > 8 && (
                             <span className="text-xs text-gray-400">
-                              +{matchedSkills.length + missingSkills.length - 8} more
+                              {t("jobs.detail.moreSkills", { count: matchedSkills.length + missingSkills.length - 8 })}
                             </span>
                           )}
                         </div>
@@ -876,10 +878,10 @@ export function JobDetailPage() {
       <ConfirmDialog
         open={showCloseConfirm}
         variant="danger"
-        title="Close this job posting?"
-        message="It will stop accepting applications. You can reopen it by editing the job, but it won't auto-resume like Pause."
-        confirmLabel="Close job"
-        cancelLabel="Cancel"
+        title={t("jobs.detail.closeConfirmTitle")}
+        message={t("jobs.detail.closeConfirmMessage")}
+        confirmLabel={t("jobs.detail.closeConfirmLabel")}
+        cancelLabel={t("jobs.detail.cancel")}
         loading={statusMutation.isPending}
         onConfirm={confirmClose}
         onCancel={() => setShowCloseConfirm(false)}
@@ -888,10 +890,10 @@ export function JobDetailPage() {
       <ConfirmDialog
         open={showDeleteConfirm}
         variant="danger"
-        title="Delete this job posting?"
-        message="This permanently deletes the job. This cannot be undone. Jobs that already have applicants can't be deleted — close them instead to keep candidate history."
-        confirmLabel="Delete job"
-        cancelLabel="Cancel"
+        title={t("jobs.detail.deleteConfirmTitle")}
+        message={t("jobs.detail.deleteConfirmMessage")}
+        confirmLabel={t("jobs.detail.deleteConfirmLabel")}
+        cancelLabel={t("jobs.detail.cancel")}
         loading={deleteMutation.isPending}
         onConfirm={() => deleteMutation.mutate()}
         onCancel={() => setShowDeleteConfirm(false)}
@@ -943,6 +945,7 @@ const PUB_STATUS_CLS: Record<string, string> = {
 };
 
 function JobPublishingPanel({ jobId }: { jobId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -968,23 +971,23 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
       const pending = results.filter((r) => r.status === "pending").length;
       toast.success(
         pending
-          ? `Queued ${sent} board(s) — ${pending} awaiting connection setup`
-          : `Published to ${sent} board(s)`,
+          ? t("jobs.detail.publishQueued", { sent, pending })
+          : t("jobs.detail.publishSuccess", { sent }),
       );
       setSelected(new Set());
       qc.invalidateQueries({ queryKey: ["publications", jobId] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.error?.message || "Publish failed"),
+    onError: (e: any) => toast.error(e.response?.data?.error?.message || t("jobs.detail.publishFailed")),
   });
 
   const unpublish = useMutation({
     mutationFn: (board: string) =>
       apiPost(`/job-publishing/jobs/${jobId}/unpublish`, { board }),
     onSuccess: () => {
-      toast.success("Removed from board");
+      toast.success(t("jobs.detail.removedFromBoard"));
       qc.invalidateQueries({ queryKey: ["publications", jobId] });
     },
-    onError: (e: any) => toast.error(e.response?.data?.error?.message || "Could not remove"),
+    onError: (e: any) => toast.error(e.response?.data?.error?.message || t("jobs.detail.couldNotRemove")),
   });
 
   function toggle(key: string) {
@@ -999,7 +1002,7 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
     <div className="rounded-lg border border-gray-200 bg-white p-6">
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <Globe className="h-5 w-5 text-brand-600" /> Publish to job boards
+          <Globe className="h-5 w-5 text-brand-600" /> {t("jobs.detail.publishToBoards")}
         </h2>
         <button
           onClick={() => publish.mutate([...selected])}
@@ -1007,16 +1010,14 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {publish.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          Publish selected
+          {t("jobs.detail.publishSelected")}
         </button>
       </div>
 
       <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
         <Lock className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
-          Board connectors are scaffolded but not yet live. Publishing records intent per board;
-          each board goes live once its feed or employer-API credentials are wired. We never post
-          to a board we can't reach.
+          {t("jobs.detail.boardsNotice")}
         </span>
       </div>
 
@@ -1045,37 +1046,37 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
                     <span className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">{b.label}</span>
                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                        {b.mechanism === "xml_feed" ? "XML feed" : "Employer API"}
+                        {b.mechanism === "xml_feed" ? t("jobs.detail.xmlFeed") : t("jobs.detail.employerApi")}
                       </span>
                       {b.liveCapable ? (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Live
+                          <CheckCircle2 className="h-3.5 w-3.5" /> {t("jobs.detail.live")}
                         </span>
                       ) : b.configured ? (
                         <span className="inline-flex items-center gap-1 text-xs text-blue-600">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> credentials set
+                          <CheckCircle2 className="h-3.5 w-3.5" /> {t("jobs.detail.credentialsSet")}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                          <Lock className="h-3.5 w-3.5" /> not connected
+                          <Lock className="h-3.5 w-3.5" /> {t("jobs.detail.notConnected")}
                         </span>
                       )}
                     </span>
                     <span className="mt-0.5 block text-xs text-gray-500">{b.requirements}</span>
                     {b.liveCapable && b.feedUrl && (
                       <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-gray-500">Feed URL (submit to {b.label} once):</span>
+                        <span className="text-gray-500">{t("jobs.detail.feedUrlLabel", { board: b.label })}</span>
                         <code className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-700">{b.feedUrl}</code>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             navigator.clipboard.writeText(b.feedUrl!);
-                            toast.success("Feed URL copied");
+                            toast.success(t("jobs.detail.feedUrlCopied"));
                           }}
                           className="text-brand-600 hover:underline"
                         >
-                          Copy
+                          {t("jobs.detail.copy")}
                         </button>
                       </span>
                     )}
@@ -1100,7 +1101,7 @@ function JobPublishingPanel({ jobId }: { jobId: string }) {
                       disabled={unpublish.isPending}
                       className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                     >
-                      Remove
+                      {t("jobs.detail.remove")}
                     </button>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Star, ArrowLeft, Plus, Trash2, ThumbsUp, ThumbsDown } from "lucide-react";
@@ -22,12 +23,12 @@ interface ScorecardItem {
   rating: number;
 }
 
-const RECOMMENDATIONS: { value: Recommendation; label: string; icon: typeof ThumbsUp; color: string }[] = [
-  { value: "strong_yes" as Recommendation, label: "Strong Yes", icon: ThumbsUp, color: "border-green-500 bg-green-50 text-green-700" },
-  { value: "yes" as Recommendation, label: "Yes", icon: ThumbsUp, color: "border-green-400 bg-green-50 text-green-600" },
-  { value: "neutral" as Recommendation, label: "Neutral", icon: Star, color: "border-gray-400 bg-gray-50 text-gray-600" },
-  { value: "no" as Recommendation, label: "No", icon: ThumbsDown, color: "border-red-400 bg-red-50 text-red-600" },
-  { value: "strong_no" as Recommendation, label: "Strong No", icon: ThumbsDown, color: "border-red-500 bg-red-50 text-red-700" },
+const RECOMMENDATIONS: { value: Recommendation; labelKey: string; icon: typeof ThumbsUp; color: string }[] = [
+  { value: "strong_yes" as Recommendation, labelKey: "interviews.feedback.recStrongYes", icon: ThumbsUp, color: "border-green-500 bg-green-50 text-green-700" },
+  { value: "yes" as Recommendation, labelKey: "interviews.feedback.recYes", icon: ThumbsUp, color: "border-green-400 bg-green-50 text-green-600" },
+  { value: "neutral" as Recommendation, labelKey: "interviews.feedback.recNeutral", icon: Star, color: "border-gray-400 bg-gray-50 text-gray-600" },
+  { value: "no" as Recommendation, labelKey: "interviews.feedback.recNo", icon: ThumbsDown, color: "border-red-400 bg-red-50 text-red-600" },
+  { value: "strong_no" as Recommendation, labelKey: "interviews.feedback.recStrongNo", icon: ThumbsDown, color: "border-red-500 bg-red-50 text-red-700" },
 ];
 
 function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -48,6 +49,7 @@ function StarSelector({ value, onChange }: { value: number; onChange: (v: number
 }
 
 export function InterviewFeedbackPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -118,7 +120,7 @@ export function InterviewFeedbackPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading...
+        {t("interviews.feedback.loading")}
       </div>
     );
   }
@@ -130,16 +132,20 @@ export function InterviewFeedbackPage() {
         onClick={() => navigate(`/interviews/${id}`)}
         className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Interview
+        <ArrowLeft className="h-4 w-4" /> {t("interviews.feedback.backToInterview")}
       </button>
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Submit Feedback</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("interviews.feedback.title")}</h1>
         {interview && (
           <p className="mt-1 text-sm text-gray-500">
-            {interview.candidate_name} &mdash; {interview.title} (Round {interview.round})
-            &middot; {formatDate(interview.scheduled_at)}
+            {t("interviews.feedback.subtitle", {
+              candidate: interview.candidate_name,
+              title: interview.title,
+              round: interview.round,
+              date: formatDate(interview.scheduled_at),
+            })}
           </p>
         )}
       </div>
@@ -154,7 +160,7 @@ export function InterviewFeedbackPage() {
         {/* Recommendation */}
         <section className="rounded-lg border border-gray-200 bg-white p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-4">
-            Recommendation <span className="text-red-500">*</span>
+            {t("interviews.feedback.recommendation")} <span className="text-red-500">*</span>
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {RECOMMENDATIONS.map((rec) => {
@@ -173,7 +179,7 @@ export function InterviewFeedbackPage() {
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  {rec.label}
+                  {t(rec.labelKey)}
                 </button>
               );
             })}
@@ -182,29 +188,29 @@ export function InterviewFeedbackPage() {
 
         {/* Rating scores */}
         <section className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Ratings</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-4">{t("interviews.feedback.ratings")}</h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Overall Rating
+                {t("interviews.feedback.overallRating")}
               </label>
               <StarSelector value={overallScore} onChange={setOverallScore} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Technical Skills
+                {t("interviews.feedback.technicalSkills")}
               </label>
               <StarSelector value={technicalScore} onChange={setTechnicalScore} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Communication
+                {t("interviews.feedback.communication")}
               </label>
               <StarSelector value={communicationScore} onChange={setCommunicationScore} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cultural Fit
+                {t("interviews.feedback.culturalFit")}
               </label>
               <StarSelector value={culturalFitScore} onChange={setCulturalFitScore} />
             </div>
@@ -215,20 +221,20 @@ export function InterviewFeedbackPage() {
         <section className="rounded-lg border border-gray-200 bg-white p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">
-              Custom Scorecard
+              {t("interviews.feedback.customScorecard")}
             </h2>
             <button
               type="button"
               onClick={addScorecardItem}
               className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
             >
-              <Plus className="h-3.5 w-3.5" /> Add Criteria
+              <Plus className="h-3.5 w-3.5" /> {t("interviews.feedback.addCriteria")}
             </button>
           </div>
 
           {scorecardItems.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No custom criteria added. Click "Add Criteria" to evaluate specific skills.
+              {t("interviews.feedback.noScorecard")}
             </p>
           ) : (
             <div className="space-y-3">
@@ -241,7 +247,7 @@ export function InterviewFeedbackPage() {
                     type="text"
                     value={item.criteria}
                     onChange={(e) => updateScorecardItem(item.id, "criteria", e.target.value)}
-                    placeholder="e.g., Problem Solving, System Design..."
+                    placeholder={t("interviews.feedback.criteriaPlaceholder")}
                     className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <div className="flex items-center gap-0.5">
@@ -278,40 +284,40 @@ export function InterviewFeedbackPage() {
 
         {/* Written feedback */}
         <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-base font-semibold text-gray-900">Written Feedback</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t("interviews.feedback.writtenFeedback")}</h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.feedback.strengths")}</label>
             <textarea
               value={strengths}
               onChange={(e) => setStrengths(e.target.value)}
               rows={4}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="What stood out positively? Key skills, qualities, or accomplishments demonstrated..."
+              placeholder={t("interviews.feedback.strengthsPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Weaknesses</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.feedback.weaknesses")}</label>
             <textarea
               value={weaknesses}
               onChange={(e) => setWeaknesses(e.target.value)}
               rows={4}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="Areas of concern, gaps in knowledge, red flags..."
+              placeholder={t("interviews.feedback.weaknessesPlaceholder")}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Additional Notes
+              {t("interviews.feedback.additionalNotes")}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="Any other observations, follow-up questions, or suggestions for the next round..."
+              placeholder={t("interviews.feedback.notesPlaceholder")}
             />
           </div>
         </section>
@@ -320,7 +326,7 @@ export function InterviewFeedbackPage() {
         {submitMutation.isError && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {(submitMutation.error as any)?.response?.data?.error?.message ||
-              "Failed to submit feedback. Please try again."}
+              t("interviews.feedback.submitError")}
           </div>
         )}
 
@@ -331,14 +337,14 @@ export function InterviewFeedbackPage() {
             onClick={() => navigate(`/interviews/${id}`)}
             className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("interviews.feedback.cancel")}
           </button>
           <button
             type="submit"
             disabled={!recommendation || submitMutation.isPending}
             className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {submitMutation.isPending ? "Submitting..." : "Submit Feedback"}
+            {submitMutation.isPending ? t("interviews.feedback.submitting") : t("interviews.feedback.title")}
           </button>
         </div>
       </form>

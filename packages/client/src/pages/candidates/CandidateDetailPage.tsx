@@ -17,6 +17,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { apiGet, apiPost } from "@/api/client";
 import { resolveUploadUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -39,6 +40,7 @@ interface AppWithJob extends Application {
 }
 
 export function CandidateDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -76,7 +78,7 @@ export function CandidateDetailPage() {
         source: candidate?.source || "direct",
       }),
     onSuccess: () => {
-      toast.success("Candidate applied to the job");
+      toast.success(t("candidates.detail.appliedSuccess"));
       queryClient.invalidateQueries({ queryKey: ["candidate-applications", id] });
       setShowApply(false);
       setSelectedJobId("");
@@ -84,7 +86,7 @@ export function CandidateDetailPage() {
     onError: (err: any) => {
       toast.error(
         err.response?.data?.error?.message ||
-          "Failed to apply — the candidate may already be on this job.",
+          t("candidates.detail.applyError"),
       );
     },
   });
@@ -100,7 +102,7 @@ export function CandidateDetailPage() {
   if (!candidate) {
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-500">Candidate not found.</p>
+        <p className="text-gray-500">{t("candidates.detail.notFound")}</p>
       </div>
     );
   }
@@ -156,7 +158,7 @@ export function CandidateDetailPage() {
           className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           <Pencil className="h-4 w-4" />
-          Edit
+          {t("candidates.detail.edit")}
         </Link>
       </div>
 
@@ -165,7 +167,7 @@ export function CandidateDetailPage() {
         <div className="lg:col-span-1 space-y-6">
           {/* Contact Card */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Contact Information</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("candidates.detail.contactInformation")}</h2>
 
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
@@ -189,7 +191,7 @@ export function CandidateDetailPage() {
                     rel="noopener noreferrer"
                     className="text-brand-600 hover:underline inline-flex items-center gap-1"
                   >
-                    LinkedIn <ExternalLink className="h-3 w-3" />
+                    {t("candidates.detail.linkedin")} <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               )}
@@ -202,7 +204,7 @@ export function CandidateDetailPage() {
                     rel="noopener noreferrer"
                     className="text-brand-600 hover:underline inline-flex items-center gap-1"
                   >
-                    Portfolio <ExternalLink className="h-3 w-3" />
+                    {t("candidates.detail.portfolio")} <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               )}
@@ -211,7 +213,7 @@ export function CandidateDetailPage() {
 
           {/* Professional Details */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Professional</h2>
+            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("candidates.detail.professional")}</h2>
 
             <div className="space-y-3">
               {candidate.current_company && (
@@ -230,12 +232,12 @@ export function CandidateDetailPage() {
                 <div className="flex items-center gap-3 text-sm">
                   <Clock className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-700">
-                    {candidate.experience_years} year{candidate.experience_years !== 1 ? "s" : ""} experience
+                    {t("candidates.detail.experienceYears", { count: candidate.experience_years })}
                   </span>
                 </div>
               )}
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-xs font-medium uppercase text-gray-400">Source</span>
+                <span className="text-xs font-medium uppercase text-gray-400">{t("candidates.detail.source")}</span>
                 <span className="capitalize text-gray-700">{candidate.source}</span>
               </div>
             </div>
@@ -243,7 +245,7 @@ export function CandidateDetailPage() {
 
           {candidate.resume_path && (
             <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Resume</h2>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">{t("candidates.detail.resume")}</h2>
               <a
                 href={resolveUploadUrl(candidate.resume_path)}
                 target="_blank"
@@ -251,7 +253,7 @@ export function CandidateDetailPage() {
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 <FileText className="h-4 w-4" />
-                View Resume
+                {t("candidates.detail.viewResume")}
                 <ExternalLink className="h-3 w-3" />
               </a>
             </div>
@@ -260,7 +262,7 @@ export function CandidateDetailPage() {
           {/* Skills */}
           {skills.length > 0 && (
             <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Skills</h2>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">{t("candidates.detail.skills")}</h2>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill: string) => (
                   <span
@@ -277,7 +279,7 @@ export function CandidateDetailPage() {
           {/* Tags */}
           {tags.length > 0 && (
             <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Tags</h2>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">{t("candidates.detail.tags")}</h2>
               <div className="flex flex-wrap gap-2">
                 {tags.map((tag: string) => (
                   <span
@@ -296,13 +298,13 @@ export function CandidateDetailPage() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
-              Applications ({applications.length})
+              {t("candidates.detail.applicationsCount", { count: applications.length })}
             </h2>
             <button
               onClick={() => setShowApply(true)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
             >
-              <Plus className="h-4 w-4" /> Apply to Job
+              <Plus className="h-4 w-4" /> {t("candidates.detail.applyToJob")}
             </button>
           </div>
 
@@ -313,7 +315,7 @@ export function CandidateDetailPage() {
           ) : applications.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
               <FileText className="mx-auto h-10 w-10 text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500">No applications yet.</p>
+              <p className="mt-2 text-sm text-gray-500">{t("candidates.detail.noApplications")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -328,7 +330,7 @@ export function CandidateDetailPage() {
                         to={`/jobs/${app.job_id}`}
                         className="text-sm font-medium text-gray-900 hover:text-brand-600"
                       >
-                        {app.job_title || "Job"}
+                        {app.job_title || t("candidates.detail.job")}
                       </Link>
                       {app.job_department && (
                         <p className="text-xs text-gray-500">{app.job_department}</p>
@@ -344,16 +346,16 @@ export function CandidateDetailPage() {
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
-                    <span>Applied: {formatDate(app.applied_at)}</span>
-                    <span className="capitalize">Source: {app.source}</span>
-                    {app.rating !== null && <span>Rating: {app.rating}/5</span>}
+                    <span>{t("candidates.detail.appliedDate", { date: formatDate(app.applied_at) })}</span>
+                    <span className="capitalize">{t("candidates.detail.sourceValue", { source: app.source })}</span>
+                    {app.rating !== null && <span>{t("candidates.detail.ratingValue", { rating: app.rating })}</span>}
                     {app.expected_salary != null && (
-                      <span>Expected salary: {Number(app.expected_salary).toLocaleString()}</span>
+                      <span>{t("candidates.detail.expectedSalary", { amount: Number(app.expected_salary).toLocaleString() })}</span>
                     )}
                   </div>
                   {app.cover_letter && (
                     <div className="mt-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Cover Letter</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{t("candidates.detail.coverLetter")}</p>
                       <p className="mt-1 whitespace-pre-line text-xs text-gray-600">{app.cover_letter}</p>
                     </div>
                   )}
@@ -368,7 +370,7 @@ export function CandidateDetailPage() {
           {/* Notes */}
           {candidate.notes && (
             <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">Notes</h2>
+              <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-3">{t("candidates.detail.notes")}</h2>
               <p className="text-sm text-gray-700 whitespace-pre-line">{candidate.notes}</p>
             </div>
           )}
@@ -386,25 +388,27 @@ export function CandidateDetailPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Apply to a Job</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t("candidates.detail.applyDialogTitle")}</h3>
               <button
                 onClick={() => setShowApply(false)}
                 className="text-gray-400 hover:text-gray-600"
-                aria-label="Close"
+                aria-label={t("candidates.detail.close")}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <p className="mb-3 text-sm text-gray-500">
-              Add {candidate.first_name} {candidate.last_name} to an open position.
+              {t("candidates.detail.applyDialogDescription", {
+                name: `${candidate.first_name} ${candidate.last_name}`,
+              })}
             </p>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Open positions</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t("candidates.detail.openPositions")}</label>
             <select
               value={selectedJobId}
               onChange={(e) => setSelectedJobId(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
-              <option value="">Select a job…</option>
+              <option value="">{t("candidates.detail.selectJob")}</option>
               {availableJobs.map((j) => (
                 <option key={j.id} value={j.id}>
                   {j.title}
@@ -414,7 +418,7 @@ export function CandidateDetailPage() {
             </select>
             {availableJobs.length === 0 && (
               <p className="mt-2 text-xs text-gray-400">
-                No open jobs available (or this candidate has already applied to all of them).
+                {t("candidates.detail.noOpenJobs")}
               </p>
             )}
             <div className="mt-5 flex justify-end gap-3">
@@ -422,7 +426,7 @@ export function CandidateDetailPage() {
                 onClick={() => setShowApply(false)}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Cancel
+                {t("candidates.detail.cancel")}
               </button>
               <button
                 onClick={() => applyMutation.mutate()}
@@ -434,7 +438,7 @@ export function CandidateDetailPage() {
                 ) : (
                   <Plus className="h-4 w-4" />
                 )}
-                Apply
+                {t("candidates.detail.apply")}
               </button>
             </div>
           </div>

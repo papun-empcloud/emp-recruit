@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
@@ -9,12 +10,12 @@ import type { Application, PaginatedResponse, InterviewType } from "@emp-recruit
 
 type ApplicationRow = Application & { candidate_name: string; job_title: string };
 
-const INTERVIEW_TYPES: { value: InterviewType; label: string }[] = [
-  { value: "phone" as InterviewType, label: "Phone Screen" },
-  { value: "video" as InterviewType, label: "Video Interview" },
-  { value: "onsite" as InterviewType, label: "On-site Interview" },
-  { value: "assignment" as InterviewType, label: "Assignment" },
-  { value: "panel" as InterviewType, label: "Panel Interview" },
+const INTERVIEW_TYPES: { value: InterviewType; labelKey: string }[] = [
+  { value: "phone" as InterviewType, labelKey: "interviews.schedule.typePhone" },
+  { value: "video" as InterviewType, labelKey: "interviews.schedule.typeVideo" },
+  { value: "onsite" as InterviewType, labelKey: "interviews.schedule.typeOnsite" },
+  { value: "assignment" as InterviewType, labelKey: "interviews.schedule.typeAssignment" },
+  { value: "panel" as InterviewType, labelKey: "interviews.schedule.typePanel" },
 ];
 
 // #18 — keep `round` and `duration_minutes` as strings so the user can
@@ -53,6 +54,7 @@ function todayIso() {
 }
 
 export function InterviewSchedulePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -81,12 +83,12 @@ export function InterviewSchedulePage() {
   const scheduleMutation = useMutation({
     mutationFn: (data: Record<string, any>) => apiPost("/interviews", data),
     onSuccess: () => {
-      toast.success("Interview scheduled successfully");
+      toast.success(t("interviews.schedule.scheduleSuccess"));
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
       navigate("/interviews");
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || "Failed to schedule interview";
+      const msg = err?.response?.data?.error?.message || t("interviews.schedule.scheduleError");
       toast.error(msg);
     },
   });
@@ -95,15 +97,15 @@ export function InterviewSchedulePage() {
     e.preventDefault();
 
     if (!form.application_id) {
-      toast.error("Please select an application");
+      toast.error(t("interviews.schedule.errorSelectApplication"));
       return;
     }
     if (!form.scheduled_at) {
-      toast.error("Please select a date");
+      toast.error(t("interviews.schedule.errorSelectDate"));
       return;
     }
     if (!form.title) {
-      toast.error("Please enter a title");
+      toast.error(t("interviews.schedule.errorEnterTitle"));
       return;
     }
 
@@ -111,7 +113,7 @@ export function InterviewSchedulePage() {
     // the guard lives here.
     const today = todayIso();
     if (form.scheduled_at < today) {
-      toast.error("Interview date cannot be in the past");
+      toast.error(t("interviews.schedule.errorDatePast"));
       return;
     }
 
@@ -121,11 +123,11 @@ export function InterviewSchedulePage() {
     const round = parseInt(form.round, 10);
     const durationMinutes = parseInt(form.duration_minutes, 10);
     if (!Number.isFinite(round) || round < 1) {
-      toast.error("Round must be a positive number");
+      toast.error(t("interviews.schedule.errorRoundPositive"));
       return;
     }
     if (!Number.isFinite(durationMinutes) || durationMinutes < 15) {
-      toast.error("Duration must be at least 15 minutes");
+      toast.error(t("interviews.schedule.errorDurationMin"));
       return;
     }
 
@@ -136,7 +138,7 @@ export function InterviewSchedulePage() {
     // combined date+time that is already in the past (e.g. today at 8:00 AM when
     // it's now afternoon).
     if (dateTime.getTime() < Date.now()) {
-      toast.error("Interview time cannot be in the past");
+      toast.error(t("interviews.schedule.errorTimePast"));
       return;
     }
 
@@ -171,19 +173,19 @@ export function InterviewSchedulePage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Schedule Interview</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("interviews.schedule.title")}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Application Selection */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Select Application</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("interviews.schedule.selectApplication")}</h2>
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by candidate name..."
+              placeholder={t("interviews.schedule.searchCandidatePlaceholder")}
               value={appSearch}
               onChange={(e) => setAppSearch(e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -196,9 +198,7 @@ export function InterviewSchedulePage() {
             </div>
           ) : applications.length === 0 ? (
             <p className="text-sm text-gray-500 py-2">
-              No applications yet. Interviews are scheduled for a candidate's
-              application to a specific job — add a candidate to a job posting
-              (or wait for a public application) first.
+              {t("interviews.schedule.noApplications")}
             </p>
           ) : (
             <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg border border-gray-200 p-2">
@@ -215,7 +215,9 @@ export function InterviewSchedulePage() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{app.candidate_name}</p>
-                    <p className="text-xs text-gray-500 truncate">{app.job_title} - Stage: {app.stage}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {t("interviews.schedule.jobStage", { job: app.job_title, stage: app.stage })}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -224,48 +226,48 @@ export function InterviewSchedulePage() {
 
           {selectedApp && (
             <div className="rounded-md bg-brand-50 border border-brand-200 px-3 py-2 text-sm">
-              <span className="font-medium text-brand-800">Selected:</span>{" "}
+              <span className="font-medium text-brand-800">{t("interviews.schedule.selectedLabel")}</span>{" "}
               <span className="text-brand-700">{selectedApp.candidate_name}</span>
-              <span className="text-brand-500"> for {selectedApp.job_title}</span>
+              <span className="text-brand-500"> {t("interviews.schedule.forJob", { job: selectedApp.job_title })}</span>
             </div>
           )}
         </div>
 
         {/* Interview Details */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Interview Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("interviews.schedule.interviewDetails")}</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title <span className="text-red-500">*</span>
+              {t("interviews.schedule.titleLabel")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              placeholder="e.g. Technical Interview Round 1"
+              placeholder={t("interviews.schedule.titlePlaceholder")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Interview Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.typeLabel")}</label>
               <select
                 value={form.type}
                 onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
-                {INTERVIEW_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
+                {INTERVIEW_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {t(type.labelKey)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Round</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.roundLabel")}</label>
               {/* #18 — store as string so the user can clear the field
                   with backspace without Number("") snapping back to 0. */}
               <input
@@ -281,7 +283,7 @@ export function InterviewSchedulePage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date <span className="text-red-500">*</span>
+                {t("interviews.schedule.dateLabel")} <span className="text-red-500">*</span>
               </label>
               {/* #17 — can't schedule in the past. */}
               <DateInput
@@ -295,7 +297,7 @@ export function InterviewSchedulePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Time <span className="text-red-500">*</span>
+                {t("interviews.schedule.timeLabel")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="time"
@@ -306,7 +308,7 @@ export function InterviewSchedulePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.durationLabel")}</label>
               {/* #18 — same string-state pattern as Round. */}
               <input
                 type="number"
@@ -322,21 +324,21 @@ export function InterviewSchedulePage() {
 
         {/* Location & Meeting */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Location & Meeting Link</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("interviews.schedule.locationMeeting")}</h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.locationLabel")}</label>
             <input
               type="text"
               value={form.location}
               onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-              placeholder="e.g. Conference Room A, 3rd Floor"
+              placeholder={t("interviews.schedule.locationPlaceholder")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Link</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.meetingLinkLabel")}</label>
             <input
               type="url"
               value={form.meeting_link}
@@ -347,12 +349,12 @@ export function InterviewSchedulePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.notesLabel")}</label>
             <textarea
               value={form.notes}
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
               rows={3}
-              placeholder="Additional notes for the interview..."
+              placeholder={t("interviews.schedule.notesPlaceholder")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -365,7 +367,7 @@ export function InterviewSchedulePage() {
             onClick={() => navigate(-1)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("interviews.schedule.cancel")}
           </button>
           <button
             type="submit"
@@ -373,7 +375,7 @@ export function InterviewSchedulePage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Schedule Interview
+            {t("interviews.schedule.title")}
           </button>
         </div>
       </form>

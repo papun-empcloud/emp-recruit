@@ -22,3 +22,11 @@ onlyBuiltDependencies:
   - protobufjs
   - ffmpeg-static
   - sharp
+
+allowBuilds:
+  '@scarf/scarf': set this to true or false
+  esbuild: set this to true or false
+  ffmpeg-static: set this to true or false
+  msgpackr-extract: set this to true or false
+  protobufjs: set this to true or false
+  sharp: set this to true or false

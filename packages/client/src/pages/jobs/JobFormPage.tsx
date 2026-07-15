@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -29,17 +30,17 @@ function todayIso() {
 }
 
 const EMPLOYMENT_TYPES = [
-  { value: "full_time", label: "Full Time" },
-  { value: "part_time", label: "Part Time" },
-  { value: "contract", label: "Contract" },
-  { value: "internship", label: "Internship" },
-  { value: "freelance", label: "Freelance" },
+  { value: "full_time", labelKey: "jobs.form.employmentType.fullTime" },
+  { value: "part_time", labelKey: "jobs.form.employmentType.partTime" },
+  { value: "contract", labelKey: "jobs.form.employmentType.contract" },
+  { value: "internship", labelKey: "jobs.form.employmentType.internship" },
+  { value: "freelance", labelKey: "jobs.form.employmentType.freelance" },
 ];
 
 const REMOTE_POLICIES = [
-  { value: "onsite", label: "On-site" },
-  { value: "remote", label: "Remote" },
-  { value: "hybrid", label: "Hybrid" },
+  { value: "onsite", labelKey: "jobs.form.remotePolicy.onsite" },
+  { value: "remote", labelKey: "jobs.form.remotePolicy.remote" },
+  { value: "hybrid", labelKey: "jobs.form.remotePolicy.hybrid" },
 ];
 
 interface FormData {
@@ -81,6 +82,7 @@ const INITIAL: FormData = {
 };
 
 export function JobFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -142,12 +144,12 @@ export function JobFormPage() {
   const createMutation = useMutation({
     mutationFn: (data: Record<string, any>) => apiPost<JobPosting>("/jobs", data),
     onSuccess: (res) => {
-      toast.success("Job created successfully");
+      toast.success(t("jobs.form.createdSuccess"));
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       navigate(`/jobs/${res.data?.id}`);
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || "Failed to create job";
+      const msg = err?.response?.data?.error?.message || t("jobs.form.createFailed");
       const details = err?.response?.data?.error?.details;
       if (details) {
         const fieldErrors = Object.entries(details)
@@ -163,13 +165,13 @@ export function JobFormPage() {
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, any>) => apiPut<JobPosting>(`/jobs/${id}`, data),
     onSuccess: () => {
-      toast.success("Job updated successfully");
+      toast.success(t("jobs.form.updatedSuccess"));
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       queryClient.invalidateQueries({ queryKey: ["job", id] });
       navigate(`/jobs/${id}`);
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || "Failed to update job";
+      const msg = err?.response?.data?.error?.message || t("jobs.form.updateFailed");
       const details = err?.response?.data?.error?.details;
       if (details) {
         const fieldErrors = Object.entries(details)
@@ -189,7 +191,7 @@ export function JobFormPage() {
     // `min` set, but users who paste the date or use devtools shouldn't
     // be able to slip a past deadline through.
     if (form.closes_at && form.closes_at < minCloseDate) {
-      toast.error("Application deadline cannot be in the past");
+      toast.error(t("jobs.form.deadlinePast"));
       return;
     }
 
@@ -197,22 +199,22 @@ export function JobFormPage() {
     // human-readable message instead of surfacing a zod error. The editor
     // stores HTML, so measure the visible text rather than the markup.
     if (htmlToText(form.description).length < 10) {
-      toast.error("Description must be at least 10 characters");
+      toast.error(t("jobs.form.descriptionMin"));
       return;
     }
 
-    const numericChecks: { field: keyof FormData; label: string }[] = [
-      { field: "experience_min", label: "Min experience" },
-      { field: "experience_max", label: "Max experience" },
-      { field: "salary_min", label: "Min salary" },
-      { field: "salary_max", label: "Max salary" },
+    const numericChecks: { field: keyof FormData; labelKey: string }[] = [
+      { field: "experience_min", labelKey: "jobs.form.minExperience" },
+      { field: "experience_max", labelKey: "jobs.form.maxExperience" },
+      { field: "salary_min", labelKey: "jobs.form.minSalary" },
+      { field: "salary_max", labelKey: "jobs.form.maxSalary" },
     ];
-    for (const { field: name, label } of numericChecks) {
+    for (const { field: name, labelKey } of numericChecks) {
       const raw = form[name];
       if (raw === "" || raw === undefined) continue;
       const n = Number(raw);
       if (!Number.isFinite(n) || n < 0) {
-        toast.error(`${label} cannot be negative`);
+        toast.error(t("jobs.form.negativeError", { label: t(labelKey) }));
         return;
       }
     }
@@ -224,7 +226,7 @@ export function JobFormPage() {
       form.experience_max !== "" &&
       Number(form.experience_min) > Number(form.experience_max)
     ) {
-      toast.error("Min experience cannot be greater than max experience");
+      toast.error(t("jobs.form.experienceOrder"));
       return;
     }
     if (
@@ -232,7 +234,7 @@ export function JobFormPage() {
       form.salary_max !== "" &&
       Number(form.salary_min) > Number(form.salary_max)
     ) {
-      toast.error("Min salary cannot be greater than max salary");
+      toast.error(t("jobs.form.salaryOrder"));
       return;
     }
 
@@ -312,33 +314,33 @@ export function JobFormPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-2xl font-bold text-gray-900">
-          {isEdit ? "Edit Job Posting" : "Create Job Posting"}
+          {isEdit ? t("jobs.form.editTitle") : t("jobs.form.createTitle")}
         </h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Info */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("jobs.form.basicInfo")}</h2>
 
-          {field("Job Title", "title", "text", { required: true, placeholder: "e.g. Senior Software Engineer" })}
+          {field(t("jobs.form.jobTitle"), "title", "text", { required: true, placeholder: t("jobs.form.jobTitlePlaceholder") })}
 
           <div>
             <label htmlFor="job-description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description <span className="text-red-500">*</span>
+              {t("jobs.form.description")} <span className="text-red-500">*</span>
             </label>
             {/* #14 — backend enforces min length 10; handleSubmit measures the
                 editor's visible text so the user gets immediate feedback
                 instead of a confusing 400. */}
             <RichTextEditor
               id="job-description"
-              aria-label="Job description"
+              aria-label={t("jobs.form.descriptionAria")}
               value={form.description}
               onChange={(html) => setForm((p) => ({ ...p, description: html }))}
-              placeholder="Describe the role, responsibilities, and what success looks like..."
+              placeholder={t("jobs.form.descriptionPlaceholder")}
             />
             <p className="mt-1 text-xs text-gray-400">
-              Format with the toolbar. Minimum 10 characters.
+              {t("jobs.form.descriptionHint")}
             </p>
           </div>
 
@@ -346,14 +348,14 @@ export function JobFormPage() {
               configured entries, free-text fallback otherwise. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.department")}</label>
               {departments.length > 0 ? (
                 <select
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="">Select department</option>
+                  <option value="">{t("jobs.form.selectDepartment")}</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.name}>{d.name}</option>
                   ))}
@@ -363,20 +365,20 @@ export function JobFormPage() {
                   type="text"
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
-                  placeholder="e.g. Engineering"
+                  placeholder={t("jobs.form.departmentPlaceholder")}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.location")}</label>
               {locations.length > 0 ? (
                 <select
                   value={form.location}
                   onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="">Select location</option>
+                  <option value="">{t("jobs.form.selectLocation")}</option>
                   {locations.map((l) => (
                     <option key={l.id} value={l.name}>{l.name}</option>
                   ))}
@@ -386,7 +388,7 @@ export function JobFormPage() {
                   type="text"
                   value={form.location}
                   onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-                  placeholder="e.g. Bengaluru, India"
+                  placeholder={t("jobs.form.locationPlaceholder")}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               )}
@@ -395,21 +397,21 @@ export function JobFormPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.employmentTypeLabel")}</label>
               <select
                 value={form.employment_type}
                 onChange={(e) => setForm((p) => ({ ...p, employment_type: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               >
-                {EMPLOYMENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
+                {EMPLOYMENT_TYPES.map((et) => (
+                  <option key={et.value} value={et.value}>
+                    {t(et.labelKey)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Remote Policy</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.remotePolicyLabel")}</label>
               <select
                 value={form.remote_policy}
                 onChange={(e) => setForm((p) => ({ ...p, remote_policy: e.target.value }))}
@@ -417,7 +419,7 @@ export function JobFormPage() {
               >
                 {REMOTE_POLICIES.map((r) => (
                   <option key={r.value} value={r.value}>
-                    {r.label}
+                    {t(r.labelKey)}
                   </option>
                 ))}
               </select>
@@ -433,10 +435,9 @@ export function JobFormPage() {
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm">
-              <span className="font-medium text-gray-800">Internal only</span>
+              <span className="font-medium text-gray-800">{t("jobs.form.internalOnly")}</span>
               <span className="block text-xs text-gray-500">
-                Keep this job internal — hide it from the public career page. It shows as
-                “Internal” in the job list.
+                {t("jobs.form.internalOnlyHint")}
               </span>
             </span>
           </label>
@@ -444,18 +445,18 @@ export function JobFormPage() {
 
         {/* Experience & Salary */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Experience & Compensation</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("jobs.form.experienceComp")}</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {field("Min Experience (years)", "experience_min", "number", { placeholder: "0", min: 0 })}
-            {field("Max Experience (years)", "experience_max", "number", { placeholder: "10", min: 0 })}
+            {field(t("jobs.form.minExperienceLabel"), "experience_min", "number", { placeholder: "0", min: 0 })}
+            {field(t("jobs.form.maxExperienceLabel"), "experience_max", "number", { placeholder: "10", min: 0 })}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {field("Min Salary", "salary_min", "number", { placeholder: "e.g. 800000", min: 0 })}
-            {field("Max Salary", "salary_max", "number", { placeholder: "e.g. 1500000", min: 0 })}
+            {field(t("jobs.form.minSalaryLabel"), "salary_min", "number", { placeholder: t("jobs.form.minSalaryPlaceholder"), min: 0 })}
+            {field(t("jobs.form.maxSalaryLabel"), "salary_max", "number", { placeholder: t("jobs.form.maxSalaryPlaceholder"), min: 0 })}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.currency")}</label>
               <select
                 value={form.salary_currency}
                 onChange={(e) => setForm((p) => ({ ...p, salary_currency: e.target.value }))}
@@ -472,37 +473,37 @@ export function JobFormPage() {
 
         {/* Requirements & Details */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Requirements & Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("jobs.form.requirementsDetails")}</h2>
 
           <div>
             <label htmlFor="job-requirements" className="block text-sm font-medium text-gray-700 mb-1">
-              Requirements
+              {t("jobs.form.requirements")}
             </label>
             <RichTextEditor
               id="job-requirements"
-              aria-label="Job requirements"
+              aria-label={t("jobs.form.requirementsAria")}
               value={form.requirements}
               onChange={(html) => setForm((p) => ({ ...p, requirements: html }))}
-              placeholder="List the key requirements for this role..."
+              placeholder={t("jobs.form.requirementsPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Benefits</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.benefits")}</label>
             <textarea
               value={form.benefits}
               onChange={(e) => setForm((p) => ({ ...p, benefits: e.target.value }))}
               rows={3}
-              placeholder="List benefits and perks..."
+              placeholder={t("jobs.form.benefitsPlaceholder")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
-          {field("Skills (comma separated)", "skills", "text", { placeholder: "React, TypeScript, Node.js" })}
+          {field(t("jobs.form.skillsLabel"), "skills", "text", { placeholder: t("jobs.form.skillsPlaceholder") })}
           {/* #13 — can't pick a deadline in the past. Enforced client-side
               via the native min attribute; backend rejects Invalid dates too. */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.applicationDeadline")}</label>
             <DateInput
               value={form.closes_at}
               onChange={(e) => setForm((p) => ({ ...p, closes_at: e.target.value }))}
@@ -520,7 +521,7 @@ export function JobFormPage() {
             onClick={() => navigate(-1)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("jobs.form.cancel")}
           </button>
           <button
             type="submit"
@@ -528,12 +529,12 @@ export function JobFormPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {isEdit ? "Update Job" : "Save as Draft"}
+            {isEdit ? t("jobs.form.updateJob") : t("jobs.form.saveDraft")}
           </button>
         </div>
         {!isEdit && (
           <p className="text-right text-xs text-gray-500">
-            Saved jobs start as drafts. Open the job and click Publish to list it on your career page.
+            {t("jobs.form.draftHint")}
           </p>
         )}
       </form>

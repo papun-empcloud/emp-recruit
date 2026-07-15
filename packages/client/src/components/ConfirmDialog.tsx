@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 
 interface ConfirmDialogProps {
@@ -22,13 +23,14 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   variant = "default",
   loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -77,7 +79,7 @@ export function ConfirmDialog({
             disabled={loading}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            {cancelLabel}
+            {cancelLabel ?? t("components.confirmDialog.cancel")}
           </button>
           <button
             type="button"
@@ -85,7 +87,7 @@ export function ConfirmDialog({
             disabled={loading}
             className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${confirmClasses}`}
           >
-            {loading ? "Working…" : confirmLabel}
+            {loading ? t("components.confirmDialog.working") : confirmLabel ?? t("components.confirmDialog.confirm")}
           </button>
         </div>
       </div>

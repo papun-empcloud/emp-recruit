@@ -7,6 +7,7 @@ import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import type { PaginatedResponse, JobPosting } from "@emp-recruit/shared";
 import { cn, formatDate, getInitials } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const STAGES = ["applied", "screened", "interview", "offer", "hired", "rejected", "withdrawn"];
 
@@ -34,6 +35,7 @@ interface AppRow {
 }
 
 export function ApplicationsListPage() {
+  const { t } = useTranslation();
   const [stage, setStage] = useState("");
   const [jobId, setJobId] = useState("");
   const [department, setDepartment] = useState("");
@@ -106,8 +108,8 @@ export function ApplicationsListPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-        <p className="mt-1 text-sm text-gray-500">Every application across your open roles.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("applications.title")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("applications.subtitle")}</p>
       </div>
 
       {/* Filters */}
@@ -115,14 +117,14 @@ export function ApplicationsListPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           {/* Employee / job search */}
           <div className="min-w-0 flex-1">
-            <label className="mb-1 block text-xs font-medium text-gray-500">Search</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.searchLabel")}</label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Candidate name, email or job…"
+                placeholder={t("applications.searchPlaceholder")}
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
@@ -130,13 +132,13 @@ export function ApplicationsListPage() {
 
           {/* Job role */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Job role</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.jobRole")}</label>
             <select
               value={jobId}
               onChange={(e) => setFilter(setJobId)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-44"
             >
-              <option value="">All jobs</option>
+              <option value="">{t("applications.allJobs")}</option>
               {jobs.map((j) => (
                 <option key={j.id} value={j.id}>
                   {j.title}
@@ -147,13 +149,13 @@ export function ApplicationsListPage() {
 
           {/* Department */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Department</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.department")}</label>
             <select
               value={department}
               onChange={(e) => setFilter(setDepartment)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-40"
             >
-              <option value="">All departments</option>
+              <option value="">{t("applications.allDepartments")}</option>
               {departments.map((d) => (
                 <option key={d} value={d}>
                   {d}
@@ -164,13 +166,13 @@ export function ApplicationsListPage() {
 
           {/* Location */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Location</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.location")}</label>
             <select
               value={location}
               onChange={(e) => setFilter(setLocation)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-40"
             >
-              <option value="">All locations</option>
+              <option value="">{t("applications.allLocations")}</option>
               {locations.map((l) => (
                 <option key={l} value={l}>
                   {l}
@@ -181,16 +183,16 @@ export function ApplicationsListPage() {
 
           {/* Stage */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Stage</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.stageLabel")}</label>
             <select
               value={stage}
               onChange={(e) => setFilter(setStage)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-36"
             >
-              <option value="">All stages</option>
+              <option value="">{t("applications.allStages")}</option>
               {STAGES.map((s) => (
                 <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {t(`applications.stages.${s}`, s.charAt(0).toUpperCase() + s.slice(1))}
                 </option>
               ))}
             </select>
@@ -198,7 +200,7 @@ export function ApplicationsListPage() {
 
           {/* Date range */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Applied from</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.appliedFrom")}</label>
             <input
               type="date"
               value={dateFrom}
@@ -208,7 +210,7 @@ export function ApplicationsListPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Applied to</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.appliedTo")}</label>
             <input
               type="date"
               value={dateTo}
@@ -223,13 +225,14 @@ export function ApplicationsListPage() {
               onClick={clearFilters}
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
-              <X className="h-4 w-4" /> Clear
+              <X className="h-4 w-4" /> {t("applications.clear")}
             </button>
           )}
         </div>
         <p className="mt-3 text-sm text-gray-500">
-          {total} application{total !== 1 ? "s" : ""}
-          {filtersActive ? " match your filters" : ""}
+          {filtersActive
+            ? t("applications.countMatch", { count: total })
+            : t("applications.count", { count: total })}
         </p>
       </div>
 
@@ -240,7 +243,7 @@ export function ApplicationsListPage() {
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <FileText className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">No applications found.</p>
+          <p className="mt-3 text-sm text-gray-500">{t("applications.noApplications")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -271,7 +274,7 @@ export function ApplicationsListPage() {
                     STAGE_BADGE[app.stage] ?? "bg-gray-100 text-gray-700",
                   )}
                 >
-                  {app.stage}
+                  {t(`applications.stages.${app.stage}`, app.stage)}
                 </span>
                 <span className="hidden items-center gap-1 whitespace-nowrap text-xs text-gray-400 sm:inline-flex">
                   <Calendar className="h-3 w-3" />

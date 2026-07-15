@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save, Rss, Copy, CheckCircle } from "lucide-react";
 import { apiGet, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { CareerPage } from "@emp-recruit/shared";
 
 interface BoardConfig {
@@ -19,20 +20,22 @@ interface BoardConfig {
 const LABEL: Record<string, string> = { linkedin: "LinkedIn", indeed: "Indeed", naukri: "Naukri" };
 
 // Credential fields per API board (empty = feed board, no creds).
+// `label`/`placeholder` hold i18n keys resolved with t() at render time.
 const FIELDS: Record<string, { key: string; label: string; placeholder: string; secret?: boolean }[]> = {
   linkedin: [
-    { key: "accessToken", label: "Access token", placeholder: "OAuth access token", secret: true },
-    { key: "companyId", label: "Company/Org ID", placeholder: "LinkedIn organization id" },
-    { key: "endpoint", label: "Endpoint (optional)", placeholder: "override job posting URL" },
+    { key: "accessToken", label: "settings.jobBoards.fields.linkedin.accessTokenLabel", placeholder: "settings.jobBoards.fields.linkedin.accessTokenPlaceholder", secret: true },
+    { key: "companyId", label: "settings.jobBoards.fields.linkedin.companyIdLabel", placeholder: "settings.jobBoards.fields.linkedin.companyIdPlaceholder" },
+    { key: "endpoint", label: "settings.jobBoards.fields.linkedin.endpointLabel", placeholder: "settings.jobBoards.fields.linkedin.endpointPlaceholder" },
   ],
   naukri: [
-    { key: "endpoint", label: "API endpoint", placeholder: "https://…naukri RMS endpoint" },
-    { key: "apiKey", label: "API key", placeholder: "Naukri API key", secret: true },
+    { key: "endpoint", label: "settings.jobBoards.fields.naukri.endpointLabel", placeholder: "settings.jobBoards.fields.naukri.endpointPlaceholder" },
+    { key: "apiKey", label: "settings.jobBoards.fields.naukri.apiKeyLabel", placeholder: "settings.jobBoards.fields.naukri.apiKeyPlaceholder", secret: true },
   ],
   indeed: [],
 };
 
 export function JobBoardSettings() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["job-board-config"],
     queryFn: async () => (await apiGet<{ boards: BoardConfig[] }>("/job-boards/config")).data?.boards ?? [],
@@ -56,10 +59,9 @@ export function JobBoardSettings() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Job Boards</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t("settings.jobBoards.heading")}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Publish jobs automatically to external boards when they go live. Indeed pulls from your
-          public feed; LinkedIn and Naukri post via their API and need partner credentials.
+          {t("settings.jobBoards.description")}
         </p>
       </div>
 
@@ -73,14 +75,15 @@ export function JobBoardSettings() {
 }
 
 function FeedCard({ feedUrl }: { feedUrl: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   return (
     <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-brand-800">
-        <Rss className="h-4 w-4" /> Public job feed
+        <Rss className="h-4 w-4" /> {t("settings.jobBoards.feed.title")}
       </div>
       <p className="mt-1 text-xs text-brand-700">
-        Register this URL once with Indeed (or Google Jobs) — new open jobs then appear automatically.
+        {t("settings.jobBoards.feed.description")}
       </p>
       <div className="mt-2 flex items-center gap-2">
         <code className="flex-1 truncate rounded-md border border-brand-200 bg-white px-2 py-1.5 text-xs text-gray-700">
@@ -95,7 +98,7 @@ function FeedCard({ feedUrl }: { feedUrl: string }) {
           className="inline-flex items-center gap-1 rounded-md border border-brand-300 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
         >
           {copied ? <CheckCircle className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("settings.jobBoards.feed.copied") : t("settings.jobBoards.feed.copy")}
         </button>
       </div>
     </div>
@@ -103,6 +106,7 @@ function FeedCard({ feedUrl }: { feedUrl: string }) {
 }
 
 function BoardCard({ board, feedUrl }: { board: BoardConfig; feedUrl: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [enabled, setEnabled] = useState(board.enabled);
   const [autoPublish, setAutoPublish] = useState(board.auto_publish);
@@ -120,11 +124,11 @@ function BoardCard({ board, feedUrl }: { board: BoardConfig; feedUrl: string }) 
       });
     },
     onSuccess: () => {
-      toast.success(`${LABEL[board.board]} saved`);
+      toast.success(t("settings.jobBoards.saved", { board: LABEL[board.board] }));
       setCreds({});
       qc.invalidateQueries({ queryKey: ["job-board-config"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to save"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("settings.jobBoards.saveFailed")),
   });
 
   return (
@@ -138,7 +142,7 @@ function BoardCard({ board, feedUrl }: { board: BoardConfig; feedUrl: string }) 
               board.configured ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
             }`}
           >
-            {board.configured ? "Ready" : "Not connected"}
+            {board.configured ? t("settings.jobBoards.ready") : t("settings.jobBoards.notConnected")}
           </span>
         </div>
       </div>
@@ -151,7 +155,7 @@ function BoardCard({ board, feedUrl }: { board: BoardConfig; feedUrl: string }) 
             onChange={(e) => setEnabled(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-brand-600"
           />
-          Enabled
+          {t("settings.jobBoards.enabled")}
         </label>
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input
@@ -160,25 +164,24 @@ function BoardCard({ board, feedUrl }: { board: BoardConfig; feedUrl: string }) 
             onChange={(e) => setAutoPublish(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-brand-600"
           />
-          Auto-publish on job open
+          {t("settings.jobBoards.autoPublish")}
         </label>
       </div>
 
       {isFeed ? (
         <p className="mt-3 text-xs text-gray-500">
-          Indeed indexes open jobs from your public feed — no API key needed. Register the feed URL
-          above with Indeed.
+          {t("settings.jobBoards.feedNote")}
         </p>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {fields.map((f) => (
             <div key={f.key}>
-              <label className="block text-xs font-medium text-gray-600">{f.label}</label>
+              <label className="block text-xs font-medium text-gray-600">{t(f.label)}</label>
               <input
                 type={f.secret ? "password" : "text"}
                 value={creds[f.key] ?? ""}
                 onChange={(e) => setCreds((p) => ({ ...p, [f.key]: e.target.value }))}
-                placeholder={board.has_credentials ? "•••••• (saved — leave blank to keep)" : f.placeholder}
+                placeholder={board.has_credentials ? t("settings.jobBoards.savedPlaceholder") : t(f.placeholder)}
                 autoComplete="off"
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
@@ -196,7 +199,7 @@ function BoardCard({ board, feedUrl }: { board: BoardConfig; feedUrl: string }) 
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save
+          {t("settings.jobBoards.save")}
         </button>
       </div>
     </div>
