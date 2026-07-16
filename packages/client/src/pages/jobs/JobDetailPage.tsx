@@ -28,6 +28,8 @@ import {
   Plus,
 } from "lucide-react";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@/api/client";
+import { ExportButtons } from "@/components/ExportButtons";
+import { type ExportColumn } from "@/lib/export";
 import type {
   JobPosting,
   PaginatedResponse,
@@ -121,6 +123,30 @@ interface RankedCandidate {
   missing_skills: string;
   recommendation: string;
 }
+
+function skillsToText(v: string | string[] | null | undefined): string {
+  if (Array.isArray(v)) return v.join(", ");
+  if (typeof v === "string") {
+    try {
+      const p = JSON.parse(v);
+      return Array.isArray(p) ? p.join(", ") : v;
+    } catch {
+      return v;
+    }
+  }
+  return "";
+}
+
+const RANKING_COLUMNS: ExportColumn<RankedCandidate>[] = [
+  { header: "Candidate", value: (r) => `${r.candidate_first_name} ${r.candidate_last_name}`.trim() },
+  { header: "Email", value: (r) => r.candidate_email },
+  { header: "Stage", value: (r) => r.application_stage },
+  { header: "Overall Score", value: (r) => r.overall_score },
+  { header: "Skills Score", value: (r) => r.skills_score },
+  { header: "Experience Score", value: (r) => r.experience_score },
+  { header: "Matched Skills", value: (r) => skillsToText(r.matched_skills) },
+  { header: "Recommendation", value: (r) => r.recommendation },
+];
 
 function ScoreBadge({ score }: { score: number }) {
   const colorClass =
@@ -757,12 +783,23 @@ export function JobDetailPage() {
                 <BarChart className="h-5 w-5 text-purple-600" />
                 AI Score Rankings
               </h3>
-              <button
-                onClick={() => setShowRankings(false)}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {rankings.length > 0 && (
+                  <ExportButtons
+                    baseName="job-rankings"
+                    title="AI Score Rankings"
+                    subtitle={job?.title ? `Job: ${job.title}` : undefined}
+                    columns={RANKING_COLUMNS}
+                    fetchRows={() => rankings}
+                  />
+                )}
+                <button
+                  onClick={() => setShowRankings(false)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <div className="p-4 space-y-3">
