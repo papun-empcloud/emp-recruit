@@ -55,7 +55,12 @@ export function AiInterviewPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const micRafRef = useRef<number | null>(null);
   const [recording, setRecording] = useState(false);
+  const [micLevel, setMicLevel] = useState(0); // 0..1 live input level
+  const [micReady, setMicReady] = useState(false); // heard real audio at least once
+  const [micError, setMicError] = useState<string | null>(null);
 
   function quit() {
     if (!window.confirm("Leave the interview? You won't be able to resume it.")) return;
@@ -169,28 +174,86 @@ export function AiInterviewPage() {
     startTimer();
   }
 
-  // Record the candidate's audio for the whole interview (separate from speech
-  // recognition, which only produces the transcript). Best-effort: if the mic
-  // is denied or MediaRecorder is unavailable, the interview still runs.
+  // Acquire the mic once, then (a) drive a live input-level meter so the
+  // candidate can confirm it works, and (b) record the interview audio. If the
+  // mic is denied/unavailable we surface a clear error instead of silently
+  // producing an empty interview.
   async function startRecording() {
-    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError("This browser can't access the microphone. Please use Chrome.");
+      return;
+    }
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      const mr = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-      mr.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      mediaRecorderRef.current = mr;
-      mr.start(1000); // flush a chunk every second so nothing is lost on stop
-      setRecording(true);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      /* mic denied — proceed without a recording */
+      setMicError(
+        "We couldn't access your microphone. Please allow mic access in your browser and reload the page.",
+      );
+      return;
+    }
+    setMicError(null);
+    mediaStreamRef.current = stream;
+    startMicMeter(stream);
+
+    if (typeof MediaRecorder !== "undefined") {
+      try {
+        const mr = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+        mr.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+        mediaRecorderRef.current = mr;
+        mr.start(1000); // flush a chunk every second so nothing is lost on stop
+        setRecording(true);
+      } catch {
+        /* recording unavailable — the interview + meter still work */
+      }
+    }
+  }
+
+  // Live mic level via the Web Audio API — updates a meter so the candidate can
+  // see the mic is picking up their voice.
+  function startMicMeter(stream: MediaStream) {
+    try {
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      audioContextRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteTimeDomainData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+          const v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+        const level = Math.min(1, Math.sqrt(sum / data.length) * 4);
+        setMicLevel(level);
+        if (level > 0.06) setMicReady(true);
+        micRafRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch {
+      /* meter unavailable */
     }
   }
 
   function releaseMic() {
+    if (micRafRef.current != null) {
+      cancelAnimationFrame(micRafRef.current);
+      micRafRef.current = null;
+    }
+    try {
+      audioContextRef.current?.close();
+    } catch {
+      /* ignore */
+    }
+    audioContextRef.current = null;
     try {
       mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     } catch {
@@ -198,6 +261,7 @@ export function AiInterviewPage() {
     }
     mediaStreamRef.current = null;
     setRecording(false);
+    setMicLevel(0);
   }
 
   // Stop recording, then upload the audio so it shows on the recruiter's view.
@@ -338,7 +402,14 @@ export function AiInterviewPage() {
         setInterim(interimText);
       };
       rec.onend = () => setListening(false);
-      rec.onerror = () => setListening(false);
+      rec.onerror = (e: any) => {
+        setListening(false);
+        if (e?.error === "not-allowed" || e?.error === "audio-capture" || e?.error === "service-not-allowed") {
+          setMicError(
+            "We couldn't access your microphone. Please allow mic access in your browser and reload the page.",
+          );
+        }
+      };
       recognitionRef.current = rec;
       rec.start();
       setListening(true);
@@ -518,6 +589,14 @@ export function AiInterviewPage() {
         </div>
       </div>
 
+      {/* Mic problem banner */}
+      {micError && (
+        <div className="mx-4 mb-2 flex items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-center text-sm text-red-200">
+          <MicOff className="h-4 w-4 flex-shrink-0" />
+          {micError}
+        </div>
+      )}
+
       {/* Participant tiles */}
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-2">
@@ -532,6 +611,25 @@ export function AiInterviewPage() {
           />
         </div>
       </div>
+
+      {/* Mic test meter — during the sound check the candidate sees their input
+          level move, confirming the microphone is working before answering. */}
+      {inSoundCheck && !micError && (
+        <div className="px-4 pb-2">
+          <div className="mx-auto flex max-w-md items-center gap-3 rounded-xl bg-white/5 px-4 py-3">
+            <Mic className={`h-4 w-4 flex-shrink-0 ${micReady ? "text-green-400" : "text-gray-400"}`} />
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className={`h-full rounded-full ${micReady ? "bg-green-400" : "bg-gray-400"}`}
+                style={{ width: `${Math.round(micLevel * 100)}%` }}
+              />
+            </div>
+            <span className="w-24 flex-shrink-0 text-right text-xs text-gray-400">
+              {micReady ? "✓ Mic working" : "Say something…"}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Question caption (AI subtitle) */}
       <div className="px-4 pb-2">
