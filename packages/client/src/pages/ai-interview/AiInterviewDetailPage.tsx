@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Brain, Copy, Loader2, MessageSquare, Mic, CheckCircle2 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
-import { formatDate } from "@/lib/utils";
+import { formatDate, resolveUploadUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 interface Transcript {
@@ -157,7 +157,7 @@ export function AiInterviewDetailPage() {
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-gray-900">
             <Mic className="h-5 w-5 text-gray-400" /> Interview recording
           </h2>
-          <audio controls preload="none" src={s.recording_url} className="w-full">
+          <audio controls preload="none" src={resolveUploadUrl(s.recording_url)} className="w-full">
             Your browser does not support audio playback.
           </audio>
         </div>
