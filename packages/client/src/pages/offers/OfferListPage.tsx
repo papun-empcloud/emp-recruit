@@ -9,6 +9,7 @@ import {
   Send,
   AlertCircle,
   Search,
+  Eye,
 } from "lucide-react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
@@ -162,6 +163,9 @@ export function OfferListPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Salary</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Created</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -186,6 +190,14 @@ export function OfferListPage() {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {formatDate(offer.created_at)}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                    <Link
+                      to={`/offers/${offer.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <Eye className="h-4 w-4" /> View
+                    </Link>
                   </td>
                 </tr>
               ))}
