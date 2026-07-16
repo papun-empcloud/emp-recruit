@@ -33,20 +33,53 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
-  { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
-  { to: "/applications", label: "Applications", icon: Inbox, adminOnly: true },
-  { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },
-  { to: "/offers", label: "Offers", icon: FileText, adminOnly: true },
-  { to: "/onboarding", label: "Onboarding", icon: ClipboardList, adminOnly: true },
-  { to: "/scoring", label: "AI Scoring", icon: Brain, adminOnly: true },
-  { to: "/ai-interviews", label: "AI Interviews", icon: Mic, adminOnly: true },
-  { to: "/referrals", label: "Referrals", icon: Gift },
-  { to: "/analytics", label: "Analytics", icon: BarChart3, adminOnly: true },
-  { to: "/career-page", label: "Career Page", icon: Globe, adminOnly: true },
-  { to: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+interface NavGroup {
+  title?: string; // section header; omitted for the top group
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: "Overview",
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/analytics", label: "Analytics", icon: BarChart3, adminOnly: true },
+    ],
+  },
+  {
+    title: "Jobs",
+    items: [
+      { to: "/jobs", label: "Job Postings", icon: Briefcase, adminOnly: true },
+      { to: "/career-page", label: "Career Page", icon: Globe, adminOnly: true },
+    ],
+  },
+  {
+    title: "People",
+    items: [
+      { to: "/candidates", label: "Candidates", icon: Users, adminOnly: true },
+      { to: "/applications", label: "Applications", icon: Inbox, adminOnly: true },
+      { to: "/referrals", label: "Referrals", icon: Gift },
+    ],
+  },
+  {
+    title: "Interviews",
+    items: [
+      { to: "/interviews", label: "Interviews", icon: Calendar, adminOnly: true },
+      { to: "/ai-interviews", label: "AI Interviews", icon: Mic, adminOnly: true },
+      { to: "/scoring", label: "AI Scoring", icon: Brain, adminOnly: true },
+    ],
+  },
+  {
+    title: "Hiring",
+    items: [
+      { to: "/offers", label: "Offers", icon: FileText, adminOnly: true },
+      { to: "/onboarding", label: "Onboarding", icon: ClipboardList, adminOnly: true },
+    ],
+  },
+  {
+    title: "System",
+    items: [{ to: "/settings", label: "Settings", icon: Settings, adminOnly: true }],
+  },
 ];
 
 export function DashboardLayout() {
@@ -78,27 +111,39 @@ export function DashboardLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {NAV_ITEMS.filter((item) => {
-            if (item.adminOnly && !isAdminRole(user?.role)) return false;
-            return true;
-          }).map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </NavLink>
-          ))}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+          {NAV_GROUPS.map((group) => {
+            const items = group.items.filter(
+              (item) => !(item.adminOnly && !isAdminRole(user?.role)),
+            );
+            if (items.length === 0) return null;
+            return (
+              <div key={group.title ?? "top"} className="space-y-1">
+                {group.title && (
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    {group.title}
+                  </p>
+                )}
+                {items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-brand-50 text-brand-700"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                      )
+                    }
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* User card */}
