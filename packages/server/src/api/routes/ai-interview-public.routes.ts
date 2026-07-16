@@ -6,10 +6,36 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
 import * as aiInterviewService from "../../services/ai-interview/ai-interview.service";
 import { sendSuccess } from "../../utils/response";
+import { ValidationError } from "../../utils/errors";
 
 const router = Router();
+
+// Store the candidate's recorded interview audio under uploads/ai-interviews.
+const audioStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), "uploads", "ai-interviews");
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".webm";
+    cb(null, `${uuidv4()}${ext}`);
+  },
+});
+const audioUpload = multer({
+  storage: audioStorage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("audio/")) cb(null, true);
+    else cb(new Error("Only audio recordings are allowed"));
+  },
+});
 
 // POST /retell-webhook — Retell posts call lifecycle events here. Defined before
 // the "/:token" routes so its fixed path isn't shadowed.
@@ -60,6 +86,23 @@ router.post("/:token/voice-call", async (req: Request, res: Response, next: Next
   } catch (err) {
     next(err);
   }
+});
+
+// POST /:token/recording — upload the recorded interview audio (multipart).
+router.post("/:token/recording", (req: Request, res: Response, next: NextFunction) => {
+  audioUpload.single("audio")(req, res, async (err: any) => {
+    if (err) {
+      return next(new ValidationError(err?.message || "Recording upload failed"));
+    }
+    try {
+      if (!req.file) throw new ValidationError("No audio file uploaded");
+      const url = `/uploads/ai-interviews/${req.file.filename}`;
+      await aiInterviewService.saveRecording(String(req.params.token), url);
+      sendSuccess(res, { recording_url: url });
+    } catch (e) {
+      next(e);
+    }
+  });
 });
 
 export { router as aiInterviewPublicRoutes };

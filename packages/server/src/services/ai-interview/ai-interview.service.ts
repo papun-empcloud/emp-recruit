@@ -419,6 +419,17 @@ async function loadByToken(token: string): Promise<AiInterviewRow> {
   return session;
 }
 
+/** Candidate (public): attach the recorded interview audio to the session. */
+export async function saveRecording(token: string, recordingUrl: string): Promise<void> {
+  const db = getDB();
+  const session = await loadByToken(token);
+  await db.update("ai_interviews", session.id, {
+    recording_url: recordingUrl,
+    updated_at: new Date(),
+  });
+  logger.info(`AI interview ${session.id} audio recording saved (${recordingUrl})`);
+}
+
 /** Candidate (public): current state of the interview. */
 export async function getPublicState(token: string) {
   const db = getDB();

@@ -585,13 +585,21 @@ export function OfferDetailPage() {
                 )}
               </div>
               {letterTemplates.length > 0 && (
-                <button
-                  onClick={() => selectedTemplateId && generateLetter.mutate(selectedTemplateId)}
-                  disabled={!selectedTemplateId || generateLetter.isPending}
-                  className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-                >
-                  {generateLetter.isPending ? t("offers.detail.generating") : t("offers.detail.generateLetter")}
-                </button>
+                <>
+                  <button
+                    onClick={() => selectedTemplateId && generateLetter.mutate(selectedTemplateId)}
+                    disabled={!selectedTemplateId || generateLetter.isPending}
+                    className="mt-4 w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    {generateLetter.isPending ? t("offers.detail.generating") : t("offers.detail.generateLetter")}
+                  </button>
+                  <Link
+                    to="/offers/letter-templates"
+                    className="mt-3 block text-center text-xs font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    {t("offers.detail.manageTemplates")}
+                  </Link>
+                </>
               )}
             </div>
           </div>

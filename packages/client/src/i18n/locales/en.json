@@ -1,6 +1,14 @@
 {
   "brand": "EMP Recruit",
   "nav": {
+    "groups": {
+      "overview": "Overview",
+      "jobs": "Jobs",
+      "people": "People",
+      "interviews": "Interviews",
+      "hiring": "Hiring",
+      "system": "System"
+    },
     "dashboard": "Dashboard",
     "jobPostings": "Job Postings",
     "candidates": "Candidates",
@@ -651,8 +659,10 @@
       "errorDurationMin": "Duration must be at least 15 minutes",
       "errorTimePast": "Interview time cannot be in the past",
       "title": "Schedule Interview",
+      "subtitle": "Set up an interview for a candidate's application.",
       "selectApplication": "Select Application",
       "searchCandidatePlaceholder": "Search by candidate name...",
+      "noApplicationsTitle": "No applications found",
       "noApplications": "No applications yet. Interviews are scheduled for a candidate's application to a specific job — add a candidate to a job posting (or wait for a public application) first.",
       "jobStage": "{{job}} - Stage: {{stage}}",
       "selectedLabel": "Selected:",
@@ -1119,6 +1129,7 @@
       "default": "Default",
       "generating": "Generating...",
       "generateLetter": "Generate Letter",
+      "manageTemplates": "Manage / edit templates",
       "offerLetterPreview": "Offer Letter Preview",
       "approvalWorkflow": "Approval Workflow",
       "approvalTerminalNotice": "This offer was {{status}} — the approval workflow no longer applies.",

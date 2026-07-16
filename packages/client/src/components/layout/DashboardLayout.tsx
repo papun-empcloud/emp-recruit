@@ -35,20 +35,53 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
-  { to: "/jobs", labelKey: "nav.jobPostings", icon: Briefcase, adminOnly: true },
-  { to: "/candidates", labelKey: "nav.candidates", icon: Users, adminOnly: true },
-  { to: "/applications", labelKey: "nav.applications", icon: Inbox, adminOnly: true },
-  { to: "/interviews", labelKey: "nav.interviews", icon: Calendar, adminOnly: true },
-  { to: "/offers", labelKey: "nav.offers", icon: FileText, adminOnly: true },
-  { to: "/onboarding", labelKey: "nav.onboarding", icon: ClipboardList, adminOnly: true },
-  { to: "/scoring", labelKey: "nav.aiScoring", icon: Brain, adminOnly: true },
-  { to: "/ai-interviews", labelKey: "nav.aiInterviews", icon: Mic, adminOnly: true },
-  { to: "/referrals", labelKey: "nav.referrals", icon: Gift },
-  { to: "/analytics", labelKey: "nav.analytics", icon: BarChart3, adminOnly: true },
-  { to: "/career-page", labelKey: "nav.careerPage", icon: Globe, adminOnly: true },
-  { to: "/settings", labelKey: "nav.settings", icon: Settings, adminOnly: true },
+interface NavGroup {
+  titleKey?: string; // section header translation key; omitted for the top group
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    titleKey: "nav.groups.overview",
+    items: [
+      { to: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
+      { to: "/analytics", labelKey: "nav.analytics", icon: BarChart3, adminOnly: true },
+    ],
+  },
+  {
+    titleKey: "nav.groups.jobs",
+    items: [
+      { to: "/jobs", labelKey: "nav.jobPostings", icon: Briefcase, adminOnly: true },
+      { to: "/career-page", labelKey: "nav.careerPage", icon: Globe, adminOnly: true },
+    ],
+  },
+  {
+    titleKey: "nav.groups.people",
+    items: [
+      { to: "/candidates", labelKey: "nav.candidates", icon: Users, adminOnly: true },
+      { to: "/applications", labelKey: "nav.applications", icon: Inbox, adminOnly: true },
+      { to: "/referrals", labelKey: "nav.referrals", icon: Gift },
+    ],
+  },
+  {
+    titleKey: "nav.groups.interviews",
+    items: [
+      { to: "/interviews", labelKey: "nav.interviews", icon: Calendar, adminOnly: true },
+      { to: "/ai-interviews", labelKey: "nav.aiInterviews", icon: Mic, adminOnly: true },
+      { to: "/scoring", labelKey: "nav.aiScoring", icon: Brain, adminOnly: true },
+    ],
+  },
+  {
+    titleKey: "nav.groups.hiring",
+    items: [
+      { to: "/offers", labelKey: "nav.offers", icon: FileText, adminOnly: true },
+      { to: "/onboarding", labelKey: "nav.onboarding", icon: ClipboardList, adminOnly: true },
+    ],
+  },
+  {
+    titleKey: "nav.groups.system",
+    items: [{ to: "/settings", labelKey: "nav.settings", icon: Settings, adminOnly: true }],
+  },
 ];
 
 export function DashboardLayout() {
@@ -81,27 +114,39 @@ export function DashboardLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {NAV_ITEMS.filter((item) => {
-            if (item.adminOnly && !isAdminRole(user?.role)) return false;
-            return true;
-          }).map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              {t(item.labelKey)}
-            </NavLink>
-          ))}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+          {NAV_GROUPS.map((group) => {
+            const items = group.items.filter(
+              (item) => !(item.adminOnly && !isAdminRole(user?.role)),
+            );
+            if (items.length === 0) return null;
+            return (
+              <div key={group.titleKey ?? "top"} className="space-y-1">
+                {group.titleKey && (
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    {t(group.titleKey)}
+                  </p>
+                )}
+                {items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-brand-50 text-brand-700"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                      )
+                    }
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {t(item.labelKey)}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* User card */}
