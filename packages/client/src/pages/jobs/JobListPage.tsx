@@ -6,11 +6,27 @@ import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight } from "lucide-rea
 import { apiPatch } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
 import toast from "react-hot-toast";
+
+const range = (min: number | null | undefined, max: number | null | undefined) =>
+  min == null && max == null ? "" : `${min ?? ""}–${max ?? ""}`;
+
+const JOB_COLUMNS: ExportColumn<JobPosting>[] = [
+  { header: "Title", value: (j) => j.title },
+  { header: "Department", value: (j) => j.department },
+  { header: "Location", value: (j) => j.location },
+  { header: "Type", value: (j) => j.employment_type },
+  { header: "Status", value: (j) => j.status },
+  { header: "Experience", value: (j) => range(j.experience_min, j.experience_max) },
+  { header: "Salary", value: (j) => range(j.salary_min, j.salary_max) },
+  { header: "Created", value: (j) => (j.created_at ? formatDate(j.created_at) : "") },
+];
 
 const STATUS_TABS = [
   { labelKey: "jobs.list.tabs.all", value: "" },
@@ -72,13 +88,22 @@ export function JobListPage() {
             {t("jobs.list.totalCount", { count: total })}
           </p>
         </div>
-        <Link
-          to="/jobs/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          {t("jobs.list.createJob")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="jobs"
+            title="Job Postings"
+            subtitle={`${total} job${total !== 1 ? "s" : ""}${statusFilter ? ` (${statusFilter})` : ""}`}
+            columns={JOB_COLUMNS}
+            fetchRows={() => fetchAllRows<JobPosting>("/jobs", { status: statusFilter, search: searchTerm })}
+          />
+          <Link
+            to="/jobs/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            {t("jobs.list.createJob")}
+          </Link>
+        </div>
       </div>
 
       {/* Status tabs */}

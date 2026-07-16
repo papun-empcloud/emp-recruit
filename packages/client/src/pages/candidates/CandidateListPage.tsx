@@ -4,9 +4,23 @@ import { Plus, Search, Users, ChevronRight, Mail, Building2, Clock } from "lucid
 import { useTranslation } from "react-i18next";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { Candidate } from "@emp-recruit/shared";
 import { formatDate } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
+
+const CANDIDATE_COLUMNS: ExportColumn<Candidate>[] = [
+  { header: "First Name", value: (c) => c.first_name },
+  { header: "Last Name", value: (c) => c.last_name },
+  { header: "Email", value: (c) => c.email },
+  { header: "Phone", value: (c) => c.phone },
+  { header: "Current Company", value: (c) => c.current_company },
+  { header: "Current Title", value: (c) => c.current_title },
+  { header: "Experience (yrs)", value: (c) => c.experience_years },
+  { header: "Source", value: (c) => c.source },
+  { header: "Added", value: (c) => (c.created_at ? formatDate(c.created_at) : "") },
+];
 
 const SOURCE_BADGE: Record<string, string> = {
   direct: "bg-gray-100 text-gray-700",
@@ -59,13 +73,22 @@ export function CandidateListPage() {
             {t("candidates.list.subtitle", { count: total })}
           </p>
         </div>
-        <Link
-          to="/candidates/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          {t("candidates.list.addCandidate")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="candidates"
+            title="Candidates"
+            subtitle={searchTerm ? `Search: "${searchTerm}"` : `${total} candidates`}
+            columns={CANDIDATE_COLUMNS}
+            fetchRows={() => fetchAllRows<Candidate>("/candidates", { search: searchTerm })}
+          />
+          <Link
+            to="/candidates/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            {t("candidates.list.addCandidate")}
+          </Link>
+        </div>
       </div>
 
       {/* Search */}

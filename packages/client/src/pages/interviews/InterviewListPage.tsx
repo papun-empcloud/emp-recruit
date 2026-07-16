@@ -7,6 +7,8 @@ import { cn, formatDate, formatTime } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { InterviewStatus, InterviewType } from "@emp-recruit/shared";
 
 interface InterviewRow {
@@ -22,6 +24,18 @@ interface InterviewRow {
   job_title: string;
   panelist_count: number;
 }
+
+const INTERVIEW_COLUMNS: ExportColumn<InterviewRow>[] = [
+  { header: "Candidate", value: (i) => i.candidate_name },
+  { header: "Job", value: (i) => i.job_title },
+  { header: "Title", value: (i) => i.title },
+  { header: "Type", value: (i) => i.type },
+  { header: "Round", value: (i) => i.round },
+  { header: "Scheduled", value: (i) => (i.scheduled_at ? formatDate(i.scheduled_at) : "") },
+  { header: "Duration (min)", value: (i) => i.duration_minutes },
+  { header: "Status", value: (i) => i.status },
+  { header: "Panelists", value: (i) => i.panelist_count },
+];
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-800",
@@ -90,13 +104,22 @@ export function InterviewListPage() {
             {t("interviews.list.subtitle")}
           </p>
         </div>
-        <Link
-          to="/interviews/schedule"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          {t("interviews.list.scheduleInterview")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="interviews"
+            title="Interviews"
+            subtitle={`${total} interview${total !== 1 ? "s" : ""}${statusFilter ? ` (${statusFilter.replace("_", " ")})` : ""}`}
+            columns={INTERVIEW_COLUMNS}
+            fetchRows={() => fetchAllRows<InterviewRow>("/interviews", { status: statusFilter, search })}
+          />
+          <Link
+            to="/interviews/schedule"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            {t("interviews.list.scheduleInterview")}
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

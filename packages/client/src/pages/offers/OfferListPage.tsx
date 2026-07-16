@@ -9,11 +9,14 @@ import {
   Send,
   AlertCircle,
   Search,
+  Eye,
 } from "lucide-react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { formatDate, formatCurrency as formatCurrencyShared } from "@/lib/utils";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { useTranslation } from "react-i18next";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { Offer } from "@emp-recruit/shared";
 
 type EnrichedOffer = Offer & { candidate_name: string; job_title_display: string };
@@ -58,6 +61,18 @@ function formatCurrency(amount: number, currency: string) {
   return formatCurrencyShared(amount / 100, currency || "INR");
 }
 
+const OFFER_COLUMNS: ExportColumn<EnrichedOffer>[] = [
+  { header: "Candidate", value: (o) => o.candidate_name },
+  { header: "Job", value: (o) => o.job_title_display },
+  { header: "Department", value: (o) => (o as any).department ?? "" },
+  {
+    header: "Salary",
+    value: (o) => (o.salary_amount != null ? formatCurrency(o.salary_amount, o.salary_currency) : ""),
+  },
+  { header: "Status", value: (o) => o.status },
+  { header: "Created", value: (o) => (o.created_at ? formatDate(o.created_at) : "") },
+];
+
 export function OfferListPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -89,13 +104,27 @@ export function OfferListPage() {
           <h1 className="text-2xl font-bold text-gray-900">{t("offers.list.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">{t("offers.list.subtitle")}</p>
         </div>
-        <Link
-          to="/offers/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          {t("offers.list.newOffer")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="offers"
+            title="Offers"
+            subtitle={`${total} offer${total !== 1 ? "s" : ""}${activeTab !== "all" ? ` (${activeTab.replace("_", " ")})` : ""}`}
+            columns={OFFER_COLUMNS}
+            fetchRows={() =>
+              fetchAllRows<EnrichedOffer>("/offers", {
+                status: activeTab !== "all" ? activeTab : "",
+                search,
+              })
+            }
+          />
+          <Link
+            to="/offers/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            {t("offers.list.newOffer")}
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
@@ -156,6 +185,9 @@ export function OfferListPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colSalary")}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colStatus")}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colCreated")}</th>
+                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -180,6 +212,14 @@ export function OfferListPage() {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {formatDate(offer.created_at)}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                    <Link
+                      to={`/offers/${offer.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      <Eye className="h-4 w-4" /> View
+                    </Link>
                   </td>
                 </tr>
               ))}

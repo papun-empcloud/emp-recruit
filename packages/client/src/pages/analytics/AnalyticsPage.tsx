@@ -25,6 +25,8 @@ import { apiGet } from "@/api/client";
 import { useTranslation } from "react-i18next";
 import { enumLabel } from "@/lib/enums";
 import { activeLocale } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { printReport, downloadCsvSections, type ReportSection } from "@/lib/export";
 
 // The Analytics page intentionally does NOT repeat the Dashboard's entity counts
 // (open jobs / candidates / applications) or its pipeline-stage distribution.
@@ -78,6 +80,19 @@ function weekLabel(iso: string): string {
   return d.toLocaleDateString(activeLocale(), { day: "numeric", month: "short" });
 }
 
+// Theme-aware chart tooltip. Recharts' default tooltip uses inline styles (a
+// hardcoded white box) that the dark theme can't remap, so its text was almost
+// invisible in dark mode. Using Tailwind classes lets the theme recolor it.
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm">
+      <p className="font-medium text-gray-700">Week of {label}</p>
+      <p className="mt-0.5 text-brand-600">Applications: {payload[0].value}</p>
+    </div>
+  );
+}
+
 export function AnalyticsPage() {
   const { t } = useTranslation();
   const metricsQuery = useQuery({
@@ -105,6 +120,46 @@ export function AnalyticsPage() {
   const sourcesTotal = sources.reduce((sum, s) => sum + s.total, 0);
   const trendData = trend.map((t) => ({ label: weekLabel(t.weekStart), count: t.count }));
   const trendTotal = trend.reduce((sum, t) => sum + t.count, 0);
+
+  // Assemble the analytics data into report sections for CSV/PDF export.
+  function buildSections(): ReportSection[] {
+    const sections: ReportSection[] = [];
+    if (metrics) {
+      const metricRows: (string | number)[][] = [
+        ["Hire Rate", `${metrics.hireRate}%`],
+        ["Hired", metrics.hired],
+        ["Total Applications", metrics.totalApplications],
+        ["Offer Acceptance Rate", `${metrics.offers.acceptanceRate}%`],
+        ["Offers — Total", metrics.offers.total],
+        ["Offers — Accepted", metrics.offers.accepted],
+        ["Offers — Declined", metrics.offers.declined],
+        ["Offers — Pending", metrics.offers.pending],
+        ["Offers — Expired", metrics.offers.expired],
+      ];
+      if (timeToHire) {
+        metricRows.push(["Avg Time to Hire (days)", timeToHire.averageDays]);
+        metricRows.push(["Hires counted", timeToHire.hiredCount]);
+      }
+      sections.push({
+        heading: "Key Metrics",
+        columns: [{ header: "Metric" }, { header: "Value" }],
+        rows: metricRows,
+      });
+    }
+    sections.push({
+      heading: "Applications Trend (last 8 weeks)",
+      columns: [{ header: "Week Starting" }, { header: "Applications" }],
+      rows: trend.map((t) => [t.weekStart, t.count]),
+    });
+    sections.push({
+      heading: "Source Effectiveness",
+      columns: [{ header: "Source" }, { header: "Total" }, { header: "Hired" }, { header: "Hire Rate" }],
+      rows: sources.map((s) => [s.source, s.total, s.hired, `${s.hireRate}%`]),
+    });
+    return sections;
+  }
+
+  const anyLoaded = Boolean(metrics) || trend.length > 0 || sources.length > 0;
   const offerMax = metrics
     ? Math.max(
         metrics.offers.accepted,
@@ -117,11 +172,24 @@ export function AnalyticsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t("analytics.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {t("analytics.subtitle")}
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("analytics.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("analytics.subtitle")}
+          </p>
+        </div>
+        <ExportMenu
+          disabled={!anyLoaded}
+          onCsv={() => downloadCsvSections("recruitment-analytics", buildSections())}
+          onPdf={() =>
+            printReport({
+              title: "Recruitment Analytics",
+              subtitle: "Conversion rates, offer outcomes, hiring velocity, and source effectiveness.",
+              sections: buildSections(),
+            })
+          }
+        />
       </div>
 
       {/* KPI cards — analytical rates, not the Dashboard's entity counts */}
@@ -193,12 +261,7 @@ export function AnalyticsPage() {
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip
-                    cursor={{ fill: "rgba(99,102,241,0.06)" }}
-                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E5E7EB" }}
-                    labelFormatter={(l) => t("analytics.weekOf", { week: l })}
-                    formatter={(v: number) => [v, t("analytics.applications")]}
-                  />
+                  <Tooltip cursor={{ fill: "rgba(99,102,241,0.06)" }} content={<ChartTooltip />} />
                   <Bar dataKey="count" fill="#6366F1" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 </BarChart>
               </ResponsiveContainer>
