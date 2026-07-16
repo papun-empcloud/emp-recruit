@@ -11,6 +11,7 @@ import {
 import { apiGet, apiPost, apiPut, apiDelete } from "@/api/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 interface PipelineStage {
   id: string;
@@ -23,6 +24,7 @@ interface PipelineStage {
 }
 
 export function PipelineSettingsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", color: "#6B7280" });
@@ -39,41 +41,41 @@ export function PipelineSettingsPage() {
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => apiPost("/pipeline/stages", data),
     onSuccess: () => {
-      toast.success("Stage created");
+      toast.success(t("settings.pipeline.stageCreated"));
       queryClient.invalidateQueries({ queryKey: ["pipeline-stages"] });
       setShowCreate(false);
       setForm({ name: "", color: "#6B7280" });
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Failed to create stage"),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || t("settings.pipeline.createFailed")),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiDelete(`/pipeline/stages/${id}`),
     onSuccess: () => {
-      toast.success("Stage deleted");
+      toast.success(t("settings.pipeline.stageDeleted"));
       queryClient.invalidateQueries({ queryKey: ["pipeline-stages"] });
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Failed to delete stage"),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || t("settings.pipeline.deleteFailed")),
   });
 
   const reorderMutation = useMutation({
     mutationFn: (items: Array<{ id: string; sort_order: number }>) =>
       apiPut("/pipeline/stages/reorder", items),
     onSuccess: () => {
-      toast.success("Stages reordered");
+      toast.success(t("settings.pipeline.stagesReordered"));
       queryClient.invalidateQueries({ queryKey: ["pipeline-stages"] });
     },
-    onError: () => toast.error("Failed to reorder stages"),
+    onError: () => toast.error(t("settings.pipeline.reorderFailed")),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<PipelineStage> }) =>
       apiPut(`/pipeline/stages/${id}`, data),
     onSuccess: () => {
-      toast.success("Stage updated");
+      toast.success(t("settings.pipeline.stageUpdated"));
       queryClient.invalidateQueries({ queryKey: ["pipeline-stages"] });
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Failed to update stage"),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || t("settings.pipeline.updateFailed")),
   });
 
   const stages = stagesQuery.data || [];
@@ -124,9 +126,9 @@ export function PipelineSettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Pipeline Stages</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("settings.pipeline.heading")}</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Customize the stages in your recruitment pipeline. Drag to reorder.
+            {t("settings.pipeline.subtitle")}
           </p>
         </div>
         <button
@@ -134,28 +136,28 @@ export function PipelineSettingsPage() {
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showCreate ? "Cancel" : "Add Stage"}
+          {showCreate ? t("settings.pipeline.cancel") : t("settings.pipeline.addStage")}
         </button>
       </div>
 
       {/* Create form */}
       {showCreate && (
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-gray-900">Add Custom Stage</h3>
+          <h3 className="text-base font-semibold text-gray-900">{t("settings.pipeline.addCustomStage")}</h3>
           <form onSubmit={handleSubmit} className="mt-4 flex items-end gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Stage Name *</label>
+              <label className="block text-sm font-medium text-gray-700">{t("settings.pipeline.stageNameLabel")}</label>
               <input
                 type="text"
                 required
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Technical Test"
+                placeholder={t("settings.pipeline.stageNamePlaceholder")}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Color</label>
+              <label className="block text-sm font-medium text-gray-700">{t("settings.pipeline.colorLabel")}</label>
               <div className="mt-1 flex items-center gap-2">
                 <input
                   type="color"
@@ -177,7 +179,7 @@ export function PipelineSettingsPage() {
               className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {createMutation.isPending ? "Adding..." : "Add"}
+              {createMutation.isPending ? t("settings.pipeline.adding") : t("settings.pipeline.add")}
             </button>
           </form>
         </div>
@@ -212,7 +214,7 @@ export function PipelineSettingsPage() {
                 <span className="text-xs text-gray-400 font-mono">{stage.slug}</span>
                 {stage.is_default && (
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                    Default
+                    {t("settings.pipeline.default")}
                   </span>
                 )}
               </div>
@@ -228,7 +230,7 @@ export function PipelineSettingsPage() {
                 }
               }}
               className="h-8 w-10 cursor-pointer rounded border border-gray-200"
-              title="Change color"
+              title={t("settings.pipeline.changeColor")}
             />
 
             {!stage.is_default && (
@@ -236,7 +238,7 @@ export function PipelineSettingsPage() {
                 onClick={() => deleteMutation.mutate(stage.id)}
                 disabled={deleteMutation.isPending}
                 className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                title="Delete stage"
+                title={t("settings.pipeline.deleteStage")}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -248,7 +250,7 @@ export function PipelineSettingsPage() {
       {stages.length === 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <p className="text-sm text-gray-500">
-            Using default pipeline stages. Add a custom stage to start customizing.
+            {t("settings.pipeline.emptyState")}
           </p>
         </div>
       )}

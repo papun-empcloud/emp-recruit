@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Brain,
@@ -16,24 +17,24 @@ const RECOMMENDATION_CONFIG: Record<
   { label: string; className: string; description: string }
 > = {
   strong_match: {
-    label: "Strong Match",
+    label: "scoring.recommendation.strongMatch",
     className: "bg-green-100 text-green-800 border-green-200",
-    description: "This candidate is an excellent fit for the position.",
+    description: "scoring.report.strongMatchDesc",
   },
   good_match: {
-    label: "Good Match",
+    label: "scoring.recommendation.goodMatch",
     className: "bg-blue-100 text-blue-800 border-blue-200",
-    description: "This candidate is a solid fit with most requirements met.",
+    description: "scoring.report.goodMatchDesc",
   },
   partial_match: {
-    label: "Partial Match",
+    label: "scoring.recommendation.partialMatch",
     className: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    description: "This candidate meets some requirements but has gaps.",
+    description: "scoring.report.partialMatchDesc",
   },
   weak_match: {
-    label: "Weak Match",
+    label: "scoring.recommendation.weakMatch",
     className: "bg-red-100 text-red-800 border-red-200",
-    description: "This candidate does not meet most of the requirements.",
+    description: "scoring.report.weakMatchDesc",
   },
 };
 
@@ -46,6 +47,7 @@ function CircularProgress({
   size?: number;
   strokeWidth?: number;
 }) {
+  const { t } = useTranslation();
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (score / 100) * circumference;
@@ -92,7 +94,7 @@ function CircularProgress({
         <span className="text-4xl font-bold" style={{ color }}>
           {score}
         </span>
-        <span className="text-sm text-gray-500">out of 100</span>
+        <span className="text-sm text-gray-500">{t("scoring.report.outOf100")}</span>
       </div>
     </div>
   );
@@ -134,6 +136,7 @@ function ProgressBar({
 }
 
 export function ScoreReportPage() {
+  const { t } = useTranslation();
   const { appId } = useParams<{ appId: string }>();
   const navigate = useNavigate();
 
@@ -161,15 +164,15 @@ export function ScoreReportPage() {
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t("scoring.report.back")}
         </button>
         <div className="py-12 text-center">
           <Brain className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-3 text-gray-500">
-            No score report found for this application.
+            {t("scoring.report.notFound")}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            Score the candidate first from the job pipeline view.
+            {t("scoring.report.notFoundHint")}
           </p>
         </div>
       </div>
@@ -202,19 +205,19 @@ export function ScoreReportPage() {
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back
+        {t("scoring.report.back")}
       </button>
 
       {/* Page title */}
       <div className="flex items-center gap-3">
         <Brain className="h-7 w-7 text-purple-600" />
-        <h1 className="text-2xl font-bold text-gray-900">AI Score Report</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("scoring.report.title")}</h1>
       </div>
 
       {/* Overall Score */}
       <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-6">
-          Overall Match Score
+          {t("scoring.report.overallMatchScore")}
         </h2>
         <CircularProgress score={score.overall_score} />
 
@@ -227,9 +230,9 @@ export function ScoreReportPage() {
                 rec.className,
               )}
             >
-              {rec.label}
+              {t(rec.label)}
             </span>
-            <p className="mt-2 text-sm text-gray-500">{rec.description}</p>
+            <p className="mt-2 text-sm text-gray-500">{t(rec.description)}</p>
           </div>
         )}
       </div>
@@ -237,23 +240,23 @@ export function ScoreReportPage() {
       {/* Score Breakdown */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-6">
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-          Score Breakdown
+          {t("scoring.report.scoreBreakdown")}
         </h2>
 
         <ProgressBar
-          label="Skills Match"
+          label={t("scoring.report.skillsMatch")}
           value={score.skills_score}
           icon={<Target className="h-4 w-4 text-purple-500" />}
         />
 
         <ProgressBar
-          label="Experience Match"
+          label={t("scoring.report.experienceMatch")}
           value={score.experience_score}
           icon={<BarChart className="h-4 w-4 text-blue-500" />}
         />
 
         <p className="text-xs text-gray-400">
-          Overall = Skills (60%) + Experience (40%)
+          {t("scoring.report.formula")}
         </p>
       </div>
 
@@ -261,13 +264,13 @@ export function ScoreReportPage() {
       {(matchedSkills.length > 0 || missingSkills.length > 0) && (
         <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
-            Skills Analysis
+            {t("scoring.report.skillsAnalysis")}
           </h2>
 
           {matchedSkills.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-green-700 mb-2">
-                Matched Skills ({matchedSkills.length})
+                {t("scoring.report.matchedSkills", { num: matchedSkills.length })}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {matchedSkills.map((skill) => (
@@ -285,7 +288,7 @@ export function ScoreReportPage() {
           {missingSkills.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-red-700 mb-2">
-                Missing Skills ({missingSkills.length})
+                {t("scoring.report.missingSkills", { num: missingSkills.length })}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {missingSkills.map((skill) => (
@@ -304,7 +307,7 @@ export function ScoreReportPage() {
 
       {/* Meta info */}
       <div className="text-xs text-gray-400 text-center pb-4">
-        Scored at: {new Date(score.scored_at).toLocaleString()}
+        {t("scoring.report.scoredAt", { date: new Date(score.scored_at).toLocaleString() })}
       </div>
     </div>
   );

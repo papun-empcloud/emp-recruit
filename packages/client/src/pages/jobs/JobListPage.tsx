@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight } from "lucide-react";
@@ -10,6 +11,7 @@ import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import toast from "react-hot-toast";
 
 const range = (min: number | null | undefined, max: number | null | undefined) =>
@@ -27,12 +29,12 @@ const JOB_COLUMNS: ExportColumn<JobPosting>[] = [
 ];
 
 const STATUS_TABS = [
-  { label: "All", value: "" },
-  { label: "Draft", value: "draft" },
-  { label: "Open", value: "open" },
-  { label: "Paused", value: "paused" },
-  { label: "Closed", value: "closed" },
-  { label: "Filled", value: "filled" },
+  { labelKey: "jobs.list.tabs.all", value: "" },
+  { labelKey: "jobs.list.tabs.draft", value: "draft" },
+  { labelKey: "jobs.list.tabs.open", value: "open" },
+  { labelKey: "jobs.list.tabs.paused", value: "paused" },
+  { labelKey: "jobs.list.tabs.closed", value: "closed" },
+  { labelKey: "jobs.list.tabs.filled", value: "filled" },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
@@ -44,6 +46,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export function JobListPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = searchParams.get("status") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
@@ -61,10 +64,10 @@ export function JobListPage() {
 
   // Debounce the search box into the URL; changing the term resets to page 1.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (searchInput.trim() !== searchTerm) setFilter("search", searchInput.trim());
     }, 400);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
@@ -80,9 +83,9 @@ export function JobListPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Job Postings</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("jobs.list.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {total} job{total !== 1 ? "s" : ""} total
+            {t("jobs.list.totalCount", { count: total })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -98,7 +101,7 @@ export function JobListPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Create Job
+            {t("jobs.list.createJob")}
           </Link>
         </div>
       </div>
@@ -116,7 +119,7 @@ export function JobListPage() {
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
             )}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
@@ -128,7 +131,7 @@ export function JobListPage() {
           type="text"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search by title, department, or location..."
+          placeholder={t("jobs.list.searchPlaceholder")}
           className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
       </div>
@@ -141,14 +144,14 @@ export function JobListPage() {
       ) : jobs.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center">
           <Briefcase className="mx-auto h-10 w-10 text-gray-400" />
-          <p className="mt-2 text-sm font-medium text-gray-900">No jobs found</p>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new job posting.</p>
+          <p className="mt-2 text-sm font-medium text-gray-900">{t("jobs.list.emptyTitle")}</p>
+          <p className="mt-1 text-sm text-gray-500">{t("jobs.list.emptyDescription")}</p>
           <Link
             to="/jobs/new"
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
             <Plus className="h-4 w-4" />
-            Create Job
+            {t("jobs.list.createJob")}
           </Link>
         </div>
       ) : (
@@ -157,25 +160,25 @@ export function JobListPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Job Title
+                  {t("jobs.list.colTitle")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Department
+                  {t("jobs.list.colDepartment")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Location
+                  {t("jobs.list.colLocation")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Type
+                  {t("jobs.list.colType")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Visibility
+                  {t("jobs.list.colVisibility")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
+                  {t("jobs.list.colStatus")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Created
+                  {t("jobs.list.colCreated")}
                 </th>
                 <th className="px-6 py-3" />
               </tr>
@@ -201,10 +204,10 @@ export function JobListPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 capitalize">
                     {/* #32 — show remote policy next to employment type. */}
-                    <span className="block">{job.employment_type.replace(/_/g, " ")}</span>
+                    <span className="block">{enumLabel(t, "employmentType", job.employment_type)}</span>
                     {(job as any).remote_policy && (
                       <span className="mt-0.5 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 capitalize">
-                        {(job as any).remote_policy === "onsite" ? "On-site" : (job as any).remote_policy}
+                        {enumLabel(t, "remotePolicy", (job as any).remote_policy)}
                       </span>
                     )}
                   </td>
@@ -217,7 +220,7 @@ export function JobListPage() {
                           : "bg-green-100 text-green-800",
                       )}
                     >
-                      {(job as any).is_internal ? "Internal" : "Public"}
+                      {(job as any).is_internal ? t("jobs.list.internal") : t("jobs.list.public")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -227,7 +230,7 @@ export function JobListPage() {
                         STATUS_BADGE[job.status] ?? "bg-gray-100 text-gray-700",
                       )}
                     >
-                      {job.status}
+                      {enumLabel(t, "jobStatus", job.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(job.created_at)}</td>

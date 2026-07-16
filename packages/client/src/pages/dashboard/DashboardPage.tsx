@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   Briefcase,
@@ -23,13 +24,13 @@ import { cn, formatDate } from "@/lib/utils";
 // referral-focused dashboard instead of admin stat tiles that always read 0.
 const ADMIN_ROLES = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
 
-const STAGE_LABELS: Record<string, { label: string; color: string }> = {
-  applied: { label: "Applied", color: "from-blue-400 to-blue-500" },
-  screened: { label: "Screened", color: "from-indigo-400 to-indigo-500" },
-  interview: { label: "Interview", color: "from-purple-400 to-purple-500" },
-  offer: { label: "Offer", color: "from-amber-400 to-amber-500" },
-  hired: { label: "Hired", color: "from-green-400 to-green-500" },
-  rejected: { label: "Rejected", color: "from-red-400 to-red-500" },
+const STAGE_COLORS: Record<string, string> = {
+  applied: "from-blue-400 to-blue-500",
+  screened: "from-indigo-400 to-indigo-500",
+  interview: "from-purple-400 to-purple-500",
+  offer: "from-amber-400 to-amber-500",
+  hired: "from-green-400 to-green-500",
+  rejected: "from-red-400 to-red-500",
 };
 
 const STAGE_BADGE: Record<string, string> = {
@@ -51,6 +52,8 @@ export function DashboardPage() {
 // Admin / HR dashboard — recruiting overview
 // ---------------------------------------------------------------------------
 function AdminDashboard() {
+  const { t } = useTranslation();
+
   // Fetch open jobs count
   const { data: jobsData } = useQuery({
     queryKey: ["dashboard-jobs"],
@@ -120,28 +123,28 @@ function AdminDashboard() {
 
   const statCards = [
     {
-      label: "Open Jobs",
+      label: t("dashboard.stats.openJobs"),
       value: openJobsCount,
       icon: Briefcase,
       color: "bg-brand-50 text-brand-600",
       link: "/jobs?status=open",
     },
     {
-      label: "Total Candidates",
+      label: t("dashboard.stats.totalCandidates"),
       value: totalCandidates,
       icon: Users,
       color: "bg-purple-50 text-purple-600",
       link: "/candidates",
     },
     {
-      label: "Total Applications",
+      label: t("dashboard.stats.totalApplications"),
       value: totalApplications,
       icon: FileText,
       color: "bg-blue-50 text-blue-600",
       link: "/applications",
     },
     {
-      label: "Total Jobs",
+      label: t("dashboard.stats.totalJobs"),
       value: totalJobs,
       icon: TrendingUp,
       color: "bg-green-50 text-green-600",
@@ -152,8 +155,8 @@ function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">Recruitment overview and pipeline metrics.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t("dashboard.title")}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* Stat cards */}
@@ -180,19 +183,21 @@ function AdminDashboard() {
         {/* Pipeline Stage Distribution */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Pipeline Distribution</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.pipelineDistribution")}</h2>
             <span className="text-xs font-medium text-gray-400">
-              {Object.values(stageDistribution).reduce((a, b) => a + b, 0)} total
+              {t("dashboard.totalCount", {
+                count: Object.values(stageDistribution).reduce((a, b) => a + b, 0),
+              })}
             </span>
           </div>
           <div className="space-y-4">
-            {Object.entries(STAGE_LABELS).map(([key, { label, color }]) => {
+            {Object.entries(STAGE_COLORS).map(([key, color]) => {
               const count = stageDistribution[key] ?? 0;
               const percentage = maxStageCount > 0 ? (count / maxStageCount) * 100 : 0;
               return (
                 <div key={key}>
                   <div className="mb-1.5 flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700">{label}</span>
+                    <span className="font-medium text-gray-700">{t(`dashboard.stages.${key}`)}</span>
                     <span className="font-semibold text-gray-900">{count}</span>
                   </div>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -213,17 +218,17 @@ function AdminDashboard() {
         {/* Recent Applications */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Applications</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.recentApplications")}</h2>
             <Link
               to="/applications"
               className="text-sm text-brand-600 hover:text-brand-700 inline-flex items-center gap-1"
             >
-              View all <ChevronRight className="h-4 w-4" />
+              {t("dashboard.viewAll")} <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
 
           {recentApps.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-500">No applications yet.</p>
+            <p className="py-8 text-center text-sm text-gray-500">{t("dashboard.noApplications")}</p>
           ) : (
             <div className="space-y-3">
               {/* #28 — each row now links to the candidate's detail page.
@@ -253,7 +258,7 @@ function AdminDashboard() {
                         STAGE_BADGE[app.stage] ?? "bg-gray-100 text-gray-700",
                       )}
                     >
-                      {app.stage}
+                      {t(`dashboard.stages.${app.stage}`)}
                     </span>
                     <span className="text-xs text-gray-400 inline-flex items-center gap-1 whitespace-nowrap">
                       <Calendar className="h-3 w-3" />
@@ -292,8 +297,9 @@ const REF_STATUS_BADGE: Record<string, string> = {
 };
 
 function EmployeeDashboard() {
+  const { t } = useTranslation();
   const user = getUser();
-  const firstName = user?.firstName || "there";
+  const firstName = user?.firstName || t("dashboard.defaultName");
 
   const { data: refData, isLoading } = useQuery({
     queryKey: ["my-referrals"],
@@ -310,18 +316,18 @@ function EmployeeDashboard() {
   const rewarded = referrals.filter((r) => ["bonus_eligible", "bonus_paid"].includes(r.status)).length;
 
   const stats = [
-    { label: "My Referrals", value: total, icon: Gift, color: "bg-brand-50 text-brand-600" },
-    { label: "In Review", value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600" },
-    { label: "Hired", value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
-    { label: "Bonus", value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600" },
+    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600" },
+    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600" },
+    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
+    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600" },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Welcome, {firstName}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("dashboard.welcome", { name: firstName })}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Browse internal openings and refer great people to your team.
+          {t("dashboard.employeeSubtitle")}
         </p>
       </div>
 
@@ -352,8 +358,8 @@ function EmployeeDashboard() {
               <Gift className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Refer Someone</p>
-              <p className="text-xs text-gray-500">Recommend a candidate</p>
+              <p className="text-sm font-semibold text-gray-900">{t("dashboard.referSomeone")}</p>
+              <p className="text-xs text-gray-500">{t("dashboard.recommendCandidate")}</p>
             </div>
           </div>
           <ArrowUpRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-brand-500" />
@@ -363,24 +369,24 @@ function EmployeeDashboard() {
       {/* My recent referrals */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">My Referrals</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.myReferralsTitle")}</h2>
           <Link
             to="/referrals"
             className="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700"
           >
-            View all <ChevronRight className="h-4 w-4" />
+            {t("dashboard.viewAll")} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
 
         {isLoading ? (
-          <p className="py-8 text-center text-sm text-gray-400">Loading…</p>
+          <p className="py-8 text-center text-sm text-gray-400">{t("dashboard.loading")}</p>
         ) : referrals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Gift className="h-10 w-10 text-gray-300" />
             <p className="mt-3 text-sm text-gray-500">
-              You haven't referred anyone yet.{" "}
+              {t("dashboard.noReferralsYet")}{" "}
               <Link to="/referrals" className="font-medium text-brand-600 hover:text-brand-700">
-                Refer someone
+                {t("dashboard.referSomeoneLink")}
               </Link>
               .
             </p>
@@ -403,7 +409,7 @@ function EmployeeDashboard() {
                       REF_STATUS_BADGE[ref.status] ?? "bg-gray-100 text-gray-700",
                     )}
                   >
-                    {ref.status.replace(/_/g, " ")}
+                    {t(`dashboard.referralStatus.${ref.status}`)}
                   </span>
                   <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-gray-400">
                     <Calendar className="h-3 w-3" />

@@ -10,11 +10,13 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { JobPosting } from "@emp-recruit/shared";
 
 const PUBLIC_API = "/api/v1/public";
 
 export function CareerApplyPage() {
+  const { t } = useTranslation();
   const { slug, jobId } = useParams<{ slug: string; jobId: string }>();
   const navigate = useNavigate();
 
@@ -68,8 +70,8 @@ export function CareerApplyPage() {
       const msg =
         err.response?.data?.error?.message ||
         (isDuplicate
-          ? "You've already applied for this job with this email address."
-          : "Failed to submit application");
+          ? t("careers.apply.errorDuplicate")
+          : t("careers.apply.errorSubmit"));
       // Show it both as a toast and as a persistent inline banner so the
       // applicant always sees why nothing happened. (BUG-03)
       setSubmitError(msg);
@@ -110,11 +112,11 @@ export function CareerApplyPage() {
     if (!file) return;
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     if (!ALLOWED_RESUME_EXT.includes(ext)) {
-      toast.error("Only PDF, DOC, and DOCX resume files are allowed.");
+      toast.error(t("careers.apply.errorResumeType"));
       return;
     }
     if (file.size > MAX_RESUME_BYTES) {
-      toast.error("Resume file is too large (max 10MB).");
+      toast.error(t("careers.apply.errorResumeSize"));
       return;
     }
     setResume(file);
@@ -133,34 +135,34 @@ export function CareerApplyPage() {
     const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
     const salaryNegative = form.expected_salary !== "" && Number(form.expected_salary) < 0;
 
-    if (!form.first_name.trim()) next.first_name = "First name is required.";
-    if (!form.last_name.trim()) next.last_name = "Last name is required.";
-    if (!form.email.trim()) next.email = "Email is required.";
-    else if (emailInvalid) next.email = "Please enter a valid email address.";
-    if (phoneInvalid) next.phone = "Please enter a valid phone number.";
-    if (yearsNegative) next.experience_years = "Years of experience cannot be negative.";
-    if (salaryNegative) next.expected_salary = "Expected salary cannot be negative.";
+    if (!form.first_name.trim()) next.first_name = t("careers.apply.errorFirstNameRequired");
+    if (!form.last_name.trim()) next.last_name = t("careers.apply.errorLastNameRequired");
+    if (!form.email.trim()) next.email = t("careers.apply.errorEmailRequired");
+    else if (emailInvalid) next.email = t("careers.apply.errorEmailInvalid");
+    if (phoneInvalid) next.phone = t("careers.apply.errorPhoneInvalid");
+    if (yearsNegative) next.experience_years = t("careers.apply.errorYearsNegative");
+    if (salaryNegative) next.expected_salary = t("careers.apply.errorSalaryNegative");
     setErrors(next);
 
     // Keep the exact toast messages/priority the QA verified (CHK-01/02/03).
     if (!form.first_name.trim() || !form.last_name.trim() || !form.email.trim()) {
-      toast.error("Please fill in your name and email.");
+      toast.error(t("careers.apply.errorNameEmailRequired"));
       return;
     }
     if (emailInvalid) {
-      toast.error("Please enter a valid email address.");
+      toast.error(t("careers.apply.errorEmailInvalid"));
       return;
     }
     if (phoneInvalid) {
-      toast.error("Please enter a valid phone number.");
+      toast.error(t("careers.apply.errorPhoneInvalid"));
       return;
     }
     if (yearsNegative) {
-      toast.error("Years of experience cannot be negative.");
+      toast.error(t("careers.apply.errorYearsNegative"));
       return;
     }
     if (salaryNegative) {
-      toast.error("Expected salary cannot be negative.");
+      toast.error(t("careers.apply.errorSalaryNegative"));
       return;
     }
     setSubmitError(null);
@@ -185,14 +187,16 @@ export function CareerApplyPage() {
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to job details
+          {t("careers.apply.backToJob")}
         </Link>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-900">Apply for {job?.title || "Position"}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t("careers.apply.title", { title: job?.title || t("careers.apply.positionFallback") })}
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Fill in your details below. Fields marked with * are required.
+          {t("careers.apply.subtitle")}
         </p>
 
         <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-5">
@@ -200,7 +204,7 @@ export function CareerApplyPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
-                First Name *
+                {t("careers.apply.firstNameLabel")}
               </label>
               <input
                 id="first_name"
@@ -215,7 +219,7 @@ export function CareerApplyPage() {
             </div>
             <div>
               <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
-                Last Name *
+                {t("careers.apply.lastNameLabel")}
               </label>
               <input
                 id="last_name"
@@ -233,7 +237,7 @@ export function CareerApplyPage() {
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email Address *
+              {t("careers.apply.emailLabel")}
             </label>
             <input
               id="email"
@@ -250,7 +254,7 @@ export function CareerApplyPage() {
           {/* Phone */}
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Phone Number
+              {t("careers.apply.phoneLabel")}
             </label>
             <input
               id="phone"
@@ -265,7 +269,7 @@ export function CareerApplyPage() {
 
           {/* Resume upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Resume</label>
+            <label className="block text-sm font-medium text-gray-700">{t("careers.apply.resumeLabel")}</label>
             {resume ? (
               <div className="mt-1 flex items-center gap-3 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2">
                 <FileText className="h-5 w-5 text-brand-600" />
@@ -281,7 +285,7 @@ export function CareerApplyPage() {
             ) : (
               <label className="mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 py-6 text-sm text-gray-500 hover:border-brand-400 hover:text-brand-600">
                 <Upload className="h-5 w-5" />
-                <span>Upload resume (PDF, DOC, DOCX — max 10MB)</span>
+                <span>{t("careers.apply.uploadResume")}</span>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
@@ -295,7 +299,7 @@ export function CareerApplyPage() {
           {/* Cover letter */}
           <div>
             <label htmlFor="cover_letter" className="block text-sm font-medium text-gray-700">
-              Cover Letter
+              {t("careers.apply.coverLetterLabel")}
             </label>
             <textarea
               id="cover_letter"
@@ -303,7 +307,7 @@ export function CareerApplyPage() {
               rows={4}
               value={form.cover_letter}
               onChange={handleChange}
-              placeholder="Tell us why you're a great fit for this role..."
+              placeholder={t("careers.apply.coverLetterPlaceholder")}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -311,7 +315,7 @@ export function CareerApplyPage() {
           {/* Current company */}
           <div>
             <label htmlFor="current_company" className="block text-sm font-medium text-gray-700">
-              Current Company
+              {t("careers.apply.currentCompanyLabel")}
             </label>
             <input
               id="current_company"
@@ -327,7 +331,7 @@ export function CareerApplyPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="experience_years" className="block text-sm font-medium text-gray-700">
-                Years of Experience
+                {t("careers.apply.experienceLabel")}
               </label>
               <input
                 id="experience_years"
@@ -345,7 +349,7 @@ export function CareerApplyPage() {
             </div>
             <div>
               <label htmlFor="expected_salary" className="block text-sm font-medium text-gray-700">
-                Expected Salary (annual)
+                {t("careers.apply.salaryLabel")}
               </label>
               <input
                 id="expected_salary"
@@ -373,7 +377,7 @@ export function CareerApplyPage() {
             disabled={applyMutation.isPending}
             className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            {applyMutation.isPending ? "Submitting..." : "Submit Application"}
+            {applyMutation.isPending ? t("careers.apply.submitting") : t("careers.apply.submit")}
           </button>
         </form>
       </div>

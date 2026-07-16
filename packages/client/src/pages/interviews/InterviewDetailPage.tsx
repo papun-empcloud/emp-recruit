@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { enumLabel } from "@/lib/enums";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,7 +32,7 @@ import toast from "react-hot-toast";
 import { api, apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AiAnalysisCard } from "@/components/AiAnalysisCard";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatTime } from "@/lib/utils";
 import { useAuthStore } from "@/lib/auth-store";
 import type {
   Interview,
@@ -103,16 +105,7 @@ const RECOMMENDATION_ICONS: Record<string, typeof ThumbsUp> = {
   strong_no: ThumbsDown,
 };
 
-function formatTime(dateStr: string): string {
-  return new Intl.DateTimeFormat("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(dateStr));
-}
-
-function formatFileSize(bytes: number | null): string {
-  if (!bytes) return "Unknown size";
+function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -146,6 +139,7 @@ function InlineFeedbackForm({
   interviewId: string;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [recommendation, setRecommendation] = useState<Recommendation | "">("");
   const [overallScore, setOverallScore] = useState(0);
   const [technicalScore, setTechnicalScore] = useState(0);
@@ -214,21 +208,21 @@ function InlineFeedbackForm({
       }}
       className="space-y-5 rounded-lg border border-brand-200 bg-brand-50/30 p-6"
     >
-      <h3 className="text-lg font-semibold text-gray-900">Submit Your Feedback</h3>
+      <h3 className="text-lg font-semibold text-gray-900">{t("interviews.detail.submitYourFeedback")}</h3>
 
       {/* Recommendation */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Recommendation <span className="text-red-500">*</span>
+          {t("interviews.detail.recommendation")} <span className="text-red-500">*</span>
         </label>
         <div className="flex flex-wrap gap-2">
           {(
             [
-              { value: "strong_yes", label: "Strong Yes" },
-              { value: "yes", label: "Yes" },
-              { value: "neutral", label: "Neutral" },
-              { value: "no", label: "No" },
-              { value: "strong_no", label: "Strong No" },
+              { value: "strong_yes", label: t("interviews.detail.recStrongYes") },
+              { value: "yes", label: t("interviews.detail.recYes") },
+              { value: "neutral", label: t("interviews.detail.recNeutral") },
+              { value: "no", label: t("interviews.detail.recNo") },
+              { value: "strong_no", label: t("interviews.detail.recStrongNo") },
             ] as { value: Recommendation; label: string }[]
           ).map((opt) => (
             <button
@@ -250,15 +244,15 @@ function InlineFeedbackForm({
 
       {/* Scores */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ScoreSelector label="Overall" value={overallScore} onChange={setOverallScore} />
-        <ScoreSelector label="Technical" value={technicalScore} onChange={setTechnicalScore} />
+        <ScoreSelector label={t("interviews.detail.overall")} value={overallScore} onChange={setOverallScore} />
+        <ScoreSelector label={t("interviews.detail.technical")} value={technicalScore} onChange={setTechnicalScore} />
         <ScoreSelector
-          label="Communication"
+          label={t("interviews.detail.communication")}
           value={communicationScore}
           onChange={setCommunicationScore}
         />
         <ScoreSelector
-          label="Cultural Fit"
+          label={t("interviews.detail.culturalFit")}
           value={culturalFitScore}
           onChange={setCulturalFitScore}
         />
@@ -267,41 +261,41 @@ function InlineFeedbackForm({
       {/* Text areas */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.detail.strengths")}</label>
           <textarea
             value={strengths}
             onChange={(e) => setStrengths(e.target.value)}
             rows={3}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Key strengths observed..."
+            placeholder={t("interviews.detail.strengthsPlaceholder")}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Weaknesses</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.detail.weaknesses")}</label>
           <textarea
             value={weaknesses}
             onChange={(e) => setWeaknesses(e.target.value)}
             rows={3}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Areas of concern..."
+            placeholder={t("interviews.detail.weaknessesPlaceholder")}
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.detail.additionalNotes")}</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          placeholder="Any other observations..."
+          placeholder={t("interviews.detail.notesPlaceholder")}
         />
       </div>
 
       {mutation.isError && (
         <p className="text-sm text-red-600">
-          {(mutation.error as any)?.response?.data?.error?.message || "Failed to submit feedback."}
+          {(mutation.error as any)?.response?.data?.error?.message || t("interviews.detail.submitFeedbackError")}
         </p>
       )}
 
@@ -310,7 +304,7 @@ function InlineFeedbackForm({
         disabled={!recommendation || mutation.isPending}
         className="inline-flex items-center rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {mutation.isPending ? "Submitting..." : "Submit Feedback"}
+        {mutation.isPending ? t("interviews.detail.submitting") : t("interviews.detail.submitFeedback")}
       </button>
     </form>
   );
@@ -320,6 +314,7 @@ function InlineFeedbackForm({
 // Meeting Link Section
 // ---------------------------------------------------------------------------
 function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [invitationSent, setInvitationSent] = useState(false);
@@ -355,7 +350,7 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Video className="h-5 w-5 text-gray-400" /> Meeting
+          <Video className="h-5 w-5 text-gray-400" /> {t("interviews.detail.meeting")}
         </h3>
         {interview.meeting_provider && (
           <span className="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
@@ -366,17 +361,17 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
 
       {!interview.meeting_link ? (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-gray-500">No meeting link has been generated yet.</p>
+          <p className="text-sm text-gray-500">{t("interviews.detail.noMeetingLink")}</p>
           <button
             onClick={() => generateMeetMutation.mutate()}
             disabled={generateMeetMutation.isPending}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             <LinkIcon className="h-4 w-4" />
-            {generateMeetMutation.isPending ? "Generating..." : "Generate Meeting Link"}
+            {generateMeetMutation.isPending ? t("interviews.detail.generating") : t("interviews.detail.generateMeetingLink")}
           </button>
           {generateMeetMutation.isError && (
-            <p className="text-sm text-red-600">Failed to generate link.</p>
+            <p className="text-sm text-red-600">{t("interviews.detail.generateLinkError")}</p>
           )}
         </div>
       ) : (
@@ -389,7 +384,7 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 transition-colors"
               >
                 <Video className="h-4 w-4" />
-                Join Room
+                {t("interviews.detail.joinRoom")}
               </Link>
             )}
             <a
@@ -408,7 +403,7 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
               ) : (
                 <Video className="h-4 w-4" />
               )}
-              {interview.meeting_embeddable ? "Open externally" : "Join Meeting"}
+              {interview.meeting_embeddable ? t("interviews.detail.openExternally") : t("interviews.detail.joinMeeting")}
             </a>
             <a
               href={interview.meeting_link}
@@ -425,11 +420,11 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
             >
               {copied ? (
                 <>
-                  <CheckCircle className="h-3.5 w-3.5 text-green-600" /> Copied
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600" /> {t("interviews.detail.copied")}
                 </>
               ) : (
                 <>
-                  <Copy className="h-3.5 w-3.5" /> Copy Link
+                  <Copy className="h-3.5 w-3.5" /> {t("interviews.detail.copyLink")}
                 </>
               )}
             </button>
@@ -439,20 +434,20 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
               className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               <Mail className="h-3.5 w-3.5" />
-              {sendInvitationMutation.isPending ? "Sending..." : "Send Invitation"}
+              {sendInvitationMutation.isPending ? t("interviews.detail.sending") : t("interviews.detail.sendInvitation")}
             </button>
           </div>
 
           {invitationSent && (
             <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 px-3 py-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <p className="text-sm text-green-800">Invitation sent successfully to candidate and panelists.</p>
+              <p className="text-sm text-green-800">{t("interviews.detail.invitationSent")}</p>
             </div>
           )}
 
           {sendInvitationMutation.isError && (
             <p className="text-sm text-red-600">
-              {(sendInvitationMutation.error as any)?.response?.data?.error?.message || "Failed to send invitation."}
+              {(sendInvitationMutation.error as any)?.response?.data?.error?.message || t("interviews.detail.sendInvitationError")}
             </p>
           )}
         </div>
@@ -465,6 +460,7 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
 // Calendar Links Section
 // ---------------------------------------------------------------------------
 function CalendarLinksSection({ interviewId }: { interviewId: string }) {
+  const { t } = useTranslation();
   const { data: calendarLinks, isLoading } = useQuery({
     queryKey: ["calendar-links", interviewId],
     queryFn: async () => {
@@ -480,7 +476,7 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-        <Calendar className="h-5 w-5 text-gray-400" /> Add to Calendar
+        <Calendar className="h-5 w-5 text-gray-400" /> {t("interviews.detail.addToCalendar")}
       </h3>
       <div className="flex flex-wrap gap-2">
         <a
@@ -490,7 +486,7 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors"
         >
           <Calendar className="h-4 w-4" />
-          Google Calendar
+          {t("interviews.detail.googleCalendar")}
         </a>
         <a
           href={calendarLinks.outlook}
@@ -499,7 +495,7 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-800 hover:bg-blue-100 transition-colors"
         >
           <Calendar className="h-4 w-4" />
-          Outlook
+          {t("interviews.detail.outlook")}
         </a>
         <a
           href={calendarLinks.office365}
@@ -508,7 +504,7 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100 transition-colors"
         >
           <Calendar className="h-4 w-4" />
-          Office 365
+          {t("interviews.detail.office365")}
         </a>
         <a
           href={`/api/v1/interviews/${interviewId}/calendar.ics`}
@@ -516,7 +512,7 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
         >
           <Download className="h-4 w-4" />
-          Download .ics
+          {t("interviews.detail.downloadIcs")}
         </a>
       </div>
     </div>
@@ -536,6 +532,7 @@ function recordingFileUrl(interviewId: string, recId: string): string {
 }
 
 function RecordingSection({ interviewId }: { interviewId: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -621,7 +618,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Mic className="h-5 w-5 text-gray-400" /> Recordings ({recordings.length})
+          <Mic className="h-5 w-5 text-gray-400" /> {t("interviews.detail.recordings")} ({recordings.length})
         </h3>
         <div>
           <input
@@ -637,7 +634,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             <Upload className="h-4 w-4" />
-            {uploadMutation.isPending ? "Uploading..." : "Upload Recording"}
+            {uploadMutation.isPending ? t("interviews.detail.uploading") : t("interviews.detail.uploadRecording")}
           </button>
         </div>
       </div>
@@ -646,7 +643,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
       {uploadProgress !== null && (
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-            <span>Uploading...</span>
+            <span>{t("interviews.detail.uploading")}</span>
             <span>{uploadProgress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -660,12 +657,12 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
 
       {uploadMutation.isError && (
         <p className="text-sm text-red-600 mb-3">
-          {(uploadMutation.error as any)?.response?.data?.error?.message || "Failed to upload recording."}
+          {(uploadMutation.error as any)?.response?.data?.error?.message || t("interviews.detail.uploadRecordingError")}
         </p>
       )}
 
       {recordings.length === 0 && uploadProgress === null && (
-        <p className="text-sm text-gray-500">No recordings uploaded yet.</p>
+        <p className="text-sm text-gray-500">{t("interviews.detail.noRecordings")}</p>
       )}
 
       {recordings.length > 0 && (
@@ -689,7 +686,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
                     <div>
                       <p className="text-sm font-medium text-gray-900 truncate max-w-xs">{fileName}</p>
                       <p className="text-xs text-gray-500">
-                        {formatFileSize(rec.file_size)}
+                        {rec.file_size ? formatFileSize(rec.file_size) : t("interviews.detail.unknownSize")}
                         {rec.duration_seconds ? ` \u00b7 ${Math.floor(rec.duration_seconds / 60)}m ${rec.duration_seconds % 60}s` : ""}
                         {" \u00b7 "}
                         {formatDate(rec.uploaded_at)}
@@ -698,16 +695,16 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
                         <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium">
                           {transcript.status === "processing" && (
                             <span className="inline-flex items-center gap-1 text-yellow-700">
-                              <Loader2 className="h-3 w-3 animate-spin" /> Transcribing\u2026
+                              <Loader2 className="h-3 w-3 animate-spin" /> {t("interviews.detail.transcribing")}
                             </span>
                           )}
                           {transcript.status === "completed" && (
                             <span className="inline-flex items-center gap-1 text-green-700">
-                              <CheckCircle className="h-3 w-3" /> Transcript ready
+                              <CheckCircle className="h-3 w-3" /> {t("interviews.detail.transcriptReady")}
                             </span>
                           )}
                           {transcript.status === "failed" && (
-                            <span className="text-red-600">Transcription failed \u2014 retry below</span>
+                            <span className="text-red-600">{t("interviews.detail.transcriptionFailed")}</span>
                           )}
                         </span>
                       )}
@@ -719,13 +716,13 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
                       className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       {isOpen ? <X className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                      {isOpen ? "Close" : "Preview"}
+                      {isOpen ? t("interviews.detail.close") : t("interviews.detail.preview")}
                     </button>
                     <a
                       href={fileUrl}
                       download={fileName}
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-600 hover:bg-gray-50 transition-colors"
-                      title="Download recording"
+                      title={t("interviews.detail.downloadRecording")}
                     >
                       <Download className="h-3.5 w-3.5" />
                     </a>
@@ -735,7 +732,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
                       className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                     >
                       <FileText className="h-3.5 w-3.5" />
-                      {transcribeMutation.isPending ? "Generating..." : "Generate Transcript"}
+                      {transcribeMutation.isPending ? t("interviews.detail.generating") : t("interviews.detail.generateTranscript")}
                     </button>
                     <button
                       onClick={() => setRecToDelete(rec.id)}
@@ -775,10 +772,10 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
       <ConfirmDialog
         open={recToDelete !== null}
         variant="danger"
-        title="Delete this recording?"
-        message="This permanently removes the recording (and any transcript generated from it). This cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("interviews.detail.deleteRecordingTitle")}
+        message={t("interviews.detail.deleteRecordingMessage")}
+        confirmLabel={t("interviews.detail.delete")}
+        cancelLabel={t("interviews.detail.cancel")}
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (recToDelete) {
@@ -795,6 +792,7 @@ function RecordingSection({ interviewId }: { interviewId: string }) {
 // Transcript Section
 // ---------------------------------------------------------------------------
 function TranscriptSection({ interviewId }: { interviewId: string }) {
+  const { t } = useTranslation();
   const { data: transcript } = useQuery({
     queryKey: ["transcript", interviewId],
     queryFn: async () => {
@@ -809,18 +807,18 @@ function TranscriptSection({ interviewId }: { interviewId: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-        <FileText className="h-5 w-5 text-gray-400" /> Transcript
+        <FileText className="h-5 w-5 text-gray-400" /> {t("interviews.detail.transcript")}
       </h3>
 
       {!transcript ? (
         <p className="text-sm text-gray-500">
-          Upload a recording — the transcript is generated automatically and appears here.
+          {t("interviews.detail.transcriptEmpty")}
         </p>
       ) : transcript.status === "processing" ? (
         <div className="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3">
           <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
           <p className="text-sm text-yellow-800">
-            Transcribing your recording… this appears here automatically when it's done.
+            {t("interviews.detail.transcriptProcessing")}
           </p>
         </div>
       ) : (
@@ -846,7 +844,7 @@ function TranscriptSection({ interviewId }: { interviewId: string }) {
 
           {transcript.generated_at && (
             <p className="text-xs text-gray-400">
-              Generated {formatDate(transcript.generated_at)}
+              {t("interviews.detail.generatedAt", { date: formatDate(transcript.generated_at) })}
             </p>
           )}
 
@@ -862,6 +860,7 @@ function TranscriptSection({ interviewId }: { interviewId: string }) {
 // Summary (HR notes) — standalone card
 // ---------------------------------------------------------------------------
 function InterviewSummaryCard({ interview }: { interview: InterviewDetail }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [summary, setSummary] = useState<string>(interview.summary || "");
   const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
@@ -880,14 +879,14 @@ function InterviewSummaryCard({ interview }: { interview: InterviewDetail }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
-        <FileText className="h-5 w-5 text-gray-400" /> Summary (HR notes)
+        <FileText className="h-5 w-5 text-gray-400" /> {t("interviews.detail.summaryTitle")}
       </h3>
       <textarea
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
         rows={4}
         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        placeholder="Add HR notes about this interview…"
+        placeholder={t("interviews.detail.summaryPlaceholder")}
       />
       <div className="mt-2 flex items-center gap-3">
         <button
@@ -895,15 +894,15 @@ function InterviewSummaryCard({ interview }: { interview: InterviewDetail }) {
           disabled={saveSummaryMutation.isPending}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 disabled:opacity-50 transition-colors"
         >
-          {saveSummaryMutation.isPending ? "Saving..." : "Save Summary"}
+          {saveSummaryMutation.isPending ? t("interviews.detail.saving") : t("interviews.detail.saveSummary")}
         </button>
         {saveSummarySuccess && (
           <span className="flex items-center gap-1 text-sm text-green-600">
-            <CheckCircle className="h-4 w-4" /> Saved
+            <CheckCircle className="h-4 w-4" /> {t("interviews.detail.saved")}
           </span>
         )}
         {saveSummaryMutation.isError && (
-          <span className="text-sm text-red-600">Failed to save summary.</span>
+          <span className="text-sm text-red-600">{t("interviews.detail.saveSummaryError")}</span>
         )}
       </div>
     </div>
@@ -914,6 +913,7 @@ function InterviewSummaryCard({ interview }: { interview: InterviewDetail }) {
 // Main page
 // ---------------------------------------------------------------------------
 export function InterviewDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -958,26 +958,26 @@ export function InterviewDetailPage() {
       setShowAddPanelist(false);
       setPanelistUserId("");
       setPanelistRole("interviewer");
-      toast.success("Panelist added");
+      toast.success(t("interviews.detail.panelistAdded"));
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error?.message || "Failed to add panelist"),
+      toast.error(err?.response?.data?.error?.message || t("interviews.detail.addPanelistError")),
   });
 
   const removePanelistMutation = useMutation({
     mutationFn: (userId: number) => apiDelete(`/interviews/${id}/panelists/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["interview", id] });
-      toast.success("Panelist removed");
+      toast.success(t("interviews.detail.panelistRemoved"));
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.error?.message || "Failed to remove panelist"),
+      toast.error(err?.response?.data?.error?.message || t("interviews.detail.removePanelistError")),
   });
 
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-500">
-        Loading interview details...
+        {t("interviews.detail.loading")}
       </div>
     );
   }
@@ -985,7 +985,7 @@ export function InterviewDetailPage() {
   if (isError || !interview) {
     return (
       <div className="flex h-64 items-center justify-center text-red-500">
-        Failed to load interview details.
+        {t("interviews.detail.loadError")}
       </div>
     );
   }
@@ -1012,7 +1012,7 @@ export function InterviewDetailPage() {
           onClick={() => navigate("/interviews")}
           className="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Interviews
+          <ArrowLeft className="h-4 w-4" /> {t("interviews.detail.backToInterviews")}
         </button>
         <div className="flex items-start justify-between">
           <div>
@@ -1027,7 +1027,7 @@ export function InterviewDetailPage() {
               STATUS_COLORS[interview.status] || "bg-gray-100 text-gray-800",
             )}
           >
-            {interview.status.replace("_", " ")}
+            {enumLabel(t, "interviewStatus", interview.status)}
           </span>
         </div>
       </div>
@@ -1036,22 +1036,22 @@ export function InterviewDetailPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Calendar className="h-4 w-4" /> Schedule
+            <Calendar className="h-4 w-4" /> {t("interviews.detail.schedule")}
           </div>
           <p className="text-sm font-medium text-gray-900">{formatDate(interview.scheduled_at)}</p>
           <p className="text-xs text-gray-500">{formatTime(interview.scheduled_at)}</p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Clock className="h-4 w-4" /> Duration
+            <Clock className="h-4 w-4" /> {t("interviews.detail.duration")}
           </div>
-          <p className="text-sm font-medium text-gray-900">{interview.duration_minutes} minutes</p>
-          <p className="text-xs text-gray-500 capitalize">{interview.type} &middot; Round {interview.round}</p>
+          <p className="text-sm font-medium text-gray-900">{t("interviews.detail.durationMinutes", { minutes: interview.duration_minutes })}</p>
+          <p className="text-xs text-gray-500 capitalize">{interview.type} &middot; {t("interviews.detail.round", { round: interview.round })}</p>
         </div>
         {interview.location && (
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <MapPin className="h-4 w-4" /> Location
+              <MapPin className="h-4 w-4" /> {t("interviews.detail.location")}
             </div>
             <p className="text-sm font-medium text-gray-900">{interview.location}</p>
           </div>
@@ -1059,7 +1059,7 @@ export function InterviewDetailPage() {
         {interview.meeting_link && (
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <ExternalLink className="h-4 w-4" /> Meeting Link
+              <ExternalLink className="h-4 w-4" /> {t("interviews.detail.meetingLink")}
             </div>
             {interview.meeting_embeddable ? (
               /* Embedded providers (Jitsi/LiveKit): join in-app. */
@@ -1067,7 +1067,7 @@ export function InterviewDetailPage() {
                 to={`/interviews/${interview.id}/room`}
                 className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800"
               >
-                <Video className="h-4 w-4" /> Join Room
+                <Video className="h-4 w-4" /> {t("interviews.detail.joinRoom")}
               </Link>
             ) : (
               <a
@@ -1076,7 +1076,7 @@ export function InterviewDetailPage() {
                 rel="noopener noreferrer"
                 className="text-sm font-medium text-brand-600 hover:text-brand-800 break-all"
               >
-                Join Meeting
+                {t("interviews.detail.joinMeeting")}
               </a>
             )}
           </div>
@@ -1086,7 +1086,7 @@ export function InterviewDetailPage() {
       {/* Status actions */}
       {interview.status !== "completed" && interview.status !== "cancelled" && (
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">Change status:</span>
+          <span className="text-sm text-gray-500">{t("interviews.detail.changeStatus")}</span>
           {(["in_progress", "completed", "cancelled", "no_show"] as InterviewStatus[])
             .filter((s) => s !== interview.status)
             .map((status) => (
@@ -1111,7 +1111,7 @@ export function InterviewDetailPage() {
       {/* Notes */}
       {interview.notes && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-1">Notes</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-1">{t("interviews.detail.notes")}</h3>
           <p className="text-sm text-gray-600 whitespace-pre-wrap">{interview.notes}</p>
         </div>
       )}
@@ -1120,14 +1120,14 @@ export function InterviewDetailPage() {
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Users className="h-5 w-5 text-gray-400" /> Panelists ({interview.panelists.length})
+            <Users className="h-5 w-5 text-gray-400" /> {t("interviews.detail.panelists")} ({interview.panelists.length})
           </h2>
           {!showAddPanelist && (
             <button
               onClick={() => setShowAddPanelist(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-100"
             >
-              <UserPlus className="h-4 w-4" /> Add Panelist
+              <UserPlus className="h-4 w-4" /> {t("interviews.detail.addPanelist")}
             </button>
           )}
         </div>
@@ -1136,13 +1136,13 @@ export function InterviewDetailPage() {
           <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
-                <label className="mb-1 block text-xs font-medium text-gray-500">Team member</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500">{t("interviews.detail.teamMember")}</label>
                 <select
                   value={panelistUserId}
                   onChange={(e) => setPanelistUserId(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="">Select a person…</option>
+                  <option value="">{t("interviews.detail.selectPerson")}</option>
                   {availablePanelistUsers.map((u) => (
                     <option key={u.id} value={u.id}>
                       {`${u.first_name} ${u.last_name}`.trim() || u.email}
@@ -1151,22 +1151,22 @@ export function InterviewDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500">Role</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500">{t("interviews.detail.role")}</label>
                 <select
                   value={panelistRole}
                   onChange={(e) => setPanelistRole(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-40"
                 >
-                  <option value="interviewer">Interviewer</option>
-                  <option value="lead">Lead</option>
-                  <option value="observer">Observer</option>
+                  <option value="interviewer">{t("interviews.detail.roleInterviewer")}</option>
+                  <option value="lead">{t("interviews.detail.roleLead")}</option>
+                  <option value="observer">{t("interviews.detail.roleObserver")}</option>
                 </select>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     if (!panelistUserId) {
-                      toast.error("Select a team member");
+                      toast.error(t("interviews.detail.selectTeamMember"));
                       return;
                     }
                     addPanelistMutation.mutate({ user_id: Number(panelistUserId), role: panelistRole });
@@ -1174,7 +1174,7 @@ export function InterviewDetailPage() {
                   disabled={addPanelistMutation.isPending}
                   className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {addPanelistMutation.isPending ? "Adding…" : "Add"}
+                  {addPanelistMutation.isPending ? t("interviews.detail.adding") : t("interviews.detail.add")}
                 </button>
                 <button
                   onClick={() => {
@@ -1183,19 +1183,19 @@ export function InterviewDetailPage() {
                   }}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t("interviews.detail.cancel")}
                 </button>
               </div>
             </div>
             {availablePanelistUsers.length === 0 && (
-              <p className="mt-2 text-xs text-gray-400">Everyone in your organization is already on the panel.</p>
+              <p className="mt-2 text-xs text-gray-400">{t("interviews.detail.everyoneOnPanel")}</p>
             )}
           </div>
         )}
 
         <div className="divide-y divide-gray-100">
           {interview.panelists.length === 0 && (
-            <p className="px-6 py-4 text-sm text-gray-500">No panelists assigned yet.</p>
+            <p className="px-6 py-4 text-sm text-gray-500">{t("interviews.detail.noPanelists")}</p>
           )}
           {interview.panelists.map((panelist) => {
             const fb = interview.feedback.find((f) => f.panelist_id === panelist.user_id);
@@ -1222,17 +1222,17 @@ export function InterviewDetailPage() {
                 <div className="flex items-center gap-3">
                   {fb ? (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                      Feedback submitted
+                      {t("interviews.detail.feedbackSubmitted")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                      Pending
+                      {t("interviews.detail.pending")}
                     </span>
                   )}
                   <button
                     onClick={() => removePanelistMutation.mutate(panelist.user_id)}
                     disabled={removePanelistMutation.isPending}
-                    title="Remove panelist"
+                    title={t("interviews.detail.removePanelist")}
                     className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
@@ -1262,7 +1262,7 @@ export function InterviewDetailPage() {
       {interview.feedback.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            Submitted Feedback ({interview.feedback.length})
+            {t("interviews.detail.submittedFeedback")} ({interview.feedback.length})
           </h2>
           {interview.feedback.map((fb) => {
             const RecIcon = RECOMMENDATION_ICONS[fb.recommendation] || Star;
@@ -1277,7 +1277,7 @@ export function InterviewDetailPage() {
                       {fb.panelist_id}
                     </div>
                     <span className="text-sm font-medium text-gray-900">
-                      Panelist #{fb.panelist_id}
+                      {t("interviews.detail.panelistNumber", { id: fb.panelist_id })}
                     </span>
                   </div>
                   <span
@@ -1295,25 +1295,25 @@ export function InterviewDetailPage() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {fb.overall_score != null && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-0.5">Overall</p>
+                      <p className="text-xs text-gray-500 mb-0.5">{t("interviews.detail.overall")}</p>
                       <StarRating value={fb.overall_score} />
                     </div>
                   )}
                   {fb.technical_score != null && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-0.5">Technical</p>
+                      <p className="text-xs text-gray-500 mb-0.5">{t("interviews.detail.technical")}</p>
                       <StarRating value={fb.technical_score} />
                     </div>
                   )}
                   {fb.communication_score != null && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-0.5">Communication</p>
+                      <p className="text-xs text-gray-500 mb-0.5">{t("interviews.detail.communication")}</p>
                       <StarRating value={fb.communication_score} />
                     </div>
                   )}
                   {fb.cultural_fit_score != null && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-0.5">Cultural Fit</p>
+                      <p className="text-xs text-gray-500 mb-0.5">{t("interviews.detail.culturalFit")}</p>
                       <StarRating value={fb.cultural_fit_score} />
                     </div>
                   )}
@@ -1323,13 +1323,13 @@ export function InterviewDetailPage() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {fb.strengths && (
                     <div>
-                      <p className="text-xs font-medium text-green-700 mb-0.5">Strengths</p>
+                      <p className="text-xs font-medium text-green-700 mb-0.5">{t("interviews.detail.strengths")}</p>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">{fb.strengths}</p>
                     </div>
                   )}
                   {fb.weaknesses && (
                     <div>
-                      <p className="text-xs font-medium text-red-700 mb-0.5">Weaknesses</p>
+                      <p className="text-xs font-medium text-red-700 mb-0.5">{t("interviews.detail.weaknesses")}</p>
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">{fb.weaknesses}</p>
                     </div>
                   )}
@@ -1337,13 +1337,13 @@ export function InterviewDetailPage() {
 
                 {fb.notes && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-0.5">Notes</p>
+                    <p className="text-xs font-medium text-gray-500 mb-0.5">{t("interviews.detail.notes")}</p>
                     <p className="text-sm text-gray-600 whitespace-pre-wrap">{fb.notes}</p>
                   </div>
                 )}
 
                 <p className="text-xs text-gray-400">
-                  Submitted {formatDate(fb.submitted_at)}
+                  {t("interviews.detail.submittedAt", { date: formatDate(fb.submitted_at) })}
                 </p>
               </div>
             );
@@ -1358,7 +1358,7 @@ export function InterviewDetailPage() {
             to={`/interviews/${interview.id}/feedback`}
             className="text-sm text-brand-600 hover:text-brand-800 font-medium"
           >
-            Open full feedback form in a new page
+            {t("interviews.detail.openFullFeedbackForm")}
           </Link>
         </div>
       )}

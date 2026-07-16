@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   X,
   Upload,
@@ -114,9 +116,12 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
-function rowsFromCsv(text: string): { rows: ParsedRow[]; headerError: string | null } {
+function rowsFromCsv(
+  text: string,
+  t: TFunction,
+): { rows: ParsedRow[]; headerError: string | null } {
   const table = parseCsv(text).filter((r) => r.some((c) => c.trim() !== ""));
-  if (table.length === 0) return { rows: [], headerError: "The file is empty." };
+  if (table.length === 0) return { rows: [], headerError: t("components.bulkUpload.errFileEmpty") };
 
   const headers = table[0].map(normalizeHeader);
   const col = (name: string) => headers.indexOf(name);
@@ -135,8 +140,7 @@ function rowsFromCsv(text: string): { rows: ParsedRow[]; headerError: string | n
   if (ci.first_name === -1 || ci.last_name === -1 || ci.email === -1) {
     return {
       rows: [],
-      headerError:
-        "CSV must include first_name, last_name and email columns. Download the template for the expected format.",
+      headerError: t("components.bulkUpload.errMissingColumns"),
     };
   }
 
@@ -152,9 +156,9 @@ function rowsFromCsv(text: string): { rows: ParsedRow[]; headerError: string | n
       .filter(Boolean);
 
     let error: string | null = null;
-    if (!first_name || !last_name) error = "Missing first or last name";
-    else if (!email) error = "Missing email";
-    else if (!EMAIL_RE.test(email)) error = "Invalid email";
+    if (!first_name || !last_name) error = t("components.bulkUpload.errMissingName");
+    else if (!email) error = t("components.bulkUpload.errMissingEmail");
+    else if (!EMAIL_RE.test(email)) error = t("components.bulkUpload.errInvalidEmail");
 
     return {
       index: i + 1,
@@ -175,6 +179,7 @@ function rowsFromCsv(text: string): { rows: ParsedRow[]; headerError: string | n
 }
 
 export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUploadModalProps) {
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
@@ -215,7 +220,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
-      const { rows, headerError } = rowsFromCsv(String(reader.result || ""));
+      const { rows, headerError } = rowsFromCsv(String(reader.result || ""), t);
       setRows(rows);
       setHeaderError(headerError);
     };
@@ -265,7 +270,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
         skipped: 0,
         failed: validRows.map((r) => ({
           name: `${r.first_name} ${r.last_name}`,
-          reason: errMsg(err),
+          reason: errMsg(err, t),
         })),
       });
     }
@@ -278,7 +283,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
       onClick={close}
       role="dialog"
       aria-modal="true"
-      aria-label="Bulk upload candidates"
+      aria-label={t("components.bulkUpload.ariaLabel")}
     >
       <div
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl"
@@ -288,13 +293,13 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-brand-600" />
-            <h3 className="text-base font-semibold text-gray-900">Bulk Upload Candidates</h3>
+            <h3 className="text-base font-semibold text-gray-900">{t("components.bulkUpload.title")}</h3>
           </div>
           <button
             onClick={close}
             disabled={importing}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-            aria-label="Close"
+            aria-label={t("components.bulkUpload.close")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -308,22 +313,25 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
               {(() => {
                 const added = results.createdNew + results.linkedExisting;
                 const bits: string[] = [];
-                if (results.createdNew) bits.push(`${results.createdNew} new`);
-                if (results.linkedExisting) bits.push(`${results.linkedExisting} existing`);
+                if (results.createdNew)
+                  bits.push(t("components.bulkUpload.bitNew", { count: results.createdNew }));
+                if (results.linkedExisting)
+                  bits.push(t("components.bulkUpload.bitExisting", { count: results.linkedExisting }));
                 return (
                   <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
                     <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-green-600" />
                     <div>
                       <p className="text-sm font-medium text-green-800">
-                        {added} candidate{added !== 1 ? "s" : ""} added to this job
+                        {t("components.bulkUpload.resultAdded", { count: added })}
                         {bits.length ? ` (${bits.join(", ")})` : ""}.
                       </p>
                       {(results.skipped > 0 || results.failed.length > 0) && (
                         <p className="text-xs text-green-700">
-                          {results.skipped > 0 && `${results.skipped} already applied`}
+                          {results.skipped > 0 &&
+                            t("components.bulkUpload.skippedApplied", { count: results.skipped })}
                           {results.skipped > 0 && results.failed.length > 0 && " · "}
                           {results.failed.length > 0 &&
-                            `${results.failed.length} could not be imported`}
+                            t("components.bulkUpload.failedCount", { count: results.failed.length })}
                         </p>
                       )}
                     </div>
@@ -334,7 +342,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
               {results.failed.length > 0 && (
                 <div className="rounded-lg border border-gray-200">
                   <div className="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Failed rows
+                    {t("components.bulkUpload.failedRows")}
                   </div>
                   <ul className="max-h-56 divide-y divide-gray-100 overflow-y-auto">
                     {results.failed.map((f, i) => (
@@ -355,19 +363,18 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
               {/* Instructions + template */}
               <div className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                 <p className="text-sm text-gray-600">
-                  Upload a CSV with columns{" "}
+                  {t("components.bulkUpload.columnsPrefix")}{" "}
                   <code className="rounded bg-gray-200 px-1 text-xs">first_name</code>,{" "}
                   <code className="rounded bg-gray-200 px-1 text-xs">last_name</code>,{" "}
-                  <code className="rounded bg-gray-200 px-1 text-xs">email</code> (required) plus
-                  optional phone, current_title, current_company, experience_years, source and
-                  skills.
+                  <code className="rounded bg-gray-200 px-1 text-xs">email</code>{" "}
+                  {t("components.bulkUpload.columnsSuffix")}
                 </p>
                 <button
                   onClick={downloadTemplate}
                   className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   <Download className="h-4 w-4" />
-                  Template
+                  {t("components.bulkUpload.template")}
                 </button>
               </div>
 
@@ -381,15 +388,15 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
                   <>
                     <FileText className="h-8 w-8 text-brand-500" />
                     <span className="text-sm font-medium text-gray-700">{fileName}</span>
-                    <span className="text-xs text-gray-400">Click to choose a different file</span>
+                    <span className="text-xs text-gray-400">{t("components.bulkUpload.changeFile")}</span>
                   </>
                 ) : (
                   <>
                     <Upload className="h-8 w-8 text-gray-400" />
                     <span className="text-sm font-medium text-gray-700">
-                      Click to select a CSV file
+                      {t("components.bulkUpload.selectFile")}
                     </span>
-                    <span className="text-xs text-gray-400">.csv up to a few hundred rows</span>
+                    <span className="text-xs text-gray-400">{t("components.bulkUpload.fileHint")}</span>
                   </>
                 )}
               </button>
@@ -416,12 +423,16 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
                 <div>
                   <div className="mb-2 flex items-center justify-between text-sm">
                     <span className="font-medium text-gray-700">
-                      Preview — {validRows.length} of {rows.length} row
-                      {rows.length !== 1 ? "s" : ""} ready
+                      {t("components.bulkUpload.previewReady", {
+                        valid: validRows.length,
+                        count: rows.length,
+                      })}
                     </span>
                     {rows.length - validRows.length > 0 && (
                       <span className="text-xs text-red-600">
-                        {rows.length - validRows.length} row(s) will be skipped
+                        {t("components.bulkUpload.rowsSkipped", {
+                          count: rows.length - validRows.length,
+                        })}
                       </span>
                     )}
                   </div>
@@ -429,10 +440,10 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
                     <table className="w-full text-left text-sm">
                       <thead className="sticky top-0 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                         <tr>
-                          <th className="px-3 py-2 font-medium">Name</th>
-                          <th className="px-3 py-2 font-medium">Email</th>
-                          <th className="px-3 py-2 font-medium">Title</th>
-                          <th className="px-3 py-2 font-medium">Status</th>
+                          <th className="px-3 py-2 font-medium">{t("components.bulkUpload.colName")}</th>
+                          <th className="px-3 py-2 font-medium">{t("components.bulkUpload.colEmail")}</th>
+                          <th className="px-3 py-2 font-medium">{t("components.bulkUpload.colTitle")}</th>
+                          <th className="px-3 py-2 font-medium">{t("components.bulkUpload.colStatus")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -452,7 +463,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
                               ) : (
                                 <span className="inline-flex items-center gap-1 text-xs text-green-600">
                                   <CheckCircle2 className="h-3.5 w-3.5" />
-                                  Ready
+                                  {t("components.bulkUpload.ready")}
                                 </span>
                               )}
                             </td>
@@ -473,7 +484,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
             {importing && (
               <span className="inline-flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Importing {validRows.length} candidate{validRows.length !== 1 ? "s" : ""}…
+                {t("components.bulkUpload.importingCount", { count: validRows.length })}
               </span>
             )}
           </div>
@@ -483,7 +494,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
               disabled={importing}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              {results ? "Done" : "Cancel"}
+              {results ? t("components.bulkUpload.done") : t("components.bulkUpload.cancel")}
             </button>
             {!results && (
               <button
@@ -496,8 +507,7 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                Import {validRows.length > 0 ? validRows.length : ""} candidate
-                {validRows.length !== 1 ? "s" : ""}
+                {t("components.bulkUpload.importBtn", { count: validRows.length })}
               </button>
             )}
           </div>
@@ -507,11 +517,11 @@ export function BulkUploadModal({ jobId, open, onClose, onImported }: BulkUpload
   );
 }
 
-function errMsg(err: any): string {
+function errMsg(err: any, t: TFunction): string {
   return (
     err?.response?.data?.error?.message ||
     err?.response?.data?.message ||
     err?.message ||
-    "Unknown error"
+    t("components.bulkUpload.unknownError")
   );
 }

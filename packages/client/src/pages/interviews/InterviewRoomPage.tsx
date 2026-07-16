@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -32,6 +33,7 @@ interface RoomToken {
 // and mounts the Jitsi IFrame API into a full-height container.
 // ---------------------------------------------------------------------------
 export function InterviewRoomPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -72,7 +74,7 @@ export function InterviewRoomPage() {
       setRec("done");
     } catch {
       setRec("error");
-      setRecMsg("Failed to upload the recording.");
+      setRecMsg(t("interviews.room.uploadFailed"));
     }
   };
   finishRef.current = finishRecording;
@@ -86,7 +88,7 @@ export function InterviewRoomPage() {
       setRec("recording");
     } catch {
       setRec("idle");
-      setRecMsg("Recording didn't start — screen share was cancelled.");
+      setRecMsg(t("interviews.room.recordCancelled"));
     }
   };
 
@@ -113,14 +115,14 @@ export function InterviewRoomPage() {
       const name = (err as DOMException)?.name;
       setRecMsg(
         name === "NotAllowedError"
-          ? "Screen-share was blocked or dismissed. Click “Join & record” again, choose “This Tab”, and press Share."
-          : "Couldn't start recording in this browser. Use Chrome or Edge — or choose “Join without recording”.",
+          ? t("interviews.room.screenShareBlocked")
+          : t("interviews.room.recordUnsupported"),
       );
     }
   };
 
   // Interview title for the header (best-effort; failure doesn't block joining).
-  const [title, setTitle] = useState<string>("Interview Room");
+  const [title, setTitle] = useState<string>(t("interviews.room.defaultTitle"));
   useEffect(() => {
     let active = true;
     apiGet<Interview & { title: string }>(`/interviews/${id}`)
@@ -142,7 +144,7 @@ export function InterviewRoomPage() {
         setStatus("loading");
         const res = await apiPost<RoomToken>(`/interviews/${id}/meeting-token`);
         const room = res.data;
-        if (!room) throw new Error("No meeting credentials returned");
+        if (!room) throw new Error(t("interviews.room.noCredentials"));
 
         // For JaaS the appId is the first segment of the namespaced room name.
         const appId = room.domain.includes("8x8.vc")
@@ -153,7 +155,9 @@ export function InterviewRoomPage() {
         if (disposed || !containerRef.current) return;
 
         const displayName =
-          `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || user?.email || "Interviewer";
+          `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+          user?.email ||
+          t("interviews.room.defaultDisplayName");
 
         const jitsi = new JitsiMeetExternalAPI(room.domain, {
           roomName: room.roomName,
@@ -194,7 +198,7 @@ export function InterviewRoomPage() {
           (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
             ?.message ||
           (err as Error)?.message ||
-          "Failed to join the interview room.";
+          t("interviews.room.joinFailed");
         setErrorMsg(msg);
         setStatus("error");
       }
@@ -222,7 +226,7 @@ export function InterviewRoomPage() {
             onClick={() => navigate(`/interviews/${id}`)}
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Interview
+            <ArrowLeft className="h-4 w-4" /> {t("interviews.room.backToInterview")}
           </button>
           <span className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-gray-900">
             <Video className="h-4 w-4 text-brand-600" /> {title}
@@ -237,33 +241,33 @@ export function InterviewRoomPage() {
                 onClick={() => void beginRecording()}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 font-medium text-white hover:bg-red-700"
               >
-                <CircleDot className="h-4 w-4" /> Start recording
+                <CircleDot className="h-4 w-4" /> {t("interviews.room.startRecording")}
               </button>
             )}
             {rec === "recording" && (
               <>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 font-medium text-red-700">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" /> Recording
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" /> {t("interviews.room.recording")}
                 </span>
                 <button
                   onClick={() => void finishRecording()}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  <StopCircle className="h-4 w-4" /> Stop &amp; upload
+                  <StopCircle className="h-4 w-4" /> {t("interviews.room.stopUpload")}
                 </button>
               </>
             )}
             {rec === "uploading" && (
               <span className="inline-flex items-center gap-1.5 text-gray-600">
-                <Loader2 className="h-4 w-4 animate-spin" /> Uploading…
+                <Loader2 className="h-4 w-4 animate-spin" /> {t("interviews.room.uploading")}
               </span>
             )}
             {rec === "done" && (
               <span className="inline-flex items-center gap-1.5 text-green-600">
-                <CheckCircle className="h-4 w-4" /> Uploaded · analyzing
+                <CheckCircle className="h-4 w-4" /> {t("interviews.room.uploadedAnalyzing")}
               </span>
             )}
-            {rec === "error" && <span className="text-red-600">{recMsg || "Recording error"}</span>}
+            {rec === "error" && <span className="text-red-600">{recMsg || t("interviews.room.recordingError")}</span>}
           </div>
         )}
       </div>
@@ -277,11 +281,9 @@ export function InterviewRoomPage() {
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-gray-900/95 px-6 text-center text-white">
             <Video className="h-10 w-10 text-brand-400" />
             <div>
-              <p className="text-lg font-semibold">Ready to join</p>
+              <p className="text-lg font-semibold">{t("interviews.room.readyToJoin")}</p>
               <p className="mx-auto mt-1 max-w-sm text-sm text-gray-300">
-                Recording starts automatically when you join. When prompted, choose{" "}
-                <b>“This Tab”</b> and allow audio so the interview is captured for the transcript
-                &amp; AI analysis.
+                <Trans i18nKey="interviews.room.prejoinInfo" components={{ b: <b /> }} />
               </p>
             </div>
             <div className="flex flex-col items-center gap-2">
@@ -289,13 +291,13 @@ export function InterviewRoomPage() {
                 onClick={() => void handleJoin(true)}
                 className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold hover:bg-red-700"
               >
-                <CircleDot className="h-4 w-4" /> Join &amp; record interview
+                <CircleDot className="h-4 w-4" /> {t("interviews.room.joinRecord")}
               </button>
               <button
                 onClick={() => void handleJoin(false)}
                 className="text-xs text-gray-400 hover:text-gray-200"
               >
-                Join without recording
+                {t("interviews.room.joinWithoutRecording")}
               </button>
             </div>
             {recMsg && <p className="text-xs text-red-300">{recMsg}</p>}
@@ -306,13 +308,13 @@ export function InterviewRoomPage() {
         {status === "joined" && rec === "idle" && (
           <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/70 px-4 py-2 text-sm text-white shadow-lg backdrop-blur">
             <span className="hidden sm:inline">
-              Record this interview for an automatic transcript &amp; AI analysis
+              {t("interviews.room.autoRecordPrompt")}
             </span>
             <button
               onClick={() => void beginRecording()}
               className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 font-medium hover:bg-red-700"
             >
-              <CircleDot className="h-4 w-4" /> Start
+              <CircleDot className="h-4 w-4" /> {t("interviews.room.start")}
             </button>
           </div>
         )}
@@ -327,7 +329,7 @@ export function InterviewRoomPage() {
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/75 text-white">
             <Loader2 className="h-8 w-8 animate-spin" />
             <p className="max-w-sm text-center text-sm">
-              Uploading recording… the transcript and AI analysis will run automatically.
+              {t("interviews.room.uploadOverlay")}
             </p>
           </div>
         )}
@@ -335,7 +337,7 @@ export function InterviewRoomPage() {
         {joinRequested && status === "loading" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-300">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <p className="text-sm">Connecting to the interview room…</p>
+            <p className="text-sm">{t("interviews.room.connecting")}</p>
           </div>
         )}
 
@@ -347,7 +349,7 @@ export function InterviewRoomPage() {
               onClick={() => navigate(`/interviews/${id}`)}
               className="mt-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
             >
-              Back to interview
+              {t("interviews.room.backToInterviewLower")}
             </button>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   User,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { api } from "@/api/client";
+import { formatDate } from "@/lib/utils";
 import type { OnboardingChecklist, OnboardingTask, OnboardingStatus } from "@emp-recruit/shared";
 
 interface ChecklistDetail extends OnboardingChecklist {
@@ -23,9 +25,9 @@ interface ChecklistDetail extends OnboardingChecklist {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  not_started: { label: "Not Started", className: "bg-gray-100 text-gray-700" },
-  in_progress: { label: "In Progress", className: "bg-blue-100 text-blue-700" },
-  completed: { label: "Completed", className: "bg-green-100 text-green-700" },
+  not_started: { label: "onboarding.status.notStarted", className: "bg-gray-100 text-gray-700" },
+  in_progress: { label: "onboarding.status.inProgress", className: "bg-blue-100 text-blue-700" },
+  completed: { label: "onboarding.status.completed", className: "bg-green-100 text-green-700" },
 };
 
 const TASK_STATUS_ICON: Record<string, { icon: typeof Circle; className: string }> = {
@@ -33,15 +35,6 @@ const TASK_STATUS_ICON: Record<string, { icon: typeof Circle; className: string 
   in_progress: { icon: Clock, className: "text-blue-500" },
   completed: { icon: CheckCircle2, className: "text-green-500" },
 };
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "---";
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 function isOverdue(dueDate: string | null, status: string) {
   if (!dueDate || status === "completed") return false;
@@ -75,6 +68,7 @@ function groupTasksByCategory(tasks: OnboardingTask[]): Record<string, Onboardin
 }
 
 export function OnboardingDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -119,9 +113,9 @@ export function OnboardingDetailPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center">
         <AlertCircle className="h-12 w-12 text-red-400" />
-        <h3 className="mt-4 text-sm font-medium text-gray-900">Checklist not found</h3>
+        <h3 className="mt-4 text-sm font-medium text-gray-900">{t("onboarding.detail.notFound")}</h3>
         <Link to="/onboarding" className="mt-2 text-sm text-brand-600 hover:underline">
-          Back to onboarding
+          {t("onboarding.detail.backToOnboarding")}
         </Link>
       </div>
     );
@@ -139,9 +133,9 @@ export function OnboardingDetailPage() {
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Onboarding Checklist</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("onboarding.detail.title")}</h1>
             <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${sConfig.className}`}>
-              {sConfig.label}
+              {t(sConfig.label)}
             </span>
           </div>
         </div>
@@ -154,7 +148,7 @@ export function OnboardingDetailPage() {
             <User className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase text-gray-500">Candidate</p>
+            <p className="text-xs font-medium uppercase text-gray-500">{t("onboarding.detail.candidate")}</p>
             <p className="text-sm font-semibold text-gray-900">{checklist.candidate_name}</p>
           </div>
         </div>
@@ -163,7 +157,7 @@ export function OnboardingDetailPage() {
             <Briefcase className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase text-gray-500">Position</p>
+            <p className="text-xs font-medium uppercase text-gray-500">{t("onboarding.detail.position")}</p>
             <p className="text-sm font-semibold text-gray-900">{checklist.job_title}</p>
           </div>
         </div>
@@ -172,7 +166,7 @@ export function OnboardingDetailPage() {
             <Calendar className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-medium uppercase text-gray-500">Started</p>
+            <p className="text-xs font-medium uppercase text-gray-500">{t("onboarding.detail.started")}</p>
             <p className="text-sm font-semibold text-gray-900">{formatDate(checklist.started_at)}</p>
           </div>
         </div>
@@ -181,9 +175,12 @@ export function OnboardingDetailPage() {
       {/* Progress */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Progress</h2>
+          <h2 className="font-semibold text-gray-900">{t("onboarding.detail.progress")}</h2>
           <p className="text-sm text-gray-500">
-            {checklist.progress.completed} of {checklist.progress.total} tasks completed
+            {t("onboarding.detail.tasksCompleted", {
+              completed: checklist.progress.completed,
+              total: checklist.progress.total,
+            })}
           </p>
         </div>
         <div className="mt-3">
@@ -218,7 +215,12 @@ export function OnboardingDetailPage() {
                       onClick={() => toggleTask(task)}
                       disabled={updateTaskStatus.isPending}
                       className="mt-0.5 flex-shrink-0 disabled:opacity-50"
-                      title={`Mark as ${task.status === "completed" ? "not started" : "completed"}`}
+                      title={t("onboarding.detail.markAsTitle", {
+                        status:
+                          task.status === "completed"
+                            ? t("onboarding.detail.markStatusNotStarted")
+                            : t("onboarding.detail.markStatusCompleted"),
+                      })}
                     >
                       <TaskIcon className={`h-5 w-5 ${taskIcon.className} transition-colors hover:text-brand-500`} />
                     </button>
@@ -235,14 +237,15 @@ export function OnboardingDetailPage() {
                         {task.due_date && (
                           <span className={`inline-flex items-center gap-1 text-xs ${overdue ? "font-medium text-red-600" : "text-gray-500"}`}>
                             <Calendar className="h-3 w-3" />
-                            {overdue ? "Overdue: " : "Due: "}
-                            {formatDate(task.due_date)}
+                            {overdue
+                              ? t("onboarding.detail.overdueDate", { date: formatDate(task.due_date) })
+                              : t("onboarding.detail.dueDate", { date: formatDate(task.due_date) })}
                           </span>
                         )}
                         {task.assignee_id && (
                           <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                             <User className="h-3 w-3" />
-                            User #{task.assignee_id}
+                            {t("onboarding.detail.assigneeUser", { id: task.assignee_id })}
                           </span>
                         )}
                       </div>
@@ -255,9 +258,11 @@ export function OnboardingDetailPage() {
                       className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
                         STATUS_CONFIG[task.status]?.className || "bg-gray-100 text-gray-700"
                       } hover:opacity-80`}
-                      title="Cycle status"
+                      title={t("onboarding.detail.cycleStatus")}
                     >
-                      {STATUS_CONFIG[task.status]?.label || task.status}
+                      {STATUS_CONFIG[task.status]?.label
+                        ? t(STATUS_CONFIG[task.status]!.label)
+                        : task.status}
                     </button>
                   </div>
                 );

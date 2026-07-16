@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next";
+
 export function BackToDashboard() {
+  const { t } = useTranslation();
   const isSSO = localStorage.getItem('sso_source') === 'empcloud';
   if (!isSSO) return null;
 
@@ -11,7 +14,7 @@ export function BackToDashboard() {
       href={returnUrl}
       className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
     >
-      <span>&larr; EMP Cloud</span>
+      <span>&larr; {t("components.backToDashboard.label")}</span>
     </a>
   );
 }

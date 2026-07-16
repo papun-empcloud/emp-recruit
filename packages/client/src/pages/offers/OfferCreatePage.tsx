@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { Application, PaginatedResponse } from "@emp-recruit/shared";
 
 interface DepartmentOption { id: number; name: string }
@@ -45,6 +46,7 @@ const INITIAL: FormData = {
 };
 
 export function OfferCreatePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -82,12 +84,12 @@ export function OfferCreatePage() {
   const createMutation = useMutation({
     mutationFn: (data: Record<string, any>) => apiPost<{ id: string }>("/offers", data),
     onSuccess: (res) => {
-      toast.success("Offer created successfully");
+      toast.success(t("offers.form.toastCreated"));
       queryClient.invalidateQueries({ queryKey: ["offers"] });
       navigate(`/offers/${res.data?.id || ""}`);
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.error?.message || "Failed to create offer";
+      const msg = err?.response?.data?.error?.message || t("offers.form.toastCreateFailed");
       const details = err?.response?.data?.error?.details;
       if (details) {
         const fieldErrors = Object.entries(details)
@@ -104,43 +106,43 @@ export function OfferCreatePage() {
     e.preventDefault();
 
     if (!form.application_id) {
-      toast.error("Please select an application");
+      toast.error(t("offers.form.errSelectApplication"));
       return;
     }
     if (!form.salary_amount) {
-      toast.error("Please enter salary amount");
+      toast.error(t("offers.form.errEnterSalary"));
       return;
     }
     const salary = Number(form.salary_amount);
     if (!Number.isFinite(salary) || salary < 0) {
-      toast.error("Salary amount cannot be negative");
+      toast.error(t("offers.form.errSalaryNegative"));
       return;
     }
 
     const today = todayIso();
     if (form.joining_date < today) {
-      toast.error("Joining date cannot be in the past");
+      toast.error(t("offers.form.errJoiningPast"));
       return;
     }
     if (form.expiry_date < today) {
-      toast.error("Expiry date cannot be in the past");
+      toast.error(t("offers.form.errExpiryPast"));
       return;
     }
     // Expiry (accept-by deadline) must be on or before the joining date.
     if (form.expiry_date > form.joining_date) {
-      toast.error("Offer expiry date must be on or before the joining date");
+      toast.error(t("offers.form.errExpiryAfterJoining"));
       return;
     }
     if (!form.joining_date) {
-      toast.error("Please select a joining date");
+      toast.error(t("offers.form.errSelectJoining"));
       return;
     }
     if (!form.expiry_date) {
-      toast.error("Please select an offer expiry date");
+      toast.error(t("offers.form.errSelectExpiry"));
       return;
     }
     if (!form.job_title) {
-      toast.error("Please enter a job title");
+      toast.error(t("offers.form.errEnterJobTitle"));
       return;
     }
 
@@ -178,19 +180,19 @@ export function OfferCreatePage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Create Offer</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("offers.form.createOffer")}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Application Selection */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Select Application</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.selectApplication")}</h2>
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by candidate name..."
+              placeholder={t("offers.form.searchCandidatePlaceholder")}
               value={appSearch}
               onChange={(e) => setAppSearch(e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -203,9 +205,7 @@ export function OfferCreatePage() {
             </div>
           ) : applications.length === 0 ? (
             <p className="text-sm text-gray-500 py-2">
-              No applications yet. An offer is extended for a candidate's
-              application to a specific job — add a candidate to a job posting
-              (or wait for a public application) first.
+              {t("offers.form.noApplications")}
             </p>
           ) : (
             <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg border border-gray-200 p-2">
@@ -232,7 +232,7 @@ export function OfferCreatePage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{app.candidate_name}</p>
                     <p className="text-xs text-gray-500 truncate">
-                      {app.job_title} - Stage: {app.stage}
+                      {t("offers.form.jobStage", { job: app.job_title, stage: app.stage })}
                     </p>
                   </div>
                 </button>
@@ -242,33 +242,33 @@ export function OfferCreatePage() {
 
           {selectedApp && (
             <div className="rounded-md bg-brand-50 border border-brand-200 px-3 py-2 text-sm">
-              <span className="font-medium text-brand-800">Selected:</span>{" "}
+              <span className="font-medium text-brand-800">{t("offers.form.selected")}</span>{" "}
               <span className="text-brand-700">{selectedApp.candidate_name}</span>
-              <span className="text-brand-500"> for {selectedApp.job_title}</span>
+              <span className="text-brand-500"> {t("offers.form.forJob", { job: selectedApp.job_title })}</span>
             </div>
           )}
         </div>
 
         {/* Offer Details */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Offer Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.offerDetails")}</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Title / Designation <span className="text-red-500">*</span>
+                {t("offers.form.jobTitleLabel")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={form.job_title}
                 onChange={(e) => setForm((p) => ({ ...p, job_title: e.target.value }))}
-                placeholder="e.g. Senior Software Engineer"
+                placeholder={t("offers.form.jobTitlePlaceholder")}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.department")}</label>
               {/* #23 — dropdown when the org has entries; free-text fallback
                   so new tenants (or older deploys without /organizations/
                   departments) aren't blocked. */}
@@ -278,7 +278,7 @@ export function OfferCreatePage() {
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="">Select department</option>
+                  <option value="">{t("offers.form.selectDepartment")}</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.name}>{d.name}</option>
                   ))}
@@ -288,7 +288,7 @@ export function OfferCreatePage() {
                   type="text"
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
-                  placeholder="e.g. Engineering"
+                  placeholder={t("offers.form.departmentPlaceholder")}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               )}
@@ -298,12 +298,12 @@ export function OfferCreatePage() {
 
         {/* Compensation */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Compensation</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.compensation")}</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Annual Salary <span className="text-red-500">*</span>
+                {t("offers.form.annualSalary")} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -312,15 +312,15 @@ export function OfferCreatePage() {
                 step="0.01"
                 value={form.salary_amount}
                 onChange={(e) => setForm((p) => ({ ...p, salary_amount: e.target.value }))}
-                placeholder={form.salary_currency === "INR" ? "e.g. 1500000" : "e.g. 75000"}
+                placeholder={form.salary_currency === "INR" ? t("offers.form.salaryPlaceholderInr") : t("offers.form.salaryPlaceholderOther")}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
               <p className="mt-1 text-xs text-gray-400">
-                In {form.salary_currency === "INR" ? "rupees" : form.salary_currency === "USD" ? "dollars" : form.salary_currency === "EUR" ? "euros" : form.salary_currency === "GBP" ? "pounds" : form.salary_currency}.
+                {t("offers.form.salaryUnitNote", { unit: form.salary_currency === "INR" ? t("offers.form.unitRupees") : form.salary_currency === "USD" ? t("offers.form.unitDollars") : form.salary_currency === "EUR" ? t("offers.form.unitEuros") : form.salary_currency === "GBP" ? t("offers.form.unitPounds") : form.salary_currency })}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.currency")}</label>
               <select
                 value={form.salary_currency}
                 onChange={(e) => setForm((p) => ({ ...p, salary_currency: e.target.value }))}
@@ -335,12 +335,12 @@ export function OfferCreatePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Benefits</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.benefits")}</label>
             <textarea
               value={form.benefits}
               onChange={(e) => setForm((p) => ({ ...p, benefits: e.target.value }))}
               rows={3}
-              placeholder="List benefits and perks offered..."
+              placeholder={t("offers.form.benefitsPlaceholder")}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -348,12 +348,12 @@ export function OfferCreatePage() {
 
         {/* Dates */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Dates</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.dates")}</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Joining Date <span className="text-red-500">*</span>
+                {t("offers.form.joiningDate")} <span className="text-red-500">*</span>
               </label>
               <DateInput
                 required
@@ -366,7 +366,7 @@ export function OfferCreatePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Offer Expiry Date <span className="text-red-500">*</span>
+                {t("offers.form.offerExpiryDate")} <span className="text-red-500">*</span>
               </label>
               <DateInput
                 required
@@ -382,12 +382,12 @@ export function OfferCreatePage() {
 
         {/* Notes */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Additional Notes</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.additionalNotes")}</h2>
           <textarea
             value={form.notes}
             onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             rows={3}
-            placeholder="Any additional notes about this offer..."
+            placeholder={t("offers.form.notesPlaceholder")}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -399,7 +399,7 @@ export function OfferCreatePage() {
             onClick={() => navigate(-1)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("offers.form.cancel")}
           </button>
           <button
             type="submit"
@@ -407,7 +407,7 @@ export function OfferCreatePage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Create Offer
+            {t("offers.form.createOffer")}
           </button>
         </div>
       </form>

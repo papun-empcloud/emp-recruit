@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
 import App from "./App";
 import "./styles/globals.css";
+import "./i18n";
 import { useAuthStore } from "./lib/auth-store";
 
 // Load existing session from localStorage

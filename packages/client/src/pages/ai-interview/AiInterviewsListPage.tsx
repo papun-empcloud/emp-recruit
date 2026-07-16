@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Brain, Plus, X, Search, Copy, Loader2, ChevronRight, ArrowLeft, Sparkles, Trash2 } from "lucide-react";
@@ -56,6 +57,7 @@ const SESSION_COLUMNS: ExportColumn<SessionRow>[] = [
 ];
 
 export function AiInterviewsListPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
@@ -73,9 +75,9 @@ export function AiInterviewsListPage() {
         <div className="flex items-center gap-3">
           <Brain className="h-7 w-7 text-purple-600" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI Interviews</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("aiInterview.list.title")}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Send candidates a resume-tailored AI interview and review the scored results.
+              {t("aiInterview.list.subtitle")}
             </p>
           </div>
         </div>
@@ -91,7 +93,7 @@ export function AiInterviewsListPage() {
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
-            <Plus className="h-4 w-4" /> New AI Interview
+            <Plus className="h-4 w-4" /> {t("aiInterview.list.newInterview")}
           </button>
         </div>
       </div>
@@ -103,18 +105,18 @@ export function AiInterviewsListPage() {
       ) : sessions.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center">
           <Brain className="mx-auto h-10 w-10 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">No AI interviews yet. Create one to get started.</p>
+          <p className="mt-3 text-sm text-gray-500">{t("aiInterview.list.empty")}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
               <tr>
-                <th className="px-6 py-3 font-medium">Candidate</th>
-                <th className="px-6 py-3 font-medium">Role</th>
-                <th className="px-6 py-3 font-medium">Status</th>
-                <th className="px-6 py-3 font-medium">Score</th>
-                <th className="px-6 py-3 font-medium">Created</th>
+                <th className="px-6 py-3 font-medium">{t("aiInterview.list.colCandidate")}</th>
+                <th className="px-6 py-3 font-medium">{t("aiInterview.list.colRole")}</th>
+                <th className="px-6 py-3 font-medium">{t("aiInterview.list.colStatus")}</th>
+                <th className="px-6 py-3 font-medium">{t("aiInterview.list.colScore")}</th>
+                <th className="px-6 py-3 font-medium">{t("aiInterview.list.colCreated")}</th>
                 <th className="px-6 py-3" />
               </tr>
             </thead>
@@ -125,7 +127,7 @@ export function AiInterviewsListPage() {
                   <td className="px-6 py-3 text-gray-600">{s.job_title || "—"}</td>
                   <td className="px-6 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[s.status]}`}>
-                      {s.status.replace("_", " ")}
+                      {t(`aiInterview.status.${s.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-3 text-gray-700">
@@ -138,12 +140,12 @@ export function AiInterviewsListPage() {
                         <button
                           onClick={() => {
                             navigator.clipboard?.writeText(candidateLink(s.token));
-                            toast.success("Candidate link copied");
+                            toast.success(t("aiInterview.toasts.linkCopied"));
                           }}
                           className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
-                          title="Copy candidate link"
+                          title={t("aiInterview.list.copyLinkTitle")}
                         >
-                          <Copy className="h-3.5 w-3.5" /> Link
+                          <Copy className="h-3.5 w-3.5" /> {t("aiInterview.list.linkLabel")}
                         </button>
                       )}
                       <Link to={`/ai-interviews/${s.id}`} className="text-gray-400 hover:text-gray-600">
@@ -175,6 +177,7 @@ export function AiInterviewsListPage() {
 type Step = "pick" | "config" | "review" | "done";
 
 function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("pick");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -220,7 +223,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
       onCreated();
       setStep("review");
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to generate questions"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("aiInterview.toasts.generateError")),
   });
 
   const approveMutation = useMutation({
@@ -232,9 +235,9 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
     onSuccess: () => {
       onCreated();
       setStep("done");
-      toast.success("Interview approved");
+      toast.success(t("aiInterview.toasts.approved"));
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to approve"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("aiInterview.toasts.approveError")),
   });
 
   return (
@@ -251,7 +254,11 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
               </button>
             )}
             <h3 className="text-base font-semibold text-gray-900">
-              {step === "review" ? "Review questions" : step === "done" ? "Interview ready" : "New AI Interview"}
+              {step === "review"
+                ? t("aiInterview.modal.reviewTitle")
+                : step === "done"
+                  ? t("aiInterview.modal.readyTitle")
+                  : t("aiInterview.list.newInterview")}
             </h3>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
@@ -262,7 +269,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
         {/* Step 1 — pick an application */}
         {step === "pick" && (
           <div className="px-6 py-4">
-            <p className="mb-3 text-sm text-gray-500">Pick the application to interview for:</p>
+            <p className="mb-3 text-sm text-gray-500">{t("aiInterview.modal.pickPrompt")}</p>
             <div className="relative mb-3">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -270,7 +277,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 autoFocus
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search candidate or job…"
+                placeholder={t("aiInterview.modal.searchPlaceholder")}
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
@@ -280,7 +287,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
                   <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
                 </div>
               ) : apps.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-gray-400">No applications found.</p>
+                <p className="px-4 py-6 text-center text-sm text-gray-400">{t("aiInterview.modal.noApplications")}</p>
               ) : (
                 apps.map((a) => (
                   <button
@@ -313,18 +320,18 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
             </p>
             <p className="text-xs text-gray-500">{selectedApp.job_title}</p>
 
-            <label className="mt-4 block text-xs font-medium text-gray-500">Objective (optional)</label>
+            <label className="mt-4 block text-xs font-medium text-gray-500">{t("aiInterview.modal.objectiveLabel")}</label>
             <textarea
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
               rows={3}
-              placeholder="e.g. Assess hands-on backend skills and problem-solving for this role."
+              placeholder={t("aiInterview.modal.objectivePlaceholder")}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
 
             <div className="mt-4 flex gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500">Number of questions</label>
+                <label className="block text-xs font-medium text-gray-500">{t("aiInterview.modal.questionCountLabel")}</label>
                 <input
                   type="number"
                   min={3}
@@ -335,25 +342,25 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500">Time per question</label>
+                <label className="block text-xs font-medium text-gray-500">{t("aiInterview.modal.timePerQuestionLabel")}</label>
                 <select
                   value={perQuestionSecs}
                   onChange={(e) => setPerQuestionSecs(e.target.value)}
                   className="mt-1 w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="0">No limit</option>
-                  <option value="30">30 seconds</option>
-                  <option value="60">1 minute</option>
-                  <option value="90">1.5 minutes</option>
-                  <option value="120">2 minutes</option>
-                  <option value="180">3 minutes</option>
-                  <option value="300">5 minutes</option>
+                  <option value="0">{t("aiInterview.modal.noLimit")}</option>
+                  <option value="30">{t("aiInterview.modal.secs30")}</option>
+                  <option value="60">{t("aiInterview.modal.min1")}</option>
+                  <option value="90">{t("aiInterview.modal.min1_5")}</option>
+                  <option value="120">{t("aiInterview.modal.min2")}</option>
+                  <option value="180">{t("aiInterview.modal.min3")}</option>
+                  <option value="300">{t("aiInterview.modal.min5")}</option>
                 </select>
               </div>
             </div>
             {perQuestionSecs !== "0" && (
               <p className="mt-1.5 text-xs text-gray-400">
-                The candidate's answer auto-submits when the timer runs out.
+                {t("aiInterview.modal.autoSubmitNote")}
               </p>
             )}
 
@@ -365,11 +372,11 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
               >
                 {generateMutation.isPending ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Generating…
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t("aiInterview.modal.generating")}
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" /> Generate questions
+                    <Sparkles className="h-4 w-4" /> {t("aiInterview.modal.generateQuestions")}
                   </>
                 )}
               </button>
@@ -381,7 +388,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
         {step === "review" && (
           <div className="px-6 py-4">
             <p className="mb-3 text-sm text-gray-500">
-              Review the AI-generated questions. Edit, remove, or add before approving.
+              {t("aiInterview.modal.reviewPrompt")}
             </p>
             <div className="max-h-80 space-y-2 overflow-auto">
               {questions.map((q, i) => (
@@ -408,14 +415,14 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
               onClick={() => setQuestions((prev) => [...prev, ""])}
               className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
             >
-              <Plus className="h-3.5 w-3.5" /> Add question
+              <Plus className="h-3.5 w-3.5" /> {t("aiInterview.modal.addQuestion")}
             </button>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={onClose}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Save as draft
+                {t("aiInterview.modal.saveAsDraft")}
               </button>
               <button
                 onClick={() => approveMutation.mutate()}
@@ -423,7 +430,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
               >
                 {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Approve &amp; get link
+                {t("aiInterview.modal.approveGetLink")}
               </button>
             </div>
           </div>
@@ -433,7 +440,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
         {step === "done" && token && (
           <div className="px-6 py-6">
             <p className="text-sm text-gray-600">
-              Approved. Share this link with the candidate — they'll take the interview (voice or typed):
+              {t("aiInterview.modal.doneShare")}
             </p>
             <div className="mt-3 flex items-center gap-2">
               <input
@@ -444,11 +451,11 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(candidateLink(token));
-                  toast.success("Link copied");
+                  toast.success(t("aiInterview.toasts.copied"));
                 }}
                 className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
               >
-                <Copy className="h-4 w-4" /> Copy
+                <Copy className="h-4 w-4" /> {t("aiInterview.modal.copy")}
               </button>
             </div>
             <div className="mt-5 text-right">
@@ -456,7 +463,7 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
                 onClick={onClose}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Done
+                {t("aiInterview.modal.done")}
               </button>
             </div>
           </div>

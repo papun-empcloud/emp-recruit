@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 /** Shared page size for every list/table view in the app. */
@@ -31,6 +32,7 @@ export function Pagination({
   className,
   hideControlsOnSinglePage = false,
 }: PaginationProps) {
+  const { t } = useTranslation();
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const start = total === 0 ? 0 : (page - 1) * perPage + 1;
   const end = Math.min(page * perPage, total);
@@ -44,7 +46,7 @@ export function Pagination({
       )}
     >
       <p className="text-sm text-gray-500">
-        Showing {start}–{end} of {total}
+        {t("components.pagination.showing", { start, end, total })}
       </p>
       {showControls && (
         <div className="flex items-center gap-3">
@@ -54,10 +56,10 @@ export function Pagination({
             disabled={page <= 1}
             className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ChevronLeft className="h-4 w-4" /> Previous
+            <ChevronLeft className="h-4 w-4" /> {t("components.pagination.previous")}
           </button>
           <span className="whitespace-nowrap text-sm text-gray-500">
-            Page {page} of {totalPages}
+            {t("components.pagination.pageOf", { page, total: totalPages })}
           </span>
           <button
             type="button"
@@ -65,7 +67,7 @@ export function Pagination({
             disabled={page >= totalPages}
             className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Next <ChevronRight className="h-4 w-4" />
+            {t("components.pagination.next")} <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       )}

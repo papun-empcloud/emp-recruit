@@ -1,4 +1,5 @@
 import { forwardRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type DateInputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
@@ -16,16 +17,25 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(function D
   { onInput, onBlur, ...props },
   ref,
 ) {
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
 
   function validate(el: HTMLInputElement) {
     const v = el.validity;
     if (v.badInput) {
-      setError("Enter a valid date.");
+      setError(t("components.dateInput.invalid"));
     } else if (v.rangeOverflow) {
-      setError(props.max ? `Date must be on or before ${props.max}.` : "Date is too far in the future.");
+      setError(
+        props.max
+          ? t("components.dateInput.maxWithDate", { max: props.max })
+          : t("components.dateInput.tooFarFuture"),
+      );
     } else if (v.rangeUnderflow) {
-      setError(props.min ? `Date must be on or after ${props.min}.` : "Date is too far in the past.");
+      setError(
+        props.min
+          ? t("components.dateInput.minWithDate", { min: props.min })
+          : t("components.dateInput.tooFarPast"),
+      );
     } else {
       setError(null);
     }

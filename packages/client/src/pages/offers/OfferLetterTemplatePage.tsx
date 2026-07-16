@@ -13,6 +13,7 @@ import {
 import { apiGet, apiPost, apiPut, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
 interface OfferLetterTemplate {
   id: string;
@@ -24,14 +25,15 @@ interface OfferLetterTemplate {
 }
 
 const VARIABLE_REFERENCE = [
-  { group: "Candidate", vars: ["candidate.firstName", "candidate.lastName", "candidate.fullName", "candidate.email", "candidate.phone"] },
-  { group: "Offer", vars: ["offer.designation", "offer.salary", "offer.salaryCurrency", "offer.joiningDate", "offer.expiryDate", "offer.department", "offer.benefits"] },
-  { group: "Organization", vars: ["organization.name"] },
-  { group: "Job", vars: ["job.title", "job.department", "job.location"] },
-  { group: "Other", vars: ["date"] },
+  { group: "Candidate", labelKey: "offers.template.groupCandidate", vars: ["candidate.firstName", "candidate.lastName", "candidate.fullName", "candidate.email", "candidate.phone"] },
+  { group: "Offer", labelKey: "offers.template.groupOffer", vars: ["offer.designation", "offer.salary", "offer.salaryCurrency", "offer.joiningDate", "offer.expiryDate", "offer.department", "offer.benefits"] },
+  { group: "Organization", labelKey: "offers.template.groupOrganization", vars: ["organization.name"] },
+  { group: "Job", labelKey: "offers.template.groupJob", vars: ["job.title", "job.department", "job.location"] },
+  { group: "Other", labelKey: "offers.template.groupOther", vars: ["date"] },
 ];
 
 export function OfferLetterTemplatePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,24 +55,24 @@ export function OfferLetterTemplatePage() {
         ? apiPut(`/offer-letters/templates/${editingId}`, data)
         : apiPost("/offer-letters/templates", data),
     onSuccess: () => {
-      toast.success(editingId ? "Template updated" : "Template created");
+      toast.success(editingId ? t("offers.template.toastUpdated") : t("offers.template.toastCreated"));
       queryClient.invalidateQueries({ queryKey: ["offer-letter-templates"] });
       resetForm();
     },
-    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Failed to save template"),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || t("offers.template.toastSaveFailed")),
   });
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiDelete(`/offer-letters/templates/${id}`),
     onSuccess: () => {
-      toast.success("Template deleted");
+      toast.success(t("offers.template.toastDeleted"));
       queryClient.invalidateQueries({ queryKey: ["offer-letter-templates"] });
       setDeleteId(null);
     },
     onError: (err: any) => {
       setDeleteId(null);
-      toast.error(err.response?.data?.error?.message || "Failed to delete template");
+      toast.error(err.response?.data?.error?.message || t("offers.template.toastDeleteFailed"));
     },
   });
 
@@ -80,10 +82,10 @@ export function OfferLetterTemplatePage() {
     setEditingId(null);
   }
 
-  function startEdit(t: OfferLetterTemplate) {
-    setEditingId(t.id);
+  function startEdit(tpl: OfferLetterTemplate) {
+    setEditingId(tpl.id);
     setShowForm(true);
-    setForm({ name: t.name, content_template: t.content_template, is_default: t.is_default });
+    setForm({ name: tpl.name, content_template: tpl.content_template, is_default: tpl.is_default });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -97,15 +99,15 @@ export function OfferLetterTemplatePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Offer Letter Templates</h1>
-          <p className="mt-1 text-sm text-gray-500">Create and manage Handlebars templates for offer letters.</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("offers.template.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("offers.template.subtitle")}</p>
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null); resetForm(); setShowForm(true); }}
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           <Plus className="h-4 w-4" />
-          New Template
+          {t("offers.template.newTemplate")}
         </button>
       </div>
 
@@ -114,23 +116,23 @@ export function OfferLetterTemplatePage() {
           {/* Editor */}
           <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 className="text-base font-semibold text-gray-900">
-              {editingId ? "Edit Template" : "Create Template"}
+              {editingId ? t("offers.template.editTemplate") : t("offers.template.createTemplate")}
             </h3>
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Template Name *</label>
+                <label className="block text-sm font-medium text-gray-700">{t("offers.template.templateName")} *</label>
                 <input
                   type="text"
                   required
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Standard Offer Letter"
+                  placeholder={t("offers.template.templateNamePlaceholder")}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Content (HTML + Handlebars) *
+                  {t("offers.template.contentLabel")} *
                 </label>
                 <textarea
                   required
@@ -149,7 +151,7 @@ export function OfferLetterTemplatePage() {
                   onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))}
                   className="h-4 w-4 rounded border-gray-300 text-brand-600"
                 />
-                <label htmlFor="is_default" className="text-sm text-gray-700">Set as default template</label>
+                <label htmlFor="is_default" className="text-sm text-gray-700">{t("offers.template.setAsDefault")}</label>
               </div>
               <div className="flex gap-3">
                 <button
@@ -158,14 +160,14 @@ export function OfferLetterTemplatePage() {
                   className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
-                  {saveMutation.isPending ? "Saving..." : editingId ? "Update" : "Create"}
+                  {saveMutation.isPending ? t("offers.template.saving") : editingId ? t("offers.template.update") : t("offers.template.create")}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t("offers.template.cancel")}
                 </button>
               </div>
             </form>
@@ -175,15 +177,15 @@ export function OfferLetterTemplatePage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900">
               <Info className="h-4 w-4 text-blue-500" />
-              Available Variables
+              {t("offers.template.availableVariables")}
             </h3>
             <p className="mt-1 text-xs text-gray-500">
-              Use these in your template with double curly braces.
+              {t("offers.template.variablesHint")}
             </p>
             <div className="mt-4 space-y-4">
               {VARIABLE_REFERENCE.map((group) => (
                 <div key={group.group}>
-                  <h4 className="text-xs font-semibold uppercase text-gray-500">{group.group}</h4>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500">{t(group.labelKey)}</h4>
                   <div className="mt-1 space-y-1">
                     {group.vars.map((v) => (
                       <button
@@ -216,41 +218,41 @@ export function OfferLetterTemplatePage() {
       ) : templates.length === 0 && !showForm ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <FileText className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">No offer letter templates yet. Create one to get started.</p>
+          <p className="mt-3 text-sm text-gray-500">{t("offers.template.emptyList")}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {templates.map((t) => (
+          {templates.map((tpl) => (
             <div
-              key={t.id}
+              key={tpl.id}
               className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">{t.name}</h3>
-                  {Boolean(t.is_default) && (
+                  <h3 className="text-sm font-semibold text-gray-900">{tpl.name}</h3>
+                  {Boolean(tpl.is_default) && (
                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                      Default
+                      {t("offers.template.default")}
                     </span>
                   )}
                 </div>
                 <p className="mt-0.5 text-xs text-gray-400 truncate font-mono">
-                  {t.content_template.slice(0, 100)}...
+                  {tpl.content_template.slice(0, 100)}...
                 </p>
               </div>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => startEdit(t)}
+                  onClick={() => startEdit(tpl)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  title="Edit"
+                  title={t("offers.template.edit")}
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setDeleteId(t.id)}
+                  onClick={() => setDeleteId(tpl.id)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                  title="Delete"
+                  title={t("offers.template.delete")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -263,10 +265,10 @@ export function OfferLetterTemplatePage() {
       <ConfirmDialog
         open={deleteId !== null}
         variant="danger"
-        title="Delete this template?"
-        message="This removes the template so it can no longer be used for new offer letters. Letters already generated from it are kept."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("offers.template.deleteConfirmTitle")}
+        message={t("offers.template.deleteConfirmMessage")}
+        confirmLabel={t("offers.template.delete")}
+        cancelLabel={t("offers.template.cancel")}
         loading={deleteMutation.isPending}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

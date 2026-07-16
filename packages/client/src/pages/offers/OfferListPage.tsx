@@ -12,60 +12,53 @@ import {
   Eye,
 } from "lucide-react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
+import { formatDate, formatCurrency as formatCurrencyShared } from "@/lib/utils";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { useTranslation } from "react-i18next";
 import { ExportButtons } from "@/components/ExportButtons";
 import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { Offer } from "@emp-recruit/shared";
 
 type EnrichedOffer = Offer & { candidate_name: string; job_title_display: string };
 
-const STATUS_TABS: { label: string; value: string }[] = [
-  { label: "All", value: "all" },
-  { label: "Draft", value: "draft" },
-  { label: "Pending Approval", value: "pending_approval" },
-  { label: "Approved", value: "approved" },
-  { label: "Sent", value: "sent" },
-  { label: "Accepted", value: "accepted" },
-  { label: "Declined", value: "declined" },
-  { label: "Revoked", value: "revoked" },
+const STATUS_TABS: { labelKey: string; value: string }[] = [
+  { labelKey: "offers.status.all", value: "all" },
+  { labelKey: "offers.status.draft", value: "draft" },
+  { labelKey: "offers.status.pendingApproval", value: "pending_approval" },
+  { labelKey: "offers.status.approved", value: "approved" },
+  { labelKey: "offers.status.sent", value: "sent" },
+  { labelKey: "offers.status.accepted", value: "accepted" },
+  { labelKey: "offers.status.declined", value: "declined" },
+  { labelKey: "offers.status.revoked", value: "revoked" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; className: string; icon: typeof Clock }> = {
-  draft: { label: "Draft", className: "bg-gray-100 text-gray-700", icon: FileText },
-  pending_approval: { label: "Pending Approval", className: "bg-yellow-100 text-yellow-700", icon: Clock },
-  approved: { label: "Approved", className: "bg-blue-100 text-blue-700", icon: CheckCircle2 },
-  sent: { label: "Sent", className: "bg-purple-100 text-purple-700", icon: Send },
-  accepted: { label: "Accepted", className: "bg-green-100 text-green-700", icon: CheckCircle2 },
-  declined: { label: "Declined", className: "bg-red-100 text-red-700", icon: XCircle },
-  expired: { label: "Expired", className: "bg-gray-100 text-gray-500", icon: AlertCircle },
-  revoked: { label: "Revoked", className: "bg-red-100 text-red-600", icon: XCircle },
+const STATUS_CONFIG: Record<string, { labelKey: string; className: string; icon: typeof Clock }> = {
+  draft: { labelKey: "offers.status.draft", className: "bg-gray-100 text-gray-700", icon: FileText },
+  pending_approval: { labelKey: "offers.status.pendingApproval", className: "bg-yellow-100 text-yellow-700", icon: Clock },
+  approved: { labelKey: "offers.status.approved", className: "bg-blue-100 text-blue-700", icon: CheckCircle2 },
+  sent: { labelKey: "offers.status.sent", className: "bg-purple-100 text-purple-700", icon: Send },
+  accepted: { labelKey: "offers.status.accepted", className: "bg-green-100 text-green-700", icon: CheckCircle2 },
+  declined: { labelKey: "offers.status.declined", className: "bg-red-100 text-red-700", icon: XCircle },
+  expired: { labelKey: "offers.status.expired", className: "bg-gray-100 text-gray-500", icon: AlertCircle },
+  revoked: { labelKey: "offers.status.revoked", className: "bg-red-100 text-red-600", icon: XCircle },
 };
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
   const Icon = config.icon;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.className}`}>
       <Icon className="h-3 w-3" />
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }
 
 function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: currency || "INR",
-    minimumFractionDigits: 0,
-  }).format(amount / 100);
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  // Amounts are stored in minor units; locale-aware formatting keeps grouping
+  // consistent with the rest of the app.
+  return formatCurrencyShared(amount / 100, currency || "INR");
 }
 
 const OFFER_COLUMNS: ExportColumn<EnrichedOffer>[] = [
@@ -81,6 +74,7 @@ const OFFER_COLUMNS: ExportColumn<EnrichedOffer>[] = [
 ];
 
 export function OfferListPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
@@ -88,11 +82,11 @@ export function OfferListPage() {
 
   // Debounce the search box and reset to page 1 when the term changes.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setSearch(searchInput);
       setPage(1);
     }, 400);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [searchInput]);
 
   const { rows: offers, total, isLoading } = usePaginatedList<EnrichedOffer>(
@@ -107,8 +101,8 @@ export function OfferListPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Offers</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage offer letters and approvals</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t("offers.list.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("offers.list.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButtons
@@ -128,7 +122,7 @@ export function OfferListPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Offer
+            {t("offers.list.newOffer")}
           </Link>
         </div>
       </div>
@@ -138,7 +132,7 @@ export function OfferListPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
-          placeholder="Search by candidate or job title..."
+          placeholder={t("offers.list.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -147,7 +141,7 @@ export function OfferListPage() {
 
       {/* Status Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label="Offer status tabs">
+        <nav className="-mb-px flex gap-6 overflow-x-auto" aria-label={t("offers.list.statusTabsAria")}>
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -158,7 +152,7 @@ export function OfferListPage() {
                   : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
               }`}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           ))}
         </nav>
@@ -172,13 +166,13 @@ export function OfferListPage() {
       ) : offers.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white">
           <FileText className="h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-sm font-medium text-gray-900">No offers found</h3>
+          <h3 className="mt-4 text-sm font-medium text-gray-900">{t("offers.list.noOffersFound")}</h3>
           <p className="mt-1 text-sm text-gray-500">
             {search
-              ? "No offers match your search."
+              ? t("offers.list.noSearchMatch")
               : activeTab === "all"
-                ? "Create your first offer to get started."
-                : `No ${activeTab.replace("_", " ")} offers.`}
+                ? t("offers.list.emptyCreateFirst")
+                : t("offers.list.noStatusOffers", { status: activeTab.replace("_", " ") })}
           </p>
         </div>
       ) : (
@@ -186,11 +180,11 @@ export function OfferListPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Candidate</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Job / Designation</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Salary</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Created</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colCandidate")}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colJob")}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colSalary")}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colStatus")}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colCreated")}</th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                   <span className="sr-only">Actions</span>
                 </th>

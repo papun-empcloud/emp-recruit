@@ -14,18 +14,20 @@ import {
 } from "lucide-react";
 import { apiGet, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import type { CareerPage as CareerPageType, JobPosting } from "@emp-recruit/shared";
 
 // ===========================================================================
 // Career Page — public career page config + which jobs to list
 // ===========================================================================
 export function CareerPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-8 pb-28">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Career Page</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("careerAdmin.title")}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Configure your public career page and choose which jobs it shows.
+          {t("careerAdmin.subtitle")}
         </p>
       </div>
 
@@ -38,6 +40,7 @@ export function CareerPage() {
 // Career page configuration (title, description, slug, brand color)
 // ---------------------------------------------------------------------------
 function CareerPageSettings() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const configQuery = useQuery({
@@ -96,13 +99,13 @@ function CareerPageSettings() {
       await apiPut("/career-pages/jobs", { jobIds: Array.from(jobSelection) });
     },
     onSuccess: () => {
-      toast.success("Career page saved");
+      toast.success(t("careerAdmin.saved"));
       setSavedForm(form); // current form is now the saved baseline
       queryClient.invalidateQueries({ queryKey: ["career-page-config"] });
       queryClient.invalidateQueries({ queryKey: ["career-page-jobs"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error?.message || "Failed to save");
+      toast.error(err.response?.data?.error?.message || t("careerAdmin.saveFailed"));
     },
   });
 
@@ -131,7 +134,7 @@ function CareerPageSettings() {
   );
   useEffect(() => {
     if (blocker.state !== "blocked") return;
-    if (window.confirm("You have unsaved changes on the Career Page. Leave without saving?")) {
+    if (window.confirm(t("careerAdmin.unsavedConfirm"))) {
       blocker.proceed();
     } else {
       blocker.reset();
@@ -165,38 +168,38 @@ function CareerPageSettings() {
     <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
       {/* ---- Left: the form ---- */}
       <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">Career Page Configuration</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t("careerAdmin.configTitle")}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Customize how your public career page appears to candidates.
+          {t("careerAdmin.configSubtitle")}
         </p>
 
         <div className="mt-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Page Title</label>
+            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.pageTitleLabel")}</label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-              placeholder="e.g. Join Our Team"
+              placeholder={t("careerAdmin.pageTitlePlaceholder")}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.descriptionLabel")}</label>
             <textarea
               rows={3}
               maxLength={300}
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-              placeholder="A short description shown on your career page..."
+              placeholder={t("careerAdmin.descriptionPlaceholder")}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <p className="mt-1 text-right text-xs text-gray-400">{form.description.length}/300</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">URL Slug</label>
+            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.slugLabel")}</label>
             <div className="mt-1 flex items-center rounded-lg border border-gray-300 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
               <span className="flex items-center gap-1 border-r border-gray-200 px-3 py-2 text-sm text-gray-400">
                 <Link2 className="h-3.5 w-3.5" />
@@ -211,17 +214,17 @@ function CareerPageSettings() {
                     slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
                   }))
                 }
-                placeholder="your-company"
+                placeholder={t("careerAdmin.slugPlaceholder")}
                 className="block flex-1 rounded-r-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
             <p className="mt-1 text-xs text-gray-400">
-              Lowercase letters, numbers and hyphens only.
+              {t("careerAdmin.slugHint")}
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Brand Color</label>
+            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.brandColorLabel")}</label>
             <div className="mt-1 flex items-center gap-3">
               <input
                 type="color"
@@ -239,7 +242,7 @@ function CareerPageSettings() {
                     : "border-red-300 focus:border-red-500 focus:ring-red-500"
                 }`}
               />
-              {!validColor && <span className="text-xs text-red-500">Enter a hex like #4F46E5</span>}
+              {!validColor && <span className="text-xs text-red-500">{t("careerAdmin.invalidHex")}</span>}
             </div>
           </div>
         </div>
@@ -265,7 +268,7 @@ function CareerPageSettings() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saveMutation.isPending ? "Saving..." : "Save Changes"}
+            {saveMutation.isPending ? t("careerAdmin.saving") : t("careerAdmin.saveChanges")}
           </button>
           {configQuery.data?.slug && (
             <a
@@ -275,7 +278,7 @@ function CareerPageSettings() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <ExternalLink className="h-4 w-4" />
-              View live page
+              {t("careerAdmin.viewLivePage")}
             </a>
           )}
         </div>
@@ -286,7 +289,7 @@ function CareerPageSettings() {
         <div className="sticky top-6">
           <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
             <Eye className="h-3.5 w-3.5" />
-            Live preview
+            {t("careerAdmin.livePreview")}
           </p>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-2">
@@ -294,17 +297,17 @@ function CareerPageSettings() {
               <span className="h-2.5 w-2.5 rounded-full bg-yellow-300" />
               <span className="h-2.5 w-2.5 rounded-full bg-green-300" />
               <span className="ml-2 truncate text-xs text-gray-400">
-                /careers/{form.slug || "your-company"}
+                /careers/{form.slug || t("careerAdmin.slugPlaceholder")}
               </span>
             </div>
             <div className="p-5">
-              <h3 className="text-xl font-bold text-gray-900">{form.title || "Your Page Title"}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{form.title || t("careerAdmin.previewTitleDefault")}</h3>
               <p className="mt-2 text-sm text-gray-500">
-                {form.description || "A short description shown on your career page..."}
+                {form.description || t("careerAdmin.descriptionPlaceholder")}
               </p>
               {previewJobs.length === 0 ? (
                 <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
-                  No jobs selected yet — pick jobs below and they'll appear here.
+                  {t("careerAdmin.noJobsPreview")}
                 </div>
               ) : (
                 <div className="mt-4 space-y-2">
@@ -322,20 +325,20 @@ function CareerPageSettings() {
                         style={{ backgroundColor: previewColor }}
                         className="mt-3 rounded-md px-3 py-1.5 text-xs font-medium text-white"
                       >
-                        Apply Now
+                        {t("careerAdmin.applyNow")}
                       </button>
                     </div>
                   ))}
                   {previewJobs.length > 4 && (
                     <p className="text-center text-xs text-gray-400">
-                      +{previewJobs.length - 4} more open position{previewJobs.length - 4 !== 1 ? "s" : ""}
+                      {t("careerAdmin.moreOpenPositions", { count: previewJobs.length - 4 })}
                     </p>
                   )}
                 </div>
               )}
             </div>
           </div>
-          <p className="mt-2 text-xs text-gray-400">Updates as you type. Save to publish your changes.</p>
+          <p className="mt-2 text-xs text-gray-400">{t("careerAdmin.previewFooter")}</p>
         </div>
       </div>
     </form>
@@ -356,6 +359,7 @@ function CareerJobsSection({
   selected: Set<string>;
   setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [deptFilter, setDeptFilter] = useState("");
   const [locFilter, setLocFilter] = useState("");
@@ -406,15 +410,14 @@ function CareerJobsSection({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Jobs on your career page</h3>
+          <h3 className="text-base font-semibold text-gray-900">{t("careerAdmin.jobsHeading")}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Pick which open positions appear publicly — by job, department, or location.
-            Internal-only jobs are never listed.
+            {t("careerAdmin.jobsSubtitle")}
           </p>
         </div>
         {jobs.length > 0 && (
           <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
-            {selected.size} of {jobs.length} selected
+            {t("careerAdmin.selectedOfTotal", { selected: selected.size, total: jobs.length })}
           </span>
         )}
       </div>
@@ -428,7 +431,7 @@ function CareerJobsSection({
           <div className="rounded-lg border border-dashed border-gray-200 py-10 text-center">
             <Briefcase className="mx-auto h-8 w-8 text-gray-300" />
             <p className="mt-2 text-sm text-gray-500">
-              No open public jobs yet. Publish a job (and keep it public) to list it here.
+              {t("careerAdmin.noOpenJobs")}
             </p>
           </div>
         ) : (
@@ -442,8 +445,8 @@ function CareerJobsSection({
               >
                 <span className={selected.size ? "text-gray-900" : "text-gray-400"}>
                   {selected.size
-                    ? `${selected.size} job${selected.size === 1 ? "" : "s"} selected`
-                    : "Select jobs to show…"}
+                    ? t("careerAdmin.jobsSelected", { count: selected.size })
+                    : t("careerAdmin.selectJobsPlaceholder")}
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
@@ -459,7 +462,7 @@ function CareerJobsSection({
                       onChange={(e) => setDeptFilter(e.target.value)}
                       className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
                     >
-                      <option value="">All departments</option>
+                      <option value="">{t("careerAdmin.allDepartments")}</option>
                       {departments.map((d) => (
                         <option key={d} value={d}>
                           {d}
@@ -471,7 +474,7 @@ function CareerJobsSection({
                       onChange={(e) => setLocFilter(e.target.value)}
                       className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
                     >
-                      <option value="">All locations</option>
+                      <option value="">{t("careerAdmin.allLocations")}</option>
                       {locations.map((l) => (
                         <option key={l} value={l}>
                           {l}
@@ -482,21 +485,21 @@ function CareerJobsSection({
 
                   {/* Bulk actions (operate on the filtered set) */}
                   <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2 text-xs">
-                    <span className="text-gray-400">{filtered.length} shown</span>
+                    <span className="text-gray-400">{t("careerAdmin.shownCount", { count: filtered.length })}</span>
                     <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={selectAllFiltered}
                         className="font-medium text-brand-600 hover:text-brand-800"
                       >
-                        Select all
+                        {t("careerAdmin.selectAll")}
                       </button>
                       <button
                         type="button"
                         onClick={clearFiltered}
                         className="font-medium text-gray-500 hover:text-gray-700"
                       >
-                        Clear
+                        {t("careerAdmin.clear")}
                       </button>
                     </div>
                   </div>
@@ -505,7 +508,7 @@ function CareerJobsSection({
                   <div className="max-h-[20rem] overflow-y-auto py-2">
                     {filtered.length === 0 ? (
                       <p className="px-3 py-6 text-center text-xs text-gray-400">
-                        No jobs match these filters.
+                        {t("careerAdmin.noJobsMatch")}
                       </p>
                     ) : (
                       filtered.map((job) => {
@@ -552,7 +555,7 @@ function CareerJobsSection({
                       type="button"
                       onClick={() => toggle(job.id)}
                       className="rounded-full p-0.5 hover:bg-brand-100"
-                      aria-label={`Remove ${job.title}`}
+                      aria-label={t("careerAdmin.removeJob", { title: job.title })}
                     >
                       <X className="h-3 w-3" />
                     </button>

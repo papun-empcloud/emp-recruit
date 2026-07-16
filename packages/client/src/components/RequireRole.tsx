@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { getUser } from "@/lib/auth-store";
 import { ADMIN_ROLES, type Role } from "@/lib/roles";
@@ -12,15 +13,16 @@ import { ADMIN_ROLES, type Role } from "@/lib/roles";
  * page (e.g. /jobs/new) directly by URL and see a form they can't submit.
  */
 export function RequireRole({ roles = ADMIN_ROLES }: { roles?: Role[] }) {
+  const { t } = useTranslation();
   const location = useLocation();
   const role = (getUser()?.role || "employee") as Role;
   const allowed = roles.includes(role);
 
   useEffect(() => {
     if (!allowed) {
-      toast.error("You don't have access to that page.");
+      toast.error(t("components.requireRole.noAccess"));
     }
-  }, [allowed, location.pathname]);
+  }, [allowed, location.pathname, t]);
 
   if (!allowed) return <Navigate to="/dashboard" replace />;
   return <Outlet />;

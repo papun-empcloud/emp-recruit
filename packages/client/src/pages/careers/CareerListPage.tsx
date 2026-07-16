@@ -15,7 +15,9 @@ import {
   X,
 } from "lucide-react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import type { JobPosting, CareerPage } from "@emp-recruit/shared";
 
 const PUBLIC_API = "/api/v1/public";
@@ -31,6 +33,7 @@ interface PublicJobsResponse {
 }
 
 export function CareerListPage() {
+  const { t } = useTranslation();
   const { slug } = useParams<{ slug: string }>();
 
   const [searchInput, setSearchInput] = useState("");
@@ -86,8 +89,8 @@ export function CareerListPage() {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center">
         <Building2 className="h-12 w-12 text-gray-300" />
-        <h2 className="mt-4 text-xl font-semibold text-gray-900">Career Page Not Found</h2>
-        <p className="mt-1 text-sm text-gray-500">This career page does not exist or is inactive.</p>
+        <h2 className="mt-4 text-xl font-semibold text-gray-900">{t("careers.list.notFoundTitle")}</h2>
+        <p className="mt-1 text-sm text-gray-500">{t("careers.list.notFoundDesc")}</p>
       </div>
     );
   }
@@ -123,7 +126,7 @@ export function CareerListPage() {
         </h1>
         <p className="mx-auto mt-2 max-w-2xl text-gray-600">
           {(career.careerPage.description || "").replace(/<[^>]+>/g, "").trim() ||
-            `Explore open positions at ${career.orgName}`}
+            t("careers.list.explorePositions", { orgName: career.orgName })}
         </p>
       </div>
 
@@ -135,7 +138,7 @@ export function CareerListPage() {
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search positions…"
+            placeholder={t("careers.list.searchPlaceholder")}
             className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -145,9 +148,9 @@ export function CareerListPage() {
             setDepartment(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-48"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 w-full truncate pr-8 sm:w-auto sm:min-w-[12rem] sm:max-w-[18rem]"
         >
-          <option value="">All departments</option>
+          <option value="">{t("careers.list.allDepartments")}</option>
           {departments.map((d) => (
             <option key={d} value={d}>
               {d}
@@ -162,7 +165,7 @@ export function CareerListPage() {
           }}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-48"
         >
-          <option value="">All locations</option>
+          <option value="">{t("careers.list.allLocations")}</option>
           {locations.map((l) => (
             <option key={l} value={l}>
               {l}
@@ -175,7 +178,7 @@ export function CareerListPage() {
             className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             <X className="h-4 w-4" />
-            Clear
+            {t("careers.list.clear")}
           </button>
         )}
       </div>
@@ -189,19 +192,20 @@ export function CareerListPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Briefcase className="mx-auto h-12 w-12 text-gray-300" />
           <h3 className="mt-4 text-lg font-medium text-gray-900">
-            {filtersActive ? "No matching positions" : "No Open Positions"}
+            {filtersActive ? t("careers.list.noMatchingTitle") : t("careers.list.noOpenTitle")}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
             {filtersActive
-              ? "Try adjusting your search or filters."
-              : "Check back later for new opportunities."}
+              ? t("careers.list.noMatchingDesc")
+              : t("careers.list.noOpenDesc")}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           <p className="text-sm font-medium text-gray-500">
-            {total} open position{total !== 1 ? "s" : ""}
-            {filtersActive ? " found" : ""}
+            {filtersActive
+              ? t("careers.list.positionsFound", { count: total })
+              : t("careers.list.positionsOpen", { count: total })}
           </p>
 
           {jobs.map((job) => (
@@ -228,12 +232,15 @@ export function CareerListPage() {
                     )}
                     <span className="flex items-center gap-1">
                       <Briefcase className="h-4 w-4" />
-                      {job.employment_type.replace(/_/g, " ")}
+                      {enumLabel(t, "employmentType", job.employment_type)}
                     </span>
                     {(job.experience_min != null || job.experience_max != null) && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {job.experience_min ?? 0}–{job.experience_max ?? "10+"} yrs
+                        {t("careers.list.experienceYears", {
+                          min: job.experience_min ?? 0,
+                          max: job.experience_max ?? "10+",
+                        })}
                       </span>
                     )}
                   </div>
@@ -242,12 +249,12 @@ export function CareerListPage() {
                   <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
                     <span className="flex items-center gap-1">
                       <Users className="h-3.5 w-3.5" />
-                      {job.applicant_count} applicant{job.applicant_count !== 1 ? "s" : ""}
+                      {t("careers.list.applicants", { count: job.applicant_count })}
                     </span>
                     {job.published_at && (
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
-                        Posted {formatDate(job.published_at)}
+                        {t("careers.list.posted", { date: formatDate(job.published_at) })}
                       </span>
                     )}
                   </div>
@@ -256,7 +263,7 @@ export function CareerListPage() {
                   className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white"
                   style={{ backgroundColor: brand }}
                 >
-                  Apply
+                  {t("careers.list.apply")}
                 </span>
               </div>
               {(job.salary_min || job.salary_max) && (
@@ -278,17 +285,17 @@ export function CareerListPage() {
                 className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
-                Previous
+                {t("careers.list.previous")}
               </button>
               <span className="text-sm text-gray-500">
-                Page {page} of {totalPages}
+                {t("careers.list.pageOf", { page, total: totalPages })}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
                 className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Next
+                {t("careers.list.next")}
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>

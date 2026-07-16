@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Routes, Route, Navigate, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -72,18 +73,19 @@ function AuthRedirect() {
 }
 
 function NotFoundPage() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
       <p className="text-5xl font-bold text-brand-600">404</p>
-      <h1 className="mt-4 text-xl font-semibold text-gray-900">Page not found</h1>
+      <h1 className="mt-4 text-xl font-semibold text-gray-900">{t("notFound.title")}</h1>
       <p className="mt-1 text-sm text-gray-500">
-        The page you're looking for doesn't exist or has moved.
+        {t("notFound.subtitle")}
       </p>
       <Link
         to="/dashboard"
         className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
       >
-        Back to Dashboard
+        {t("notFound.backHome")}
       </Link>
     </div>
   );

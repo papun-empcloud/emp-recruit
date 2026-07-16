@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, ChevronRight, PhoneOff } from "lucide-react";
 import axios from "axios";
@@ -35,6 +36,7 @@ const SpeechRecognitionCtor: any =
     : undefined;
 
 export function AiInterviewPage() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [state, setState] = useState<InterviewState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export function AiInterviewPage() {
   const [micError, setMicError] = useState<string | null>(null);
 
   function quit() {
-    if (!window.confirm("Leave the interview? You won't be able to resume it.")) return;
+    if (!window.confirm(t("aiInterview.session.leaveConfirm"))) return;
     stopSoundCheck();
     clearTimer();
     try {
@@ -83,8 +85,8 @@ export function AiInterviewPage() {
   // sound check has been stopped (candidate confirmed, left, or unmounted).
   function speakSoundCheck() {
     if (soundCheckStopRef.current || !("speechSynthesis" in window)) return;
-    const name = state?.candidate_name || "there";
-    const sentence = `Hi ${name}! Please make sure your sound is on. Can you hear me okay? Say "yes" when you're ready.`;
+    const name = state?.candidate_name || t("aiInterview.session.thereFallback");
+    const sentence = t("aiInterview.session.soundCheckSpoken", { name });
     const scheduleNext = () => {
       setAiSpeaking(false);
       if (!soundCheckStopRef.current) {
@@ -302,7 +304,7 @@ export function AiInterviewPage() {
         const { data } = await axios.get(`${PUBLIC_API}/${token}`);
         if (active) setState(data.data);
       } catch (e: any) {
-        if (active) setError(e?.response?.data?.error?.message || "This interview link is invalid or expired.");
+        if (active) setError(e?.response?.data?.error?.message || t("aiInterview.session.invalidLink"));
       } finally {
         if (active) setLoading(false);
       }
@@ -438,7 +440,7 @@ export function AiInterviewPage() {
         );
       }
     } catch (e: any) {
-      setError(e?.response?.data?.error?.message || "Something went wrong submitting your answer.");
+      setError(e?.response?.data?.error?.message || t("aiInterview.session.submitError"));
     } finally {
       setSubmitting(false);
     }
@@ -455,7 +457,7 @@ export function AiInterviewPage() {
   if (error || !state) {
     return (
       <Shell>
-        <p className="text-center text-sm text-red-600">{error || "Interview not found."}</p>
+        <p className="text-center text-sm text-red-600">{error || t("aiInterview.session.notFound")}</p>
       </Shell>
     );
   }
@@ -466,9 +468,9 @@ export function AiInterviewPage() {
       <Shell>
         <div className="text-center">
           <PhoneOff className="mx-auto h-12 w-12 text-gray-400" />
-          <h1 className="mt-4 text-xl font-bold text-gray-900">You left the interview</h1>
+          <h1 className="mt-4 text-xl font-bold text-gray-900">{t("aiInterview.session.leftTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">
-            No problem, {state.candidate_name}. You can reopen the link to try again if it's still active.
+            {t("aiInterview.session.leftBody", { name: state.candidate_name })}
           </p>
         </div>
       </Shell>
@@ -481,9 +483,9 @@ export function AiInterviewPage() {
       <Shell>
         <div className="text-center">
           <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
-          <h1 className="mt-4 text-xl font-bold text-gray-900">Interview complete</h1>
+          <h1 className="mt-4 text-xl font-bold text-gray-900">{t("aiInterview.session.completeTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Thank you, {state.candidate_name}. Your responses have been recorded and shared with the hiring team.
+            {t("aiInterview.session.completeBody", { name: state.candidate_name })}
           </p>
         </div>
       </Shell>
@@ -496,10 +498,9 @@ export function AiInterviewPage() {
       <Shell>
         <div className="text-center">
           <Loader2 className="mx-auto h-10 w-10 text-brand-400" />
-          <h1 className="mt-4 text-lg font-bold text-gray-900">Your interview is being prepared</h1>
+          <h1 className="mt-4 text-lg font-bold text-gray-900">{t("aiInterview.session.preparingTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Hang tight, {state.candidate_name} — the recruiter is finalizing your questions. Please check back
-            shortly.
+            {t("aiInterview.session.preparingBody", { name: state.candidate_name })}
           </p>
         </div>
       </Shell>
@@ -520,12 +521,14 @@ export function AiInterviewPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100">
             <Brain className="h-9 w-9 text-purple-600" />
           </div>
-          <h1 className="mt-5 text-2xl font-bold text-gray-900">AI Interview</h1>
+          <h1 className="mt-5 text-2xl font-bold text-gray-900">{t("aiInterview.session.title")}</h1>
           {state.job_title && <p className="mt-1 text-sm font-medium text-brand-600">{state.job_title}</p>}
           <p className="mt-4 text-sm text-gray-600">
-            Hi {state.candidate_name}, I'm your AI interviewer. First we'll do a quick sound check, then I'll ask
-            you {state.total} questions tailored to your background. Just <strong>answer out loud</strong> — I'll
-            listen, and you tap <strong>Next question</strong> when you're done with each one.
+            <Trans
+              i18nKey="aiInterview.session.introBody"
+              values={{ name: state.candidate_name, total: state.total }}
+              components={{ b1: <strong />, b2: <strong /> }}
+            />
           </p>
           <p className="mt-2 text-xs text-gray-400">
             Your audio will be recorded and shared with the hiring team.
@@ -539,11 +542,11 @@ export function AiInterviewPage() {
             }}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700"
           >
-            Start interview
+            {t("aiInterview.session.startInterview")}
           </button>
           {!SpeechRecognitionCtor && (
             <p className="mt-3 text-xs text-amber-600">
-              Heads up: your browser doesn't support voice input. Please use Chrome for the best experience.
+              {t("aiInterview.session.noVoiceSupport")}
             </p>
           )}
         </div>
@@ -558,7 +561,7 @@ export function AiInterviewPage() {
   const inSoundCheck = !soundChecked;
   const isLast = state.current_index + 1 >= state.total;
   const caption = inSoundCheck
-    ? `Hi ${state.candidate_name}! Please make sure your sound is on. Can you hear me okay? Say "yes" to begin.`
+    ? t("aiInterview.session.soundCheckCaption", { name: state.candidate_name })
     : state.question;
   const liveTranscript = `${answer} ${interim}`.trim();
   return (
@@ -566,7 +569,7 @@ export function AiInterviewPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-200">{state.job_title || "AI Interview"}</span>
+          <span className="text-sm font-medium text-gray-200">{state.job_title || t("aiInterview.session.title")}</span>
           {recording && (
             <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-medium text-red-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" /> REC
@@ -584,7 +587,9 @@ export function AiInterviewPage() {
             </span>
           )}
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
-            {inSoundCheck ? "Sound check" : `Question ${state.current_index + 1} of ${state.total}`}
+            {inSoundCheck
+              ? t("aiInterview.session.soundCheck")
+              : t("aiInterview.session.questionProgress", { current: state.current_index + 1, total: state.total })}
           </span>
         </div>
       </div>
@@ -600,11 +605,17 @@ export function AiInterviewPage() {
       {/* Participant tiles */}
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-2">
-          <MeetTile label="Interviewer" speaking={aiSpeaking} status={aiSpeaking ? "Speaking" : "Asked"} icon={Brain} accent="purple" />
           <MeetTile
-            label="You"
+            label={t("aiInterview.session.interviewer")}
+            speaking={aiSpeaking}
+            status={aiSpeaking ? t("aiInterview.session.speaking") : t("aiInterview.session.asked")}
+            icon={Brain}
+            accent="purple"
+          />
+          <MeetTile
+            label={t("aiInterview.session.you")}
             speaking={listening}
-            status={listening ? "Listening" : inSoundCheck ? "Say 'yes'" : "Muted"}
+            status={listening ? t("aiInterview.session.listening") : inSoundCheck ? t("aiInterview.session.sayYes") : t("aiInterview.session.muted")}
             icon={Mic}
             accent="blue"
             muted={!listening}
@@ -638,7 +649,7 @@ export function AiInterviewPage() {
           {!inSoundCheck && (
             <button
               onClick={() => caption && say(caption)}
-              title="Replay question"
+              title={t("aiInterview.session.replayQuestion")}
               className="mt-0.5 flex-shrink-0 text-gray-400 hover:text-white"
             >
               <Volume2 className="h-4 w-4" />
@@ -657,7 +668,7 @@ export function AiInterviewPage() {
               </p>
             ) : (
               <p className="text-sm text-gray-500">
-                {listening ? "Listening… start speaking your answer." : "Tap the mic to answer out loud."}
+                {listening ? t("aiInterview.session.listeningHint") : t("aiInterview.session.tapMicHint")}
               </p>
             )}
           </div>
@@ -671,14 +682,14 @@ export function AiInterviewPage() {
             onClick={proceedToQuestions}
             className="flex h-12 items-center gap-2 rounded-full bg-green-600 px-6 text-sm font-semibold text-white hover:bg-green-700"
           >
-            <CheckCircle2 className="h-5 w-5" /> I can hear you
+            <CheckCircle2 className="h-5 w-5" /> {t("aiInterview.session.canHearYou")}
           </button>
         ) : (
           <>
             {SpeechRecognitionCtor && (
               <button
                 onClick={() => (listening ? stopListening() : startListening())}
-                title={listening ? "Mute" : "Unmute"}
+                title={listening ? t("aiInterview.session.mute") : t("aiInterview.session.unmute")}
                 className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
                   listening ? "bg-white text-gray-900" : "bg-white/10 text-white hover:bg-white/20"
                 }`}
@@ -689,18 +700,18 @@ export function AiInterviewPage() {
             <button
               onClick={submitAnswer}
               disabled={submitting}
-              title={isLast ? "Finish interview" : "Next question"}
+              title={isLast ? t("aiInterview.session.finishInterview") : t("aiInterview.session.nextQuestion")}
               className="flex h-12 items-center gap-2 rounded-full bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-              {isLast ? "Finish interview" : "Next question"}
+              {isLast ? t("aiInterview.session.finishInterview") : t("aiInterview.session.nextQuestion")}
               {!submitting && <ChevronRight className="h-5 w-5" />}
             </button>
           </>
         )}
         <button
           onClick={quit}
-          title="Leave interview"
+          title={t("aiInterview.session.leaveInterview")}
           className="flex h-12 w-16 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
         >
           <PhoneOff className="h-5 w-5" />
@@ -721,6 +732,7 @@ function VoiceInterview({
   candidateName: string;
   jobTitle: string | null;
 }) {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<"idle" | "connecting" | "live" | "finishing" | "done">("idle");
   const [agentTalking, setAgentTalking] = useState(false);
   const [agentText, setAgentText] = useState("");
@@ -774,7 +786,7 @@ function VoiceInterview({
       });
       client.on("call_ended", () => finish());
       client.on("error", () => {
-        setError("The call ran into a problem.");
+        setError(t("aiInterview.session.callProblem"));
         try {
           client.stopCall();
         } catch {
@@ -785,8 +797,7 @@ function VoiceInterview({
       await client.startCall({ accessToken });
     } catch (e: any) {
       setError(
-        e?.response?.data?.error?.message ||
-          "Couldn't start the voice interview. Check your microphone permission and try again.",
+        e?.response?.data?.error?.message || t("aiInterview.session.voiceStartError"),
       );
       setPhase("idle");
     }
@@ -806,9 +817,9 @@ function VoiceInterview({
       <Shell>
         <div className="text-center">
           <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
-          <h1 className="mt-4 text-xl font-bold text-gray-900">Interview complete</h1>
+          <h1 className="mt-4 text-xl font-bold text-gray-900">{t("aiInterview.session.completeTitle")}</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Thank you, {candidateName}. Your interview has been recorded and shared with the hiring team.
+            {t("aiInterview.session.voiceCompleteBody", { name: candidateName })}
           </p>
         </div>
       </Shell>
@@ -823,10 +834,10 @@ function VoiceInterview({
       <div className="flex min-h-screen flex-col bg-[#202124] text-white">
         {/* Top bar */}
         <div className="flex items-center justify-between px-5 py-3">
-          <span className="text-sm font-medium text-gray-200">{jobTitle || "AI Interview"}</span>
+          <span className="text-sm font-medium text-gray-200">{jobTitle || t("aiInterview.session.title")}</span>
           <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-gray-300">
             <span className={`h-2 w-2 rounded-full ${phase === "finishing" ? "bg-yellow-400" : "animate-pulse bg-red-500"}`} />
-            {phase === "finishing" ? "Wrapping up…" : "Live"}
+            {phase === "finishing" ? t("aiInterview.session.wrappingUp") : t("aiInterview.session.live")}
           </span>
         </div>
 
@@ -834,17 +845,17 @@ function VoiceInterview({
         <div className="flex flex-1 items-center justify-center px-4">
           <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-2">
             <MeetTile
-              label="Interviewer"
+              label={t("aiInterview.session.interviewer")}
               speaking={agentTalking}
-              status={agentTalking ? "Speaking" : "Listening"}
+              status={agentTalking ? t("aiInterview.session.speaking") : t("aiInterview.session.listening")}
               icon={Brain}
               accent="purple"
               caption={agentText}
             />
             <MeetTile
-              label="You"
+              label={t("aiInterview.session.you")}
               speaking={userSpeaking}
-              status={userSpeaking ? "Speaking" : "Muted"}
+              status={userSpeaking ? t("aiInterview.session.speaking") : t("aiInterview.session.muted")}
               icon={Mic}
               accent="blue"
               muted={!userSpeaking}
@@ -858,16 +869,16 @@ function VoiceInterview({
           {phase === "live" ? (
             <button
               onClick={() => {
-                if (window.confirm("End the interview? This will finish and submit the call.")) endCall();
+                if (window.confirm(t("aiInterview.session.endConfirm"))) endCall();
               }}
-              title="Leave interview"
+              title={t("aiInterview.session.leaveInterview")}
               className="flex h-12 w-16 items-center justify-center rounded-full bg-red-500 text-white transition-colors hover:bg-red-600"
             >
               <PhoneOff className="h-5 w-5" />
             </button>
           ) : (
             <div className="flex items-center gap-2 text-sm text-gray-300">
-              <Loader2 className="h-5 w-5 animate-spin" /> Wrapping up…
+              <Loader2 className="h-5 w-5 animate-spin" /> {t("aiInterview.session.wrappingUp")}
             </div>
           )}
         </div>
@@ -882,11 +893,10 @@ function VoiceInterview({
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100">
           <Brain className="h-9 w-9 text-purple-600" />
         </div>
-        <h1 className="mt-5 text-2xl font-bold text-gray-900">AI Voice Interview</h1>
+        <h1 className="mt-5 text-2xl font-bold text-gray-900">{t("aiInterview.session.voiceTitle")}</h1>
         {jobTitle && <p className="mt-1 text-sm font-medium text-brand-600">{jobTitle}</p>}
         <p className="mt-4 text-sm text-gray-600">
-          Hi {candidateName}. You'll have a short spoken conversation with our AI interviewer — it asks questions and
-          you answer out loud, just like a real interview. Please allow microphone access when prompted.
+          {t("aiInterview.session.voiceIntroBody", { name: candidateName })}
         </p>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         <button
@@ -896,11 +906,11 @@ function VoiceInterview({
         >
           {phase === "connecting" ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Connecting…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("aiInterview.session.connecting")}
             </>
           ) : (
             <>
-              <Mic className="h-4 w-4" /> Start voice interview
+              <Mic className="h-4 w-4" /> {t("aiInterview.session.startVoiceInterview")}
             </>
           )}
         </button>

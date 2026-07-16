@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { apiGet, apiPut } from "@/api/client";
 import type { Candidate } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
@@ -65,6 +66,7 @@ function parseTags(value: unknown): string {
 }
 
 export function CandidateEditPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -103,13 +105,13 @@ export function CandidateEditPage() {
   const mutation = useMutation({
     mutationFn: (payload: Record<string, any>) => apiPut<Candidate>(`/candidates/${id}`, payload),
     onSuccess: () => {
-      toast.success("Candidate updated");
+      toast.success(t("candidates.form.updatedSuccess"));
       queryClient.invalidateQueries({ queryKey: ["candidate", id] });
       queryClient.invalidateQueries({ queryKey: ["candidates"] });
       navigate(`/candidates/${id}`);
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.error?.message || "Failed to update candidate");
+      toast.error(err?.response?.data?.error?.message || t("candidates.form.updateError"));
     },
   });
 
@@ -118,11 +120,11 @@ export function CandidateEditPage() {
     const years = form.experience_years ? Number(form.experience_years) : 0;
     const months = form.experience_months ? Number(form.experience_months) : 0;
     if (!Number.isFinite(years) || years < 0) {
-      toast.error("Experience years cannot be negative");
+      toast.error(t("candidates.form.expYearsNegative"));
       return;
     }
     if (!Number.isFinite(months) || months < 0 || months > 11) {
-      toast.error("Experience months must be between 0 and 11");
+      toast.error(t("candidates.form.expMonthsRange"));
       return;
     }
 
@@ -157,7 +159,7 @@ export function CandidateEditPage() {
 
   if (!data?.data) {
     return (
-      <div className="py-12 text-center text-gray-500">Candidate not found.</div>
+      <div className="py-12 text-center text-gray-500">{t("candidates.form.notFound")}</div>
     );
   }
 
@@ -170,15 +172,15 @@ export function CandidateEditPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Candidate</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t("candidates.form.editTitle")}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.personalInformation")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.firstName")} *</label>
               <input
                 type="text"
                 required
@@ -188,7 +190,7 @@ export function CandidateEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.lastName")} *</label>
               <input
                 type="text"
                 required
@@ -199,7 +201,7 @@ export function CandidateEditPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.email")} *</label>
             <input
               type="email"
               required
@@ -209,7 +211,7 @@ export function CandidateEditPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.phone")}</label>
             <input
               type="tel"
               value={form.phone}
@@ -220,10 +222,10 @@ export function CandidateEditPage() {
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Professional Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.professionalDetails")}</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current Company</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.currentCompany")}</label>
               <input
                 type="text"
                 value={form.current_company}
@@ -232,7 +234,7 @@ export function CandidateEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current Title</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.currentTitle")}</label>
               <input
                 type="text"
                 value={form.current_title}
@@ -243,7 +245,7 @@ export function CandidateEditPage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Experience (years)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.experienceYears")}</label>
               <input
                 type="number"
                 min={0}
@@ -254,7 +256,7 @@ export function CandidateEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Months</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.months")}</label>
               <input
                 type="number"
                 min={0}
@@ -266,7 +268,7 @@ export function CandidateEditPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.source")}</label>
               <select
                 value={form.source}
                 onChange={(e) => setForm((p) => ({ ...p, source: e.target.value }))}
@@ -274,7 +276,7 @@ export function CandidateEditPage() {
               >
                 {SOURCES.map((s) => (
                   <option key={s.value} value={s.value}>
-                    {s.label}
+                    {t(`candidates.form.source_${s.value}`)}
                   </option>
                 ))}
               </select>
@@ -283,9 +285,9 @@ export function CandidateEditPage() {
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Links & Skills</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.linksSkills")}</h2>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.linkedinUrl")}</label>
             <input
               type="url"
               value={form.linkedin_url}
@@ -295,7 +297,7 @@ export function CandidateEditPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Portfolio URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.portfolioUrl")}</label>
             <input
               type="url"
               value={form.portfolio_url}
@@ -304,7 +306,7 @@ export function CandidateEditPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Skills (comma separated)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.skillsCommaSeparated")}</label>
             <input
               type="text"
               value={form.skills}
@@ -314,7 +316,7 @@ export function CandidateEditPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.tagsCommaSeparated")}</label>
             <input
               type="text"
               value={form.tags}
@@ -325,7 +327,7 @@ export function CandidateEditPage() {
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.notes")}</h2>
           <textarea
             value={form.notes}
             onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
@@ -340,7 +342,7 @@ export function CandidateEditPage() {
             onClick={() => navigate(`/candidates/${id}`)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            {t("candidates.form.cancel")}
           </button>
           <button
             type="submit"
@@ -348,7 +350,7 @@ export function CandidateEditPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save Changes
+            {t("candidates.form.saveChanges")}
           </button>
         </div>
       </form>

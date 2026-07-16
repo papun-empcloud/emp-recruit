@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Brain,
@@ -15,6 +16,7 @@ import { apiGet, apiPost } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { cn, formatDate } from "@/lib/utils";
+import { enumLabel } from "@/lib/enums";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 
 interface ScoredApplication {
@@ -46,13 +48,14 @@ const RECOMMENDATION_COLORS: Record<string, string> = {
 };
 
 const RECOMMENDATION_LABELS: Record<string, string> = {
-  strong_match: "Strong Match",
-  good_match: "Good Match",
-  partial_match: "Partial Match",
-  weak_match: "Weak Match",
+  strong_match: "scoring.recommendation.strongMatch",
+  good_match: "scoring.recommendation.goodMatch",
+  partial_match: "scoring.recommendation.partialMatch",
+  weak_match: "scoring.recommendation.weakMatch",
 };
 
 export function ScoringPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedJobId, setSelectedJobId] = useState<string>(searchParams.get("job") || "");
   const queryClient = useQueryClient();
@@ -139,10 +142,10 @@ export function ScoringPage() {
           <Brain className="h-7 w-7 text-purple-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              AI Resume Scoring
+              {t("scoring.list.title")}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Score and rank candidates using AI-powered resume analysis.
+              {t("scoring.list.subtitle")}
             </p>
           </div>
         </div>
@@ -153,7 +156,7 @@ export function ScoringPage() {
         <div className="flex items-center gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select a Job
+              {t("scoring.list.selectJobLabel")}
             </label>
             <div className="relative" ref={jobSelectRef}>
               <button
@@ -163,8 +166,8 @@ export function ScoringPage() {
               >
                 <span className={`truncate ${selectedJob ? "text-gray-900" : "text-gray-400"}`}>
                   {selectedJob
-                    ? `${selectedJob.title}${selectedJob.status && selectedJob.status !== "open" ? ` (${selectedJob.status})` : ""}`
-                    : "Choose a job posting..."}
+                    ? `${selectedJob.title}${selectedJob.status && selectedJob.status !== "open" ? ` (${enumLabel(t, "jobStatus", selectedJob.status)})` : ""}`
+                    : t("scoring.list.chooseJob")}
                 </span>
                 <ChevronDown className="h-4 w-4 flex-shrink-0 text-gray-400" />
               </button>
@@ -178,13 +181,13 @@ export function ScoringPage() {
                       autoFocus
                       value={jobQuery}
                       onChange={(e) => setJobQuery(e.target.value)}
-                      placeholder="Search jobs…"
+                      placeholder={t("scoring.list.searchJobs")}
                       className="w-full rounded-md border border-gray-200 py-1.5 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </div>
                   <ul className="max-h-60 overflow-auto py-1">
                     {filteredJobs.length === 0 ? (
-                      <li className="px-4 py-3 text-sm text-gray-400">No jobs match your search.</li>
+                      <li className="px-4 py-3 text-sm text-gray-400">{t("scoring.list.noJobsMatch")}</li>
                     ) : (
                       filteredJobs.map((job) => (
                         <li key={job.id}>
@@ -202,7 +205,7 @@ export function ScoringPage() {
                             <span className="truncate">{job.title}</span>
                             {job.status && job.status !== "open" && (
                               <span className="ml-2 flex-shrink-0 text-xs capitalize text-gray-400">
-                                {job.status}
+                                {enumLabel(t, "jobStatus", job.status)}
                               </span>
                             )}
                           </button>
@@ -226,7 +229,7 @@ export function ScoringPage() {
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              Score All Candidates
+              {t("scoring.list.scoreAll")}
             </button>
           )}
         </div>
@@ -238,23 +241,22 @@ export function ScoringPage() {
             }`}
           >
             {batchResult.total === 0
-              ? "No applications to score for this job yet."
+              ? t("scoring.list.batchNoApplications")
               : batchResult.scored === 0
-                ? `No candidates could be scored — none of the ${batchResult.total} applicant${
-                    batchResult.total === 1 ? "" : "s"
-                  } has a resume on file. Upload resumes to enable AI scoring.`
-                : `Scored ${batchResult.scored} of ${batchResult.total} applicant${
-                    batchResult.total === 1 ? "" : "s"
-                  }${
-                    batchResult.skipped > 0
-                      ? ` (${batchResult.skipped} skipped — no resume on file)`
-                      : ""
-                  }. Rankings updated below.`}
+                ? t("scoring.list.batchNoResumes", { count: batchResult.total })
+                : t("scoring.list.batchScored", {
+                    scored: batchResult.scored,
+                    count: batchResult.total,
+                    skipped:
+                      batchResult.skipped > 0
+                        ? t("scoring.list.batchSkippedFragment", { skipped: batchResult.skipped })
+                        : "",
+                  })}
           </p>
         )}
         {batchScoreMutation.isError && (
           <p className="mt-3 text-sm text-red-600">
-            Scoring failed. Please try again.
+            {t("scoring.list.scoringFailed")}
           </p>
         )}
       </div>
@@ -264,7 +266,7 @@ export function ScoringPage() {
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
           <Target className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">
-            Select a job posting above to view AI scores and candidate rankings.
+            {t("scoring.list.selectJobPrompt")}
           </p>
         </div>
       )}
@@ -279,8 +281,7 @@ export function ScoringPage() {
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
           <Brain className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">
-            No scored candidates yet. Click "Score All Candidates" to run AI
-            scoring.
+            {t("scoring.list.noScoredCandidates")}
           </p>
         </div>
       )}
@@ -292,25 +293,25 @@ export function ScoringPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Rank
+                  {t("scoring.list.columnRank")}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Candidate
+                  {t("scoring.list.columnCandidate")}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Overall
+                  {t("scoring.list.columnOverall")}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Skills
+                  {t("scoring.list.columnSkills")}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Experience
+                  {t("scoring.list.columnExperience")}
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Recommendation
+                  {t("scoring.list.columnRecommendation")}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
+                  {t("scoring.list.columnActions")}
                 </th>
               </tr>
             </thead>
@@ -324,10 +325,10 @@ export function ScoringPage() {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">
-                      {r.candidate_name || `Candidate #${r.candidate_id}`}
+                      {r.candidate_name || t("scoring.list.candidateFallback", { id: r.candidate_id })}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Scored {formatDate(r.scored_at)}
+                      {t("scoring.list.scoredDate", { date: formatDate(r.scored_at) })}
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-center">
@@ -351,8 +352,9 @@ export function ScoringPage() {
                           "bg-gray-100 text-gray-800",
                       )}
                     >
-                      {RECOMMENDATION_LABELS[r.recommendation] ??
-                        r.recommendation}
+                      {RECOMMENDATION_LABELS[r.recommendation]
+                        ? t(RECOMMENDATION_LABELS[r.recommendation]!)
+                        : r.recommendation}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -360,7 +362,7 @@ export function ScoringPage() {
                       to={`/scoring/${r.application_id}`}
                       className="text-sm font-medium text-purple-600 hover:text-purple-800"
                     >
-                      View Report
+                      {t("scoring.list.viewReport")}
                     </Link>
                   </td>
                 </tr>
