@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -24,11 +24,19 @@ import {
   CheckCircle2,
   Lock,
   Upload,
+  Search,
+  Plus,
 } from "lucide-react";
 import { apiGet, apiPatch, apiPost, apiDelete } from "@/api/client";
 import { ExportButtons } from "@/components/ExportButtons";
 import { type ExportColumn } from "@/lib/export";
-import type { JobPosting, PaginatedResponse, ApplicationStage, CandidateScore } from "@emp-recruit/shared";
+import type {
+  JobPosting,
+  PaginatedResponse,
+  ApplicationStage,
+  CandidateScore,
+  Candidate,
+} from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
@@ -172,6 +180,7 @@ export function JobDetailPage() {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showAddCandidate, setShowAddCandidate] = useState(false);
   // Kanban drag-and-drop
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
@@ -561,13 +570,13 @@ export function JobDetailPage() {
           </div>
 
           <div className="flex gap-2">
-            <Link
-              to={`/candidates/new?job_id=${id}`}
+            <button
+              onClick={() => setShowAddCandidate(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
             >
               <Users className="h-4 w-4" />
               Add Candidate
-            </Link>
+            </button>
             <button
               onClick={() => setShowBulkUpload(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"
@@ -945,6 +954,143 @@ export function JobDetailPage() {
           }}
         />
       )}
+
+      {id && showAddCandidate && (
+        <AddCandidateModal
+          jobId={id}
+          excludeIds={new Set(applications.map((a) => a.candidate_id))}
+          onClose={() => setShowAddCandidate(false)}
+          onAdded={() => queryClient.invalidateQueries({ queryKey: ["job-applications", id] })}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add-candidate dialog — pick an EXISTING candidate to add to this job, or
+// create a new one. (Previously "Add Candidate" only linked to the new-candidate
+// form.)
+// ---------------------------------------------------------------------------
+function AddCandidateModal({
+  jobId,
+  excludeIds,
+  onClose,
+  onAdded,
+}: {
+  jobId: string;
+  excludeIds: Set<string>;
+  onClose: () => void;
+  onAdded: () => void;
+}) {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["candidates-for-job-add", search],
+    queryFn: () =>
+      apiGet<PaginatedResponse<Candidate>>("/candidates", {
+        perPage: 20,
+        ...(search ? { search } : {}),
+      }),
+  });
+  const candidates = (data?.data?.data ?? []).filter((c) => !excludeIds.has(c.id));
+
+  const applyMutation = useMutation({
+    mutationFn: (candidateId: string) =>
+      apiPost("/applications", { job_id: jobId, candidate_id: candidateId, source: "direct" }),
+    onSuccess: (_res, candidateId) => {
+      const c = candidates.find((x) => x.id === candidateId);
+      toast.success(`${c ? `${c.first_name} ${c.last_name}` : "Candidate"} added to this job`);
+      onAdded();
+    },
+    onError: (err: any) =>
+      toast.error(
+        err?.response?.data?.error?.message ||
+          "Couldn't add the candidate — they may already be on this job.",
+      ),
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Add a Candidate</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-3 text-sm text-gray-500">Add an existing candidate to this job, or create a new one.</p>
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            autoFocus
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search candidates by name, email, or company…"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+
+        <div className="mt-3 max-h-72 divide-y divide-gray-100 overflow-auto rounded-lg border border-gray-200">
+          {isFetching && candidates.length === 0 ? (
+            <div className="flex h-24 items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+            </div>
+          ) : candidates.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-400">
+              {search ? "No matching candidates." : "No available candidates to add."}
+            </p>
+          ) : (
+            candidates.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => applyMutation.mutate(c.id)}
+                disabled={applyMutation.isPending}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50 disabled:opacity-50"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900">
+                    {c.first_name} {c.last_name}
+                  </p>
+                  <p className="truncate text-xs text-gray-500">
+                    {c.email}
+                    {c.current_company ? ` · ${c.current_company}` : ""}
+                  </p>
+                </div>
+                <Plus className="h-4 w-4 flex-shrink-0 text-brand-600" />
+              </button>
+            ))
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <Link
+            to={`/candidates/new?job_id=${jobId}`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
+          >
+            <Plus className="h-4 w-4" /> Create a new candidate
+          </Link>
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
