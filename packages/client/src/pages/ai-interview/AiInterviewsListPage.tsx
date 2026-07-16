@@ -6,6 +6,8 @@ import { apiGet, apiPost, apiPut } from "@/api/client";
 import { formatDate } from "@/lib/utils";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
 
@@ -42,6 +44,17 @@ function candidateLink(token: string) {
   return `${window.location.origin}/ai-interview/${token}`;
 }
 
+const SESSION_COLUMNS: ExportColumn<SessionRow>[] = [
+  { header: "Candidate", value: (s) => s.candidate_name },
+  { header: "Role", value: (s) => s.job_title },
+  { header: "Status", value: (s) => s.status.replace("_", " ") },
+  { header: "Score", value: (s) => (s.overall_score != null ? `${s.overall_score}/100` : "") },
+  { header: "Recommendation", value: (s) => s.recommendation },
+  { header: "Questions", value: (s) => s.total_questions },
+  { header: "Created", value: (s) => (s.created_at ? formatDate(s.created_at) : "") },
+  { header: "Completed", value: (s) => (s.completed_at ? formatDate(s.completed_at) : "") },
+];
+
 export function AiInterviewsListPage() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
@@ -66,12 +79,21 @@ export function AiInterviewsListPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          <Plus className="h-4 w-4" /> New AI Interview
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="ai-interviews"
+            title="AI Interviews"
+            subtitle={`${total} AI interview${total !== 1 ? "s" : ""}`}
+            columns={SESSION_COLUMNS}
+            fetchRows={() => fetchAllRows<SessionRow>("/ai-interviews", {})}
+          />
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            <Plus className="h-4 w-4" /> New AI Interview
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

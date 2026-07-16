@@ -22,6 +22,8 @@ import {
   Tooltip,
 } from "recharts";
 import { apiGet } from "@/api/client";
+import { ExportMenu } from "@/components/ExportMenu";
+import { printReport, downloadCsvSections, type ReportSection } from "@/lib/export";
 
 // The Analytics page intentionally does NOT repeat the Dashboard's entity counts
 // (open jobs / candidates / applications) or its pipeline-stage distribution.
@@ -114,6 +116,46 @@ export function AnalyticsPage() {
   const sourcesTotal = sources.reduce((sum, s) => sum + s.total, 0);
   const trendData = trend.map((t) => ({ label: weekLabel(t.weekStart), count: t.count }));
   const trendTotal = trend.reduce((sum, t) => sum + t.count, 0);
+
+  // Assemble the analytics data into report sections for CSV/PDF export.
+  function buildSections(): ReportSection[] {
+    const sections: ReportSection[] = [];
+    if (metrics) {
+      const metricRows: (string | number)[][] = [
+        ["Hire Rate", `${metrics.hireRate}%`],
+        ["Hired", metrics.hired],
+        ["Total Applications", metrics.totalApplications],
+        ["Offer Acceptance Rate", `${metrics.offers.acceptanceRate}%`],
+        ["Offers — Total", metrics.offers.total],
+        ["Offers — Accepted", metrics.offers.accepted],
+        ["Offers — Declined", metrics.offers.declined],
+        ["Offers — Pending", metrics.offers.pending],
+        ["Offers — Expired", metrics.offers.expired],
+      ];
+      if (timeToHire) {
+        metricRows.push(["Avg Time to Hire (days)", timeToHire.averageDays]);
+        metricRows.push(["Hires counted", timeToHire.hiredCount]);
+      }
+      sections.push({
+        heading: "Key Metrics",
+        columns: [{ header: "Metric" }, { header: "Value" }],
+        rows: metricRows,
+      });
+    }
+    sections.push({
+      heading: "Applications Trend (last 8 weeks)",
+      columns: [{ header: "Week Starting" }, { header: "Applications" }],
+      rows: trend.map((t) => [t.weekStart, t.count]),
+    });
+    sections.push({
+      heading: "Source Effectiveness",
+      columns: [{ header: "Source" }, { header: "Total" }, { header: "Hired" }, { header: "Hire Rate" }],
+      rows: sources.map((s) => [s.source, s.total, s.hired, `${s.hireRate}%`]),
+    });
+    return sections;
+  }
+
+  const anyLoaded = Boolean(metrics) || trend.length > 0 || sources.length > 0;
   const offerMax = metrics
     ? Math.max(
         metrics.offers.accepted,
@@ -126,11 +168,24 @@ export function AnalyticsPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Recruitment Analytics</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Conversion rates, offer outcomes, hiring velocity, and source effectiveness.
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Recruitment Analytics</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Conversion rates, offer outcomes, hiring velocity, and source effectiveness.
+          </p>
+        </div>
+        <ExportMenu
+          disabled={!anyLoaded}
+          onCsv={() => downloadCsvSections("recruitment-analytics", buildSections())}
+          onPdf={() =>
+            printReport({
+              title: "Recruitment Analytics",
+              subtitle: "Conversion rates, offer outcomes, hiring velocity, and source effectiveness.",
+              sections: buildSections(),
+            })
+          }
+        />
       </div>
 
       {/* KPI cards — analytical rates, not the Dashboard's entity counts */}

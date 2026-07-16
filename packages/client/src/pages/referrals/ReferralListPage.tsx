@@ -4,12 +4,24 @@ import { Loader2, Gift, Plus, X, Pencil, Search } from "lucide-react";
 import { api, apiGet, apiPost } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
+import { ExportButtons } from "@/components/ExportButtons";
+import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
 import { getUser } from "@/lib/auth-store";
 import toast from "react-hot-toast";
 import type { JobPosting, PaginatedResponse } from "@emp-recruit/shared";
 
 const ADMIN_ROLES = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
+
+const REFERRAL_COLUMNS: ExportColumn<ReferralRow>[] = [
+  { header: "Candidate", value: (r) => r.candidate_name },
+  { header: "Job", value: (r) => r.job_title },
+  { header: "Status", value: (r) => r.status },
+  { header: "Relationship", value: (r) => r.relationship },
+  { header: "Bonus Amount", value: (r) => r.bonus_amount },
+  { header: "Bonus Paid", value: (r) => (r.bonus_paid_at ? formatDate(r.bonus_paid_at) : "") },
+  { header: "Referred", value: (r) => (r.created_at ? formatDate(r.created_at) : "") },
+];
 
 const STATUS_OPTIONS = [
   { value: "submitted", label: "Submitted" },
@@ -207,13 +219,22 @@ export function ReferralListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Referrals</h1>
           <p className="mt-1 text-sm text-gray-500">Track employee referrals and bonus eligibility.</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? "Cancel" : "Refer Someone"}
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            baseName="referrals"
+            title="Referrals"
+            subtitle={`${refTotal} referral${refTotal !== 1 ? "s" : ""}${statusFilter ? ` (${statusFilter.replace("_", " ")})` : ""}`}
+            columns={REFERRAL_COLUMNS}
+            fetchRows={() => fetchAllRows<ReferralRow>("/referrals", { status: statusFilter, search: listSearch })}
+          />
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? "Cancel" : "Refer Someone"}
+          </button>
+        </div>
       </div>
 
       {/* Submit form */}
