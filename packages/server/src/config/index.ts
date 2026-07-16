@@ -60,9 +60,13 @@ export const config = {
   // - siteBaseUrl: the public career-page site candidates apply on (the client),
   //   used to build each job's apply URL in the feed.
   publicUrls: {
-    apiBaseUrl:
-      process.env.PUBLIC_API_BASE_URL || `http://localhost:${parseInt(process.env.PORT || "4500")}`,
-    siteBaseUrl: process.env.PUBLIC_SITE_BASE_URL || process.env.CORS_ORIGIN || "http://localhost:5179",
+    // Public base of THIS server, used to build crawlable feed URLs submitted to
+    // LinkedIn/Indeed — must be a publicly reachable host, so it defaults to the
+    // product domain rather than localhost. Override per environment with
+    // PUBLIC_API_BASE_URL (e.g. http://localhost:4500 for local feed testing).
+    apiBaseUrl: process.env.PUBLIC_API_BASE_URL || "https://recruit.empcloud.com",
+    siteBaseUrl:
+      process.env.PUBLIC_SITE_BASE_URL || process.env.CORS_ORIGIN || "https://recruit.empcloud.com",
   },
 
   // Public client URL — used to build join links for embedded interview rooms
