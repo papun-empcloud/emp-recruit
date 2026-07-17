@@ -94,7 +94,16 @@ app.use(
   }),
 );
 app.use(compression());
-app.use(express.json({ limit: "10mb" }));
+// Capture the raw body so signed webhooks (e.g. Retell) can be verified against
+// the exact bytes received. Cheap — just keeps a reference to the parsed buffer.
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 // Guarantee req.body is always an object. express.json() only populates it when
 // a JSON content-type is present, so a body-less POST (e.g. POST /accept with no
