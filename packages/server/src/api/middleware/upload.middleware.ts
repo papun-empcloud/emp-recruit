@@ -1,6 +1,7 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
 import { Request } from "express";
 import { AppError } from "../../utils/errors";
 
@@ -57,7 +58,11 @@ const recordingStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (_req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    // Never interpolate the client-supplied originalname into the stored path —
+    // it could contain `../` (path traversal / overwrite). Use a random name +
+    // only the sanitized extension, matching the resume uploader.
+    const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, "");
+    cb(null, `${uuidv4()}${ext}`);
   },
 });
 
