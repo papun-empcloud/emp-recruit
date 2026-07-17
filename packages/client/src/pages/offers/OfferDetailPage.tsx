@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -618,7 +619,7 @@ export function OfferDetailPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("offers.detail.offerLetterPreview")}</h3>
               <div
                 className="prose prose-sm max-w-none border border-gray-200 rounded-lg p-6"
-                dangerouslySetInnerHTML={{ __html: generatedLetter.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(generatedLetter.content) }}
               />
             </div>
           </div>

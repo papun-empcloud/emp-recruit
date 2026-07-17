@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useTranslation } from "react-i18next";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -514,7 +515,7 @@ export function JobDetailPage() {
           <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.description")}</h2>
           <div
             className="rte-content mt-2 text-gray-700"
-            dangerouslySetInnerHTML={{ __html: job.description || "" }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.description || "") }}
           />
         </div>
         {job.requirements && (
@@ -522,7 +523,7 @@ export function JobDetailPage() {
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.requirements")}</h2>
             <div
               className="rte-content mt-2 text-gray-700"
-              dangerouslySetInnerHTML={{ __html: job.requirements || "" }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.requirements || "") }}
             />
           </div>
         )}
