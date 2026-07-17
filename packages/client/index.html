@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Defense-in-depth CSP. Deliberately does NOT restrict script-src (Vite's
+         dev HMR uses inline/eval) but blocks plugin content, base-tag injection
+         and framing — cheap wins that pair with server-side HTML sanitization.
+         A strict script-src should be added at the production hosting layer. -->
+    <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; frame-ancestors 'self'" />
     <title>EMP Recruit — Applicant Tracking System</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script>
