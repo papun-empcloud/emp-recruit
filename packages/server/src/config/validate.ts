@@ -20,6 +20,14 @@ export function validateConfig(): void {
     errors.push("DB_PASSWORD is required in production");
   }
 
+  // Email
+  if (config.email.provider === "sendgrid" && !config.email.sendgridApiKey) {
+    errors.push("EMAIL_PROVIDER=sendgrid but SENDGRID_API_KEY is not set");
+  }
+  if (!["smtp", "sendgrid"].includes(config.email.provider)) {
+    warnings.push(`Unknown EMAIL_PROVIDER "${config.email.provider}" — falling back to SMTP`);
+  }
+
   // CORS
   if (config.env === "production" && config.cors.origin === "*") {
     errors.push("CORS_ORIGIN must not be '*' in production");

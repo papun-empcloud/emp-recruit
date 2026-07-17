@@ -7,7 +7,7 @@ import nodemailer from "nodemailer";
 import Handlebars from "handlebars";
 import { getDB } from "../../db/adapters";
 import { config } from "../../config";
-import { NotFoundError } from "../../utils/errors";
+import { AppError, NotFoundError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import type { EmailTemplate } from "@emp-recruit/shared";
 
@@ -104,7 +104,23 @@ export function renderTemplate(
 // Send email
 // ---------------------------------------------------------------------------
 
+/**
+ * Send an email via the configured provider. `EMAIL_PROVIDER=sendgrid` uses the
+ * SendGrid Web API; anything else (default) uses SMTP/nodemailer (Mailhog in
+ * dev, any SMTP host in prod).
+ */
 export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+): Promise<{ messageId: string }> {
+  if (config.email.provider === "sendgrid") {
+    return sendViaSendGrid(to, subject, html);
+  }
+  return sendViaSmtp(to, subject, html);
+}
+
+async function sendViaSmtp(
   to: string,
   subject: string,
   html: string,
@@ -118,9 +134,48 @@ export async function sendEmail(
     html,
   });
 
-  logger.info(`Email sent to ${to}: ${subject} (messageId: ${info.messageId})`);
+  logger.info(`Email sent to ${to} via SMTP: ${subject} (messageId: ${info.messageId})`);
 
   return { messageId: info.messageId };
+}
+
+/**
+ * Send via SendGrid's v3 Web API (raw fetch — no SDK dependency, same approach
+ * as the LLM adapters). Requires SENDGRID_API_KEY.
+ */
+async function sendViaSendGrid(
+  to: string,
+  subject: string,
+  html: string,
+): Promise<{ messageId: string }> {
+  if (!config.email.sendgridApiKey) {
+    throw new AppError(500, "EMAIL_NOT_CONFIGURED", "EMAIL_PROVIDER=sendgrid but SENDGRID_API_KEY is not set");
+  }
+
+  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.email.sendgridApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: config.email.from },
+      subject,
+      content: [{ type: "text/html", value: html }],
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new AppError(502, "EMAIL_ERROR", `SendGrid error (${res.status}): ${detail}`);
+  }
+
+  // SendGrid returns 202 with the message id in the X-Message-Id header.
+  const messageId = res.headers.get("x-message-id") || "sendgrid-accepted";
+  logger.info(`Email sent to ${to} via SendGrid: ${subject} (messageId: ${messageId})`);
+
+  return { messageId };
 }
 
 // ---------------------------------------------------------------------------
