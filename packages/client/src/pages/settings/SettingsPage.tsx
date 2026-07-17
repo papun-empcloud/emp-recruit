@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -176,7 +177,7 @@ function EmailTemplateSettings() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("settings.email.emailPreview")}</h3>
             <div
               className="prose prose-sm max-w-none border border-gray-200 rounded-lg p-4"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewHtml) }}
             />
           </div>
         </div>
@@ -264,7 +265,7 @@ function EmailTemplateSettings() {
                   </p>
                   <div
                     className="prose prose-sm max-w-none rounded-md bg-white p-3"
-                    dangerouslySetInnerHTML={{ __html: form.body }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.body) }}
                   />
                 </div>
               )}
