@@ -9,10 +9,25 @@ import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import * as aiInterviewService from "../../services/ai-interview/ai-interview.service";
 import { sendSuccess } from "../../utils/response";
-import { ValidationError } from "../../utils/errors";
+import { ValidationError, AppError } from "../../utils/errors";
+import { config } from "../../config";
+
+/**
+ * Verify a Retell webhook signature: HMAC-SHA256 of the raw request body keyed
+ * with the Retell API key, hex-encoded, matched constant-time against the
+ * `x-retell-signature` header. Matches Retell's `verify()` scheme.
+ */
+function verifyRetellSignature(rawBody: Buffer | undefined, signature: string | undefined, apiKey: string): boolean {
+  if (!rawBody || !signature) return false;
+  const expected = crypto.createHmac("sha256", apiKey).update(rawBody).digest("hex");
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 const router = Router();
 
@@ -41,6 +56,20 @@ const audioUpload = multer({
 // the "/:token" routes so its fixed path isn't shadowed.
 router.post("/retell-webhook", async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Reject forged webhooks. When Retell is configured, the request must carry
+    // a valid signature — otherwise anyone could POST fake transcripts/evals that
+    // drive HR hiring recommendations. If no API key is set (dev), skip the check.
+    const apiKey = config.ai.retell.apiKey;
+    if (apiKey) {
+      const ok = verifyRetellSignature(
+        (req as any).rawBody,
+        req.header("x-retell-signature"),
+        apiKey,
+      );
+      if (!ok) {
+        return next(new AppError(401, "INVALID_SIGNATURE", "Invalid webhook signature"));
+      }
+    }
     await aiInterviewService.handleRetellWebhook(req.body);
     res.status(200).json({ received: true });
   } catch (err) {

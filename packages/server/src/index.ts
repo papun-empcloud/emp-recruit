@@ -94,7 +94,16 @@ app.use(
   }),
 );
 app.use(compression());
-app.use(express.json({ limit: "10mb" }));
+// Capture the raw body so signed webhooks (e.g. Retell) can be verified against
+// the exact bytes received. Cheap — just keeps a reference to the parsed buffer.
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 // Guarantee req.body is always an object. express.json() only populates it when
 // a JSON content-type is present, so a body-less POST (e.g. POST /accept with no
@@ -152,12 +161,14 @@ v1.use("/job-publishing", jobPublishingRoutes); // outbound job-board publishing
 
 // Public routes (no auth required) — career pages, job listings, applications.
 // The AI-interview public router is mounted first so its more specific prefix
-// is matched before the general public router.
-app.use("/api/v1/public/ai-interviews", aiInterviewPublicRoutes);
-app.use("/api/v1/public", publicRoutes);
+// is matched before the general public router. These routers are mounted on
+// `app` (not the v1 router), so apply the rate limiter here too — otherwise
+// these unauthenticated endpoints (uploads, magic links, tokens) are unthrottled.
+app.use("/api/v1/public/ai-interviews", apiLimiter, aiInterviewPublicRoutes);
+app.use("/api/v1/public", apiLimiter, publicRoutes);
 
 // Candidate portal routes (portal auth — separate from employee auth)
-app.use("/api/v1/portal", portalRoutes);
+app.use("/api/v1/portal", apiLimiter, portalRoutes);
 
 app.use("/api/v1", v1);
 

@@ -11,6 +11,7 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { portalAuthenticate } from "../middleware/portal-auth.middleware";
+import { strictLimiter } from "../middleware/rate-limit.middleware";
 import * as portalService from "../../services/portal/portal.service";
 import { sendSuccess } from "../../utils/response";
 import { ValidationError, AppError } from "../../utils/errors";
@@ -74,6 +75,7 @@ const requestAccessSchema = z.object({
 // ---------------------------------------------------------------------------
 router.post(
   "/request-access",
+  strictLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsed = requestAccessSchema.safeParse(req.body);
