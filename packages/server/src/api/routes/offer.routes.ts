@@ -13,7 +13,7 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
-import { createOfferSchema } from "@emp-recruit/shared";
+import { createOfferSchema, updateOfferSchema } from "@emp-recruit/shared";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
 import * as offerService from "../../services/offer/offer.service";
@@ -44,9 +44,10 @@ router.post(
   },
 );
 
-// GET / — List offers
+// GET / — List offers. Restricted to HR roles: offers expose salary/comp data.
 router.get(
   "/",
+  authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
@@ -64,9 +65,10 @@ router.get(
   },
 );
 
-// GET /:id — Get offer with approvers
+// GET /:id — Get offer with approvers (HR roles only — exposes comp data).
 router.get(
   "/:id",
+  authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
@@ -85,7 +87,11 @@ router.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const offer = await offerService.updateOffer(orgId, String(req.params.id), req.body);
+      // Whitelist editable fields (prevents mass-assignment of id/organization_id
+      // etc.). `status` is intentionally excluded: lifecycle transitions go
+      // through the dedicated approval/send/accept endpoints, never a raw update.
+      const data = updateOfferSchema.omit({ status: true }).parse(req.body);
+      const offer = await offerService.updateOffer(orgId, String(req.params.id), data);
       sendSuccess(res, offer);
     } catch (err) {
       next(err);
