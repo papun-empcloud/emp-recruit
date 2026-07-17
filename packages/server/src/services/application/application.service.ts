@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
+import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
 import type { Application, ApplicationStageHistory } from "@emp-recruit/shared";
 
@@ -171,8 +172,13 @@ export async function listApplications(
   );
   const total = Number(countRows[0]?.[0]?.total ?? 0);
 
-  const sortField = params.sort ?? "applied_at";
-  const sortOrder = params.order ?? "desc";
+  // Allowlist the sort column — never interpolate a request string into SQL.
+  const { column: sortField, direction: sortOrder } = safeOrderBy(
+    params.sort,
+    params.order,
+    ["applied_at", "created_at", "updated_at", "stage", "rating"],
+    "applied_at",
+  );
 
   const dataRows = await db.raw<any[][]>(
     // #16 — also expose a concatenated candidate_name so the Schedule
@@ -189,7 +195,7 @@ export async function listApplications(
      LEFT JOIN candidates c ON c.id = a.candidate_id
      LEFT JOIN job_postings j ON j.id = a.job_id
      WHERE ${whereClause}
-     ORDER BY a.${sortField} ${sortOrder}
+     ORDER BY a.\`${sortField}\` ${sortOrder}
      LIMIT ? OFFSET ?`,
     [...queryParams, perPage, offset],
   );
