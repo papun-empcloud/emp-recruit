@@ -152,12 +152,14 @@ v1.use("/job-publishing", jobPublishingRoutes); // outbound job-board publishing
 
 // Public routes (no auth required) — career pages, job listings, applications.
 // The AI-interview public router is mounted first so its more specific prefix
-// is matched before the general public router.
-app.use("/api/v1/public/ai-interviews", aiInterviewPublicRoutes);
-app.use("/api/v1/public", publicRoutes);
+// is matched before the general public router. These routers are mounted on
+// `app` (not the v1 router), so apply the rate limiter here too — otherwise
+// these unauthenticated endpoints (uploads, magic links, tokens) are unthrottled.
+app.use("/api/v1/public/ai-interviews", apiLimiter, aiInterviewPublicRoutes);
+app.use("/api/v1/public", apiLimiter, publicRoutes);
 
 // Candidate portal routes (portal auth — separate from employee auth)
-app.use("/api/v1/portal", portalRoutes);
+app.use("/api/v1/portal", apiLimiter, portalRoutes);
 
 app.use("/api/v1", v1);
 
