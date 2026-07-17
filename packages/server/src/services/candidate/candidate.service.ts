@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
+import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError } from "../../utils/errors";
 import type { Candidate, Application } from "@emp-recruit/shared";
 import * as applicationService from "../application/application.service";
@@ -190,6 +191,14 @@ export async function listCandidates(
   const db = getDB();
   const page = params.page ?? 1;
   const perPage = params.perPage ?? 20;
+  // Allowlist the sort column — `params.sort` is a free-form request string and
+  // must never be interpolated into SQL raw (injection).
+  const { column, direction } = safeOrderBy(
+    params.sort,
+    params.order,
+    ["created_at", "updated_at", "first_name", "last_name", "email", "current_company", "experience_years"],
+    "created_at",
+  );
 
   if (params.search) {
     const search = `%${params.search}%`;
@@ -202,7 +211,7 @@ export async function listCandidates(
     const total = Number(countRows[0]?.[0]?.total ?? 0);
 
     const dataRows = await db.raw<any[][]>(
-      `SELECT * FROM candidates WHERE organization_id = ? AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?) ORDER BY ${params.sort ?? "created_at"} ${params.order ?? "desc"} LIMIT ? OFFSET ?`,
+      `SELECT * FROM candidates WHERE organization_id = ? AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?) ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
       [orgId, search, search, search, search, perPage, offset],
     );
 
@@ -213,9 +222,7 @@ export async function listCandidates(
     page,
     limit: perPage,
     filters: { organization_id: orgId },
-    sort: params.sort
-      ? { field: params.sort, order: params.order ?? "desc" }
-      : { field: "created_at", order: "desc" },
+    sort: { field: column, order: direction.toLowerCase() as "asc" | "desc" },
   });
 
   return { data: result.data, total: result.total, page, perPage };

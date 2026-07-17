@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
+import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { publishJobToBoards } from "../job-board/job-board.service";
@@ -153,13 +154,19 @@ export async function listJobs(
   const filters: Record<string, any> = { organization_id: orgId };
   if (params.status) filters.status = params.status;
 
+  // Allowlist the sort column — never interpolate a request string into SQL.
+  const { column, direction } = safeOrderBy(
+    params.sort,
+    params.order,
+    ["created_at", "updated_at", "title", "department", "location", "status"],
+    "created_at",
+  );
+
   const result = await db.findMany<JobPosting>("job_postings", {
     page,
     limit: perPage,
     filters,
-    sort: params.sort
-      ? { field: params.sort, order: params.order ?? "desc" }
-      : { field: "created_at", order: "desc" },
+    sort: { field: column, order: direction.toLowerCase() as "asc" | "desc" },
   });
 
   // If search is provided, we filter in raw query for LIKE
@@ -179,7 +186,7 @@ export async function listJobs(
       queryParams.push(params.status);
     }
     const dataRows = await db.raw<any[][]>(
-      `SELECT * FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)${statusFilter} ORDER BY ${params.sort ?? "created_at"} ${params.order ?? "desc"} LIMIT ? OFFSET ?`,
+      `SELECT * FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)${statusFilter} ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
       [...queryParams, perPage, offset],
     );
 
