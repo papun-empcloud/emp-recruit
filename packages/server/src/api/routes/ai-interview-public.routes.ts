@@ -39,8 +39,18 @@ const audioStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".webm";
-    cb(null, `${uuidv4()}${ext}`);
+    // Force a safe extension from the (audio-only) MIME type rather than trusting
+    // the client's originalname, so a `.html`/`.svg` can't be stored and later
+    // served as active content (audit M6). Unknown audio types fall back to .webm.
+    const AUDIO_EXT: Record<string, string> = {
+      "audio/webm": ".webm",
+      "audio/ogg": ".ogg",
+      "audio/wav": ".wav",
+      "audio/x-wav": ".wav",
+      "audio/mpeg": ".mp3",
+      "audio/mp4": ".m4a",
+    };
+    cb(null, `${uuidv4()}${AUDIO_EXT[file.mimetype] || ".webm"}`);
   },
 });
 const audioUpload = multer({
