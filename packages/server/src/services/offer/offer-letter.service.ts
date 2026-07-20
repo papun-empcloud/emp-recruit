@@ -8,6 +8,7 @@ import Handlebars from "handlebars";
 import path from "path";
 import fs from "fs/promises";
 import { getDB } from "../../db/adapters";
+import { findOrgById } from "../../db/empcloud";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { toMysqlDateTime } from "../../utils/date";
@@ -198,6 +199,10 @@ export async function generateOfferLetter(
     throw new NotFoundError("Offer letter template", templateId);
   }
 
+  // Resolve the real organization name for the letter (audit M23) — this was
+  // using the job's DEPARTMENT (or "Our Organization") as the company name.
+  const org = await findOrgById(orgId).catch(() => null);
+
   // Build template variables
   const variables = {
     candidate: {
@@ -225,7 +230,7 @@ export async function generateOfferLetter(
       benefits: offer.benefits || "",
     },
     organization: {
-      name: job?.department || "Our Organization",
+      name: org?.name || job?.department || "Our Organization",
     },
     job: {
       title: job?.title || offer.job_title,
