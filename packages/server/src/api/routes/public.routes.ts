@@ -39,9 +39,16 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (_req, file, cb) => {
+    // Validate BOTH the extension and the declared MIME type (audit L13) —
+    // extension-only checks let a mislabelled file through.
     const allowed = [".pdf", ".doc", ".docx"];
+    const allowedMimes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) {
+    if (allowed.includes(ext) && allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error("Only PDF, DOC, and DOCX resume files are allowed"));

@@ -247,6 +247,16 @@ export async function submitAssessment(
   const template = await db.findById<AssessmentTemplate>("assessment_templates", assessment.template_id);
   if (!template) throw new NotFoundError("Assessment template", assessment.template_id);
 
+  // Enforce the time limit server-side (audit L12) — it was returned to the
+  // client but never checked, so a candidate could submit long after it passed.
+  if (template.time_limit_minutes && assessment.started_at) {
+    const elapsedMin = (Date.now() - new Date(assessment.started_at).getTime()) / 60000;
+    if (elapsedMin > template.time_limit_minutes) {
+      await db.update("candidate_assessments", assessment.id, { status: "expired" } as any);
+      throw new ValidationError("The time limit for this assessment has passed");
+    }
+  }
+
   const allQuestions: AssessmentQuestion[] = typeof template.questions === "string"
     ? JSON.parse(template.questions)
     : template.questions;
