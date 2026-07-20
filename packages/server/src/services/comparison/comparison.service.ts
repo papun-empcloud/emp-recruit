@@ -97,30 +97,63 @@ export async function compareCandidates(
     );
     const score = scoreRows[0]?.[0];
 
-    // Fetch interview feedback
+    // Fetch interviews, then their feedback separately and aggregate per
+    // interview. A LEFT JOIN would fan out one row per panelist (N feedback rows
+    // per interview), so the same interview appeared N times, unaggregated (M19).
     const interviewRows = await db.raw<any[][]>(
-      `SELECT i.id, i.title, i.type, i.status,
-              f.overall_score, f.technical_score, f.communication_score,
-              f.cultural_fit_score, f.recommendation, f.strengths, f.weaknesses
+      `SELECT i.id, i.title, i.type, i.status
        FROM interviews i
-       LEFT JOIN interview_feedback f ON f.interview_id = i.id
        WHERE i.application_id = ? AND i.organization_id = ?
        ORDER BY i.round ASC`,
       [appId, orgId],
     );
-    const interviews: InterviewSummary[] = (interviewRows[0] || []).map((row: any) => ({
-      id: row.id,
-      title: row.title,
-      type: row.type,
-      status: row.status,
-      overall_score: row.overall_score,
-      technical_score: row.technical_score,
-      communication_score: row.communication_score,
-      cultural_fit_score: row.cultural_fit_score,
-      recommendation: row.recommendation,
-      strengths: row.strengths,
-      weaknesses: row.weaknesses,
-    }));
+    const interviewList = (interviewRows[0] || []) as any[];
+
+    // Group all feedback for these interviews by interview_id in one query.
+    const feedbackByInterview = new Map<string, any[]>();
+    if (interviewList.length > 0) {
+      const ids = interviewList.map((r) => r.id);
+      const placeholders = ids.map(() => "?").join(", ");
+      const feedbackRows = await db.raw<any[][]>(
+        `SELECT interview_id, overall_score, technical_score, communication_score,
+                cultural_fit_score, recommendation, strengths, weaknesses
+         FROM interview_feedback
+         WHERE interview_id IN (${placeholders})`,
+        ids,
+      );
+      for (const f of (feedbackRows[0] || []) as any[]) {
+        const list = feedbackByInterview.get(f.interview_id) || [];
+        list.push(f);
+        feedbackByInterview.set(f.interview_id, list);
+      }
+    }
+
+    const avgScore = (vals: Array<number | null>): number | null => {
+      const nums = vals.filter((v): v is number => v != null);
+      if (nums.length === 0) return null;
+      return Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+    };
+    const joinText = (vals: Array<string | null>): string | null => {
+      const parts = [...new Set(vals.filter((v): v is string => !!v && v.trim() !== ""))];
+      return parts.length ? parts.join("; ") : null;
+    };
+
+    const interviews: InterviewSummary[] = interviewList.map((iv) => {
+      const fbs = feedbackByInterview.get(iv.id) || [];
+      return {
+        id: iv.id,
+        title: iv.title,
+        type: iv.type,
+        status: iv.status,
+        overall_score: avgScore(fbs.map((f) => f.overall_score)),
+        technical_score: avgScore(fbs.map((f) => f.technical_score)),
+        communication_score: avgScore(fbs.map((f) => f.communication_score)),
+        cultural_fit_score: avgScore(fbs.map((f) => f.cultural_fit_score)),
+        recommendation: fbs[0]?.recommendation ?? null,
+        strengths: joinText(fbs.map((f) => f.strengths)),
+        weaknesses: joinText(fbs.map((f) => f.weaknesses)),
+      };
+    });
 
     // Parse JSON fields safely
     const parseJson = (val: any): string[] | null => {
