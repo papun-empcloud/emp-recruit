@@ -29,6 +29,17 @@ import type {
 const PORTAL_TOKEN_EXPIRY = "24h";
 const PORTAL_TOKEN_ISSUER = "emp-recruit-portal";
 
+/** Escape user-derived values before interpolating them into raw HTML emails
+ *  to prevent HTML/markup injection (audit L6). */
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export interface PortalTokenPayload {
   candidateId: string;
   email: string;
@@ -80,7 +91,7 @@ export async function sendPortalLink(candidateId: string, orgId: number): Promis
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #4F46E5;">Candidate Portal Access</h2>
-      <p>Hi ${candidate.first_name},</p>
+      <p>Hi ${escapeHtml(candidate.first_name)},</p>
       <p>You can view your application status and upcoming interviews using the link below:</p>
       <p style="margin: 24px 0;">
         <a href="${portalUrl}"
@@ -138,7 +149,7 @@ export async function requestAccess(email: string): Promise<{ sent: boolean }> {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4F46E5;">Candidate Portal Access</h2>
-        <p>Hi ${c.first_name},</p>
+        <p>Hi ${escapeHtml(c.first_name)},</p>
         <p>You requested access to the candidate portal. Click below to view your applications:</p>
         <p style="margin: 24px 0;">
           <a href="${portalUrl}"
