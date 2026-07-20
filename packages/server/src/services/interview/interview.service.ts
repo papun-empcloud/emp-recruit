@@ -388,6 +388,17 @@ export async function getInterview(
 // Change interview status
 // ---------------------------------------------------------------------------
 
+// Allowed interview status transitions (audit L15). `completed` is terminal;
+// `cancelled`/`no_show` can only go back to `scheduled` (a reschedule).
+// Same-status is a no-op and always allowed.
+const INTERVIEW_STATUS_TRANSITIONS: Record<InterviewStatus, InterviewStatus[]> = {
+  scheduled: ["in_progress", "completed", "cancelled", "no_show"],
+  in_progress: ["completed", "cancelled", "no_show"],
+  completed: [],
+  cancelled: ["scheduled"],
+  no_show: ["scheduled"],
+} as Record<InterviewStatus, InterviewStatus[]>;
+
 export async function changeStatus(
   orgId: number,
   id: string,
@@ -401,6 +412,11 @@ export async function changeStatus(
   });
   if (!interview) {
     throw new NotFoundError("Interview", id);
+  }
+
+  const current = interview.status as InterviewStatus;
+  if (status !== current && !(INTERVIEW_STATUS_TRANSITIONS[current] || []).includes(status)) {
+    throw new ValidationError(`Cannot change interview status from '${current}' to '${status}'`);
   }
 
   const updated = await db.update<Interview>("interviews", id, {
