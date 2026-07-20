@@ -622,31 +622,36 @@ export async function updateTaskStatus(
 
   const updatedTask = await db.update<OnboardingTask>("onboarding_tasks", taskId, updateData);
 
-  // Update checklist status based on task progress
-  const totalTasks = await db.count("onboarding_tasks", { checklist_id: checklist.id });
-  const completedTasks = await db.count("onboarding_tasks", {
-    checklist_id: checklist.id,
-    status: "completed",
-  });
-
-  let checklistStatus: OnboardingStatus;
-  if (completedTasks === 0) {
-    checklistStatus = "not_started" as OnboardingStatus;
-  } else if (completedTasks >= totalTasks) {
-    checklistStatus = "completed" as OnboardingStatus;
-  } else {
-    checklistStatus = "in_progress" as OnboardingStatus;
-  }
-
-  const checklistUpdate: Record<string, any> = { status: checklistStatus };
-  if (checklistStatus === "in_progress" && !checklist.started_at) {
-    checklistUpdate.started_at = new Date();
-  }
-  if (checklistStatus === "completed") {
-    checklistUpdate.completed_at = new Date();
-  }
-
-  await db.update("onboarding_checklists", checklist.id, checklistUpdate);
+  // Recompute the checklist status atomically from the current task counts in a
+  // single statement (audit L14). The previous count-then-update was a
+  // read-modify-write: concurrent task updates could each read stale counts and
+  // leave the checklist status inconsistent.
+  await db.raw(
+    `UPDATE onboarding_checklists c
+        LEFT JOIN (
+          SELECT checklist_id,
+                 COUNT(*) AS total,
+                 SUM(status = 'completed') AS done
+            FROM onboarding_tasks
+           WHERE checklist_id = ?
+           GROUP BY checklist_id
+        ) t ON t.checklist_id = c.id
+        SET c.status = CASE
+              WHEN COALESCE(t.done, 0) = 0 THEN 'not_started'
+              WHEN t.done >= t.total THEN 'completed'
+              ELSE 'in_progress'
+            END,
+            c.started_at = CASE
+              WHEN c.started_at IS NULL AND COALESCE(t.done, 0) > 0 THEN NOW()
+              ELSE c.started_at
+            END,
+            c.completed_at = CASE
+              WHEN COALESCE(t.total, 0) > 0 AND t.done >= t.total THEN NOW()
+              ELSE c.completed_at
+            END
+      WHERE c.id = ?`,
+    [checklist.id, checklist.id],
+  );
 
   return updatedTask;
 }

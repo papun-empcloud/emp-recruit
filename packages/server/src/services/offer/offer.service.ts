@@ -356,19 +356,21 @@ export async function approve(
     );
   }
 
-  // Check if all approvers have approved
-  const pendingCount = await db.count("offer_approvers", {
-    offer_id: offerId,
-    status: "pending",
-  });
-
-  if (pendingCount === 0) {
-    return db.update<Offer>("offers", offerId, {
-      status: "approved" as OfferStatus,
-      approved_by: userId,
-      approved_at: toMysqlDateTime(),
-    });
-  }
+  // Flip the offer to approved atomically — only while it is still pending and
+  // no approver remains pending (audit L14). A single conditional UPDATE avoids
+  // the count-then-update race where two concurrent approvals could each read a
+  // stale pending count and leave the offer stuck in pending_approval.
+  await db.raw(
+    `UPDATE offers o
+        SET o.status = 'approved', o.approved_by = ?, o.approved_at = ?
+      WHERE o.id = ?
+        AND o.status = 'pending_approval'
+        AND NOT EXISTS (
+          SELECT 1 FROM offer_approvers a
+           WHERE a.offer_id = o.id AND a.status = 'pending'
+        )`,
+    [userId, toMysqlDateTime(), offerId],
+  );
 
   return db.findById<Offer>("offers", offerId) as Promise<Offer>;
 }
