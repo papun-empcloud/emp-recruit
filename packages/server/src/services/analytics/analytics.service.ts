@@ -65,33 +65,33 @@ export async function getTimeToHire(orgId: number): Promise<{
 }> {
   const db = getDB();
 
-  // Get all hired applications with their applied_at date
-  const result = await db.findMany<{
-    id: string;
-    applied_at: string;
-    updated_at: string;
-    stage: string;
-  }>("applications", {
-    filters: { organization_id: orgId, stage: "hired" },
-    limit: 1000,
-  });
+  // Use the actual moment each application transitioned INTO 'hired' (from the
+  // stage history), not applications.updated_at — which moves on any later edit
+  // and inflates time-to-hire (audit M16).
+  const rows = await db.raw<any[][]>(
+    `SELECT a.applied_at AS applied_at, MIN(h.created_at) AS hired_at
+       FROM applications a
+       JOIN application_stage_history h
+         ON h.application_id = a.id AND h.to_stage = 'hired'
+      WHERE a.organization_id = ? AND a.stage = 'hired'
+      GROUP BY a.id, a.applied_at`,
+    [orgId],
+  );
+  const data = ((rows[0] as any[]) || []).filter((r) => r.applied_at && r.hired_at);
 
-  if (result.data.length === 0) {
+  if (data.length === 0) {
     return { averageDays: 0, hiredCount: 0 };
   }
 
   let totalDays = 0;
-  for (const app of result.data) {
-    const appliedDate = new Date(app.applied_at);
-    const hiredDate = new Date(app.updated_at);
-    const diffMs = hiredDate.getTime() - appliedDate.getTime();
-    const diffDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
-    totalDays += diffDays;
+  for (const r of data) {
+    const diffMs = new Date(r.hired_at).getTime() - new Date(r.applied_at).getTime();
+    totalDays += Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
   }
 
-  const averageDays = Math.round(totalDays / result.data.length);
+  const averageDays = Math.round(totalDays / data.length);
 
-  return { averageDays, hiredCount: result.data.length };
+  return { averageDays, hiredCount: data.length };
 }
 
 // ---------------------------------------------------------------------------
