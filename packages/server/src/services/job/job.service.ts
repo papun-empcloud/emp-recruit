@@ -204,6 +204,18 @@ export async function getJob(orgId: number, id: string): Promise<JobPosting> {
   return job;
 }
 
+// Allowed job status transitions (audit L15). Without this table any status
+// could jump to any other — e.g. a filled job silently reverting to draft, or
+// a nonsensical closed -> paused. Same-status is treated as a no-op and always
+// allowed. Reopening (closed/filled -> open) is permitted deliberately.
+const JOB_STATUS_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
+  draft: ["open", "closed"],
+  open: ["paused", "closed", "filled"],
+  paused: ["open", "closed", "filled"],
+  closed: ["draft", "open"],
+  filled: ["open", "closed"],
+} as Record<JobStatus, JobStatus[]>;
+
 export async function changeStatus(
   orgId: number,
   id: string,
@@ -212,6 +224,11 @@ export async function changeStatus(
   const db = getDB();
   const existing = await db.findOne<JobPosting>("job_postings", { id, organization_id: orgId });
   if (!existing) throw new NotFoundError("Job", id);
+
+  const current = existing.status as JobStatus;
+  if (status !== current && !(JOB_STATUS_TRANSITIONS[current] || []).includes(status)) {
+    throw new ValidationError(`Cannot change job status from '${current}' to '${status}'`);
+  }
 
   const updates: Record<string, any> = { status };
   if (status === "open" && !existing.published_at) {
