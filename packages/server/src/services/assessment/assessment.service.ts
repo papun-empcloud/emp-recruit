@@ -280,8 +280,13 @@ export async function submitAssessment(
     } as any);
   }
 
-  // Calculate score
-  const maxScore = scoredCount;
+  // Calculate score. max_score is the number of scorable questions in the
+  // TEMPLATE — not just the ones the candidate answered — otherwise a candidate
+  // who answers only the one question they know and skips the rest scores 100%
+  // (audit H9). Unanswered scorable questions count against them.
+  const maxScore = allQuestions.filter(
+    (q) => q.correct_answer !== undefined && q.correct_answer !== null,
+  ).length;
   const score = correctCount;
 
   // Calculate percentile based on other assessments for this template

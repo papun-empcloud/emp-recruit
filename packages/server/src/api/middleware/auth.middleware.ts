@@ -32,11 +32,19 @@ declare global {
 }
 
 export function authenticate(req: Request, _res: Response, next: NextFunction) {
-  // Internal service bypass for dashboard widget data fetching
+  // Internal service bypass for dashboard widget data fetching. This is a
+  // static shared secret that grants org_admin for a client-supplied org, so
+  // limit the blast radius if it leaks: it is READ-ONLY (GET requests only) —
+  // it can never be used to mutate data (audit H7).
   const internalService = req.headers["x-internal-service"];
   const internalSecret = req.headers["x-internal-secret"];
   const expectedSecret = process.env.INTERNAL_SERVICE_SECRET || "";
-  if (internalService === "empcloud-dashboard" && expectedSecret && internalSecret === expectedSecret) {
+  if (
+    req.method === "GET" &&
+    internalService === "empcloud-dashboard" &&
+    expectedSecret &&
+    internalSecret === expectedSecret
+  ) {
     const orgId = Number(req.query.organization_id);
     if (orgId) {
       req.user = {
