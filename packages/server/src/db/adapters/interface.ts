@@ -54,7 +54,9 @@ export interface IDBAdapter {
   sum(table: string, field: string, where?: Record<string, any>): Promise<number>;
 
   // Transactions
-  transaction<T>(fn: (trx: TransactionContext) => Promise<T>): Promise<T>;
+  // The callback receives a transaction-scoped adapter — run all writes on it
+  // for atomicity. Commits on resolve, rolls back on throw (audit A1).
+  transaction<T>(fn: (tx: IDBAdapter) => Promise<T>): Promise<T>;
 
   // Raw query escape hatch (use sparingly)
   raw<T>(query: string, params?: any[]): Promise<T>;
