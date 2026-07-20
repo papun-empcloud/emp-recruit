@@ -455,29 +455,30 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
     throw new ValidationError("Only sent offers can be accepted");
   }
 
-  // Update offer
-  const updated = await db.update<Offer>("offers", id, {
-    status: "accepted" as OfferStatus,
-    notes: notes || offer.notes,
-    responded_at: toMysqlDateTime(),
-  });
-
-  // Move application to hired stage
-  await db.update("applications", offer.application_id, { stage: "hired" });
-
-  // Mark the underlying job posting as "filled" so HR sees it in the Filled
-  // tab on the job listings page.
+  // offer→accepted, application→hired and job→filled must be atomic (audit M15):
+  // a mid-way failure previously left inconsistent state (e.g. offer accepted but
+  // application still in 'offer'). Onboarding + webhook below stay best-effort
+  // AFTER the commit.
   let department: string | null = null;
-  if (offer.job_id) {
-    const job = await db.findOne<{ id: string; status: string; department: string | null }>(
-      "job_postings",
-      { id: offer.job_id, organization_id: orgId },
-    );
-    department = job?.department ?? null;
-    if (job && job.status !== "closed") {
-      await db.update("job_postings", offer.job_id, { status: "filled" });
+  const updated = await db.transaction(async (tx) => {
+    const upd = await tx.update<Offer>("offers", id, {
+      status: "accepted" as OfferStatus,
+      notes: notes || offer.notes,
+      responded_at: toMysqlDateTime(),
+    });
+    await tx.update("applications", offer.application_id, { stage: "hired" });
+    if (offer.job_id) {
+      const job = await tx.findOne<{ id: string; status: string; department: string | null }>(
+        "job_postings",
+        { id: offer.job_id, organization_id: orgId },
+      );
+      department = job?.department ?? null;
+      if (job && job.status !== "closed") {
+        await tx.update("job_postings", offer.job_id, { status: "filled" });
+      }
     }
-  }
+    return upd;
+  });
 
   // Auto-generate the onboarding checklist for the new hire (the offer-to-
   // onboarding handoff the UI advertises). Best-effort — a missing default
