@@ -120,6 +120,11 @@ app.use((req, _res, next) => {
   if (req.body == null) req.body = {};
   next();
 });
+// Redact auth tokens from the query string before they reach the access log
+// (audit M2) — a media ?token= or SSO token must not be written to logs.
+morgan.token("url", (req: any) =>
+  String(req.originalUrl || req.url || "").replace(/([?&](?:token|sso_token)=)[^&]+/gi, "$1[REDACTED]"),
+);
 app.use(morgan("combined", { stream: { write: (msg) => logger.info(msg.trim()) } }));
 
 // ---------------------------------------------------------------------------
