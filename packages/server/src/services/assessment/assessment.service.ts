@@ -261,6 +261,18 @@ export async function submitAssessment(
     ? JSON.parse(template.questions)
     : template.questions;
 
+  // Atomically claim the assessment so a concurrent/double submit can't score it
+  // twice (audit L14). Only the request that flips 'started' -> 'completed' wins;
+  // a loser gets 0 affected rows and is rejected. updateMany returns the count.
+  const claimed = await db.updateMany(
+    "candidate_assessments",
+    { id: assessment.id, status: "started" },
+    { status: "completed" },
+  );
+  if (claimed !== 1) {
+    throw new ValidationError("This assessment has already been submitted");
+  }
+
   // Score the assessment
   let correctCount = 0;
   let scoredCount = 0;
