@@ -43,6 +43,7 @@ import { organizationRoutes } from "./api/routes/organization.routes";
 import { meetingProviderRoutes } from "./api/routes/meeting-provider.routes";
 import { jobBoardRoutes } from "./api/routes/job-board.routes";
 import { jobPublishingRoutes } from "./api/routes/job-publishing.routes";
+import { readCookie } from "./api/middleware/auth.middleware";
 import { errorHandler } from "./api/middleware/error.middleware";
 import { apiLimiter, authLimiter } from "./api/middleware/rate-limit.middleware";
 import { swaggerUIHandler, openapiHandler } from "./api/docs";
@@ -179,13 +180,15 @@ app.use("/api/v1", v1);
 // authenticated, org-scoped handler instead (audit H2).
 const UPLOADS_ROOT = path.join(process.cwd(), "uploads");
 app.get(/^\/uploads\/(.+)/, (req, res) => {
-  // Accept the token via ?token= (browser <a>/<img> can't send headers) or
-  // Authorization. Employee and portal tokens share the signing secret; both
-  // carry the org, so either can authorize its own org's files.
+  // Accept the token via the httpOnly cookie (audit H3), ?token= (browser
+  // <a>/<img> can't send headers, and carry it in-session), or Authorization.
+  // Employee and portal tokens share the signing secret; both carry the org, so
+  // either can authorize its own org's files.
   const header = req.headers.authorization;
   const token =
     (req.query.token as string | undefined) ||
-    (header?.startsWith("Bearer ") ? header.slice(7) : undefined);
+    (header?.startsWith("Bearer ") ? header.slice(7) : undefined) ||
+    readCookie(req, "access_token");
   if (!token) {
     return res.status(401).json({ success: false, error: { code: "UNAUTHORIZED", message: "Authentication required" } });
   }

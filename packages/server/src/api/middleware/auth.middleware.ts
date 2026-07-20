@@ -31,6 +31,24 @@ declare global {
   }
 }
 
+/**
+ * Read a single cookie from the raw Cookie header. Avoids a cookie-parser
+ * dependency — auth tokens are now delivered as httpOnly cookies (audit H3), and
+ * this is the only place that needs to read them server-side.
+ */
+export function readCookie(req: Request, name: string): string | undefined {
+  const raw = req.headers.cookie;
+  if (!raw) return undefined;
+  for (const part of raw.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === name) {
+      return decodeURIComponent(part.slice(eq + 1).trim());
+    }
+  }
+  return undefined;
+}
+
 export function authenticate(req: Request, _res: Response, next: NextFunction) {
   // Internal service bypass for dashboard widget data fetching
   const internalService = req.headers["x-internal-service"];
@@ -55,12 +73,16 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
 
   const header = req.headers.authorization;
   const queryToken = req.query.token as string | undefined;
+  const bearerToken = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
+  // httpOnly cookie set at login is the primary transport now (audit H3); the
+  // Authorization header and ?token= remain supported for API clients and for
+  // media elements that carry the token in-session.
+  const cookieToken = readCookie(req, "access_token");
 
-  if (!header?.startsWith("Bearer ") && !queryToken) {
+  const token = queryToken || bearerToken || cookieToken;
+  if (!token) {
     return next(new AppError(401, "UNAUTHORIZED", "Missing or invalid authorization header"));
   }
-
-  const token = queryToken || header!.slice(7);
 
   // Shared API-key path — an `empc_` token is an opaque key minted in EmpCloud,
   // not a JWT. Validate it against the shared EmpCloud `api_keys` table and
