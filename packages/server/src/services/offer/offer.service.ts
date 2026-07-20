@@ -454,6 +454,11 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
   if (offer.status !== "sent") {
     throw new ValidationError("Only sent offers can be accepted");
   }
+  // Reject acceptance of an offer past its stated expiry (audit M12) — otherwise
+  // stale salary/terms could become binding weeks later.
+  if (offer.expiry_date && new Date(offer.expiry_date).getTime() < Date.now()) {
+    throw new ValidationError("This offer has expired and can no longer be accepted");
+  }
 
   // Update offer
   const updated = await db.update<Offer>("offers", id, {
