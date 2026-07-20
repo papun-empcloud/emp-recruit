@@ -49,7 +49,16 @@ export async function createApplication(
     applied_at: new Date(),
   };
 
-  const application = await db.create<Application>("applications", record as any);
+  let application: Application;
+  try {
+    application = await db.create<Application>("applications", record as any);
+  } catch (err: any) {
+    // Lost a race against the unique constraint (audit H10) — surface a clean 409.
+    if (err?.code === "ER_DUP_ENTRY" || /duplicate/i.test(String(err?.message))) {
+      throw new ConflictError("This candidate has already applied to this job");
+    }
+    throw err;
+  }
 
   // Insert initial stage history
   await db.create("application_stage_history", {

@@ -55,7 +55,15 @@ export async function createCandidate(
     tags: data.tags ? JSON.stringify(data.tags) : null,
   };
 
-  return db.create<Candidate>("candidates", record as any);
+  try {
+    return await db.create<Candidate>("candidates", record as any);
+  } catch (err: any) {
+    // Lost a race against the unique constraint (audit H10) — surface a clean 409.
+    if (err?.code === "ER_DUP_ENTRY" || /duplicate/i.test(String(err?.message))) {
+      throw new ConflictError(`A candidate with email '${data.email}' already exists in this organization`);
+    }
+    throw err;
+  }
 }
 
 export interface BulkImportResult {
