@@ -467,9 +467,11 @@ function calculateSkillsScore(
 
   for (let i = 0; i < jobSkillsLower.length; i++) {
     const jobSkill = jobSkillsLower[i];
-    const hasSkill = candidateSkills.some(
-      (cs) => cs === jobSkill || cs.includes(jobSkill) || jobSkill.includes(cs),
-    );
+    // Exact (normalized) match only. The previous open-ended `includes` in both
+    // directions treated a "Java" requirement as satisfied by "JavaScript" (any
+    // skill that is a substring of another), inflating scores and rankings
+    // (audit M14).
+    const hasSkill = candidateSkills.some((cs) => cs === jobSkill);
 
     if (hasSkill) {
       matchedSkills.push(jobSkillsOriginal[i]);
