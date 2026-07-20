@@ -172,12 +172,6 @@ export async function listJobs(
   // If search is provided, we filter in raw query for LIKE
   if (params.search) {
     const search = `%${params.search}%`;
-    const countRows = await db.raw<any[][]>(
-      "SELECT COUNT(*) as total FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)",
-      [orgId, search, search, search],
-    );
-    const total = Number(countRows[0]?.[0]?.total ?? 0);
-
     const offset = (page - 1) * perPage;
     let statusFilter = "";
     const queryParams: any[] = [orgId, search, search, search];
@@ -185,6 +179,13 @@ export async function listJobs(
       statusFilter = " AND status = ?";
       queryParams.push(params.status);
     }
+    // The count must apply the SAME status filter as the data query, otherwise
+    // total is overstated and the UI shows phantom empty pages (audit M21).
+    const countRows = await db.raw<any[][]>(
+      `SELECT COUNT(*) as total FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)${statusFilter}`,
+      queryParams,
+    );
+    const total = Number(countRows[0]?.[0]?.total ?? 0);
     const dataRows = await db.raw<any[][]>(
       `SELECT * FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)${statusFilter} ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
       [...queryParams, perPage, offset],

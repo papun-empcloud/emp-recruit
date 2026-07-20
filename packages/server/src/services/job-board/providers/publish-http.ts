@@ -20,6 +20,39 @@ export function normalizeJob(job: JobForPublish): Record<string, unknown> {
   };
 }
 
+/**
+ * Reject SSRF targets: the board endpoint is org-configurable, so block private/
+ * link-local/loopback hosts (incl. the 169.254.169.254 cloud-metadata address)
+ * and non-http(s) schemes before making the server-side request (audit M3).
+ */
+function assertSafeEndpoint(endpoint: string): void {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    throw new AppError(400, "INVALID_ENDPOINT", "Invalid job board endpoint URL");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new AppError(400, "INVALID_ENDPOINT", "Job board endpoint must use http(s)");
+  }
+  const host = url.hostname.toLowerCase();
+  const blocked =
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "[::1]" ||
+    host === "::1" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    host.endsWith(".internal") ||
+    host.endsWith(".local");
+  if (blocked) {
+    throw new AppError(400, "INVALID_ENDPOINT", "Job board endpoint host is not allowed");
+  }
+}
+
 /** POST a JSON payload to a board endpoint; maps non-2xx to a 502 AppError. */
 export async function postJob(
   board: string,
@@ -27,6 +60,7 @@ export async function postJob(
   headers: Record<string, string>,
   payload: unknown,
 ): Promise<any> {
+  assertSafeEndpoint(endpoint);
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
