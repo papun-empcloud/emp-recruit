@@ -88,6 +88,21 @@ export async function moveStage(
 
   const fromStage = app.stage;
 
+  // Validate the target stage against the org's pipeline (audit M17) — otherwise
+  // any string could be written as an application stage.
+  const stageRows = await db.raw<any[][]>(
+    "SELECT slug FROM pipeline_stages WHERE organization_id = ? AND is_active = 1",
+    [orgId],
+  );
+  const configured = (stageRows[0] as any[]).map((s) => s.slug);
+  const allowed =
+    configured.length > 0
+      ? configured
+      : ["applied", "screened", "interview", "offer", "hired", "rejected", "withdrawn"];
+  if (!allowed.includes(newStage)) {
+    throw new ValidationError(`'${newStage}' is not a valid pipeline stage`);
+  }
+
   const updates: Record<string, any> = { stage: newStage };
   if (rejectionReason) updates.rejection_reason = rejectionReason;
 
