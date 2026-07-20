@@ -98,50 +98,55 @@ export async function createStage(
 
   const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-  // Check for duplicate slug
-  const existing = await db.findOne<PipelineStage>("pipeline_stages", {
-    organization_id: orgId,
-    slug,
-  });
-  if (existing) {
-    throw new ConflictError(`A stage with slug '${slug}' already exists`);
-  }
-
-  // If this is the first custom stage, seed all defaults first
+  // Seed the org's default stages (if this is its first) and create the new
+  // stage in ONE transaction, with the dedup check AFTER seeding — so a custom
+  // slug that collides with a default returns a clean 409 instead of a mid-seed
+  // unique-constraint 500, and a failure never leaves half-seeded defaults
+  // (audit M22).
   const count = await db.count("pipeline_stages", { organization_id: orgId });
-  if (count === 0) {
-    for (const def of DEFAULT_STAGES) {
-      await db.create<PipelineStage>("pipeline_stages", {
-        organization_id: orgId,
-        name: def.name,
-        slug: def.slug,
-        color: def.color,
-        sort_order: def.sort_order,
-        is_default: true,
-        is_active: true,
-      } as Partial<PipelineStage>);
+
+  return db.transaction(async (tx) => {
+    if (count === 0) {
+      for (const def of DEFAULT_STAGES) {
+        await tx.create<PipelineStage>("pipeline_stages", {
+          organization_id: orgId,
+          name: def.name,
+          slug: def.slug,
+          color: def.color,
+          sort_order: def.sort_order,
+          is_default: true,
+          is_active: true,
+        } as Partial<PipelineStage>);
+      }
     }
-  }
 
-  // Determine sort order if not provided
-  let sortOrder = data.sort_order;
-  if (sortOrder === undefined) {
-    const maxResult = await db.raw<any[][]>(
-      `SELECT MAX(sort_order) as max_order FROM pipeline_stages WHERE organization_id = ?`,
-      [orgId],
-    );
-    sortOrder = (maxResult[0]?.[0]?.max_order ?? -1) + 1;
-  }
+    const existing = await tx.findOne<PipelineStage>("pipeline_stages", {
+      organization_id: orgId,
+      slug,
+    });
+    if (existing) {
+      throw new ConflictError(`A stage with slug '${slug}' already exists`);
+    }
 
-  return db.create<PipelineStage>("pipeline_stages", {
-    organization_id: orgId,
-    name: data.name,
-    slug,
-    color: data.color || "#6B7280",
-    sort_order: sortOrder,
-    is_default: false,
-    is_active: true,
-  } as Partial<PipelineStage>);
+    let sortOrder = data.sort_order;
+    if (sortOrder === undefined) {
+      const maxResult = await tx.raw<any[][]>(
+        `SELECT MAX(sort_order) as max_order FROM pipeline_stages WHERE organization_id = ?`,
+        [orgId],
+      );
+      sortOrder = (maxResult[0]?.[0]?.max_order ?? -1) + 1;
+    }
+
+    return tx.create<PipelineStage>("pipeline_stages", {
+      organization_id: orgId,
+      name: data.name,
+      slug,
+      color: data.color || "#6B7280",
+      sort_order: sortOrder,
+      is_default: false,
+      is_active: true,
+    } as Partial<PipelineStage>);
+  });
 }
 
 export async function updateStage(
