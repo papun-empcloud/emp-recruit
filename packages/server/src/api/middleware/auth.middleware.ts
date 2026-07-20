@@ -80,12 +80,16 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
   }
 
   const header = req.headers.authorization;
-  const queryToken = req.query.token as string | undefined;
   const bearerToken = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
   // httpOnly cookie set at login is the primary transport now (audit H3); the
-  // Authorization header and ?token= remain supported for API clients and for
-  // media elements that carry the token in-session.
+  // Authorization header remains supported for API clients.
   const cookieToken = readCookie(req, "access_token");
+  // ?token= is only honoured for the recording media-stream route, where a
+  // native <video>/<audio> element can't send a header (audit M2) — everywhere
+  // else it would just leak the token into logs/referrers/history.
+  const isMediaStreamRequest =
+    req.method === "GET" && /\/recordings\/[^/?]+\/file(?:\?|$)/.test(req.originalUrl || "");
+  const queryToken = isMediaStreamRequest ? (req.query.token as string | undefined) : undefined;
 
   const token = queryToken || bearerToken || cookieToken;
   if (!token) {
