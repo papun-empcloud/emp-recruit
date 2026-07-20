@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import i18n from "@/i18n";
+import { getToken } from "./auth-store";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -100,10 +101,12 @@ export function resolveUploadUrl(path: string | null | undefined): string {
   }
   const normalized = path.startsWith("/") ? path : `/${path}`;
   const url = `${origin}${normalized}`;
-  // Uploads are now authenticated + org-scoped server-side, so a direct
-  // <a>/<img> request must carry the token. Browsers can't add an Authorization
-  // header to such requests, so pass it as a query param.
-  const token = typeof localStorage !== "undefined" ? localStorage.getItem("access_token") : null;
+  // Uploads are authenticated + org-scoped server-side. When we still hold the
+  // in-memory access token, pass it as a query param (browsers can't add an
+  // Authorization header to <a>/<img> requests). After a reload the token is
+  // gone, but same-origin requests carry the httpOnly auth cookie, which the
+  // /uploads handler also accepts (audit H3).
+  const token = getToken();
   if (!token) return url;
   return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
 }

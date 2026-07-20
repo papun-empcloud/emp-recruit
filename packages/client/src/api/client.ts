@@ -1,16 +1,20 @@
 import axios from "axios";
 import type { ApiResponse } from "@emp-recruit/shared";
+import { useAuthStore } from "../lib/auth-store";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
+  // Send the httpOnly auth cookie with every request (audit H3).
+  withCredentials: true,
 });
 
-// Attach JWT token to every request
+// Attach the in-memory access token when we have it (belt-and-suspenders for
+// cross-origin setups); after a reload it's empty and the cookie authenticates.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -28,12 +32,14 @@ api.interceptors.response.use(
     const requestUrl = error.config?.url || "";
     const isAuthRequest = AUTH_PATHS.some((p) => requestUrl.includes(p));
     if (error.response?.status === 401 && !isAuthRequest) {
-      // Only flag "session expired" if the user actually had a token — a 401 on
-      // an unauthenticated visit shouldn't claim the session expired.
-      const hadSession = !!localStorage.getItem("access_token");
+      // Only flag "session expired" if the user actually had a session — a 401
+      // on an unauthenticated visit shouldn't claim the session expired.
+      const hadSession = !!localStorage.getItem("user");
+      localStorage.removeItem("user");
+      // Legacy cleanup for sessions created by an older build.
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
+      useAuthStore.setState({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       window.location.href = hadSession ? "/login?expired=1" : "/login";
     }
     return Promise.reject(error);
