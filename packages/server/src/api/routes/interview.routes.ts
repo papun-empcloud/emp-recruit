@@ -14,7 +14,7 @@ import { ValidationError, NotFoundError } from "../../utils/errors";
 import * as interviewService from "../../services/interview/interview.service";
 import * as recordingService from "../../services/interview/recording.service";
 import * as evaluationService from "../../services/ai/evaluation.service";
-import type { InterviewStatus } from "@emp-recruit/shared";
+import { submitFeedbackSchema, type InterviewStatus } from "@emp-recruit/shared";
 
 const router = Router();
 
@@ -296,22 +296,11 @@ router.post("/:id/feedback", async (req: Request, res: Response, next: NextFunct
   try {
     const orgId = req.user!.empcloudOrgId;
     const userId = req.user!.empcloudUserId;
-    const { recommendation, technical_score, communication_score, cultural_fit_score, overall_score, strengths, weaknesses, notes } = req.body;
+    // Validate + whitelist via the schema: enforces the 1-5 score ranges and the
+    // recommendation enum, and drops any unexpected fields (audit M8).
+    const data = submitFeedbackSchema.parse(req.body);
 
-    if (!recommendation) {
-      throw new ValidationError("Missing required field: recommendation");
-    }
-
-    const feedback = await interviewService.submitFeedback(orgId, String(req.params.id), userId, {
-      recommendation,
-      technical_score,
-      communication_score,
-      cultural_fit_score,
-      overall_score,
-      strengths,
-      weaknesses,
-      notes,
-    });
+    const feedback = await interviewService.submitFeedback(orgId, String(req.params.id), userId, data);
 
     return sendSuccess(res, feedback, 201);
   } catch (err) {
