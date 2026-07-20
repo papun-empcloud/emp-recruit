@@ -99,5 +99,11 @@ export function resolveUploadUrl(path: string | null | undefined): string {
     origin = window.location.origin;
   }
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  return `${origin}${normalized}`;
+  const url = `${origin}${normalized}`;
+  // Uploads are now authenticated + org-scoped server-side, so a direct
+  // <a>/<img> request must carry the token. Browsers can't add an Authorization
+  // header to such requests, so pass it as a query param.
+  const token = typeof localStorage !== "undefined" ? localStorage.getItem("access_token") : null;
+  if (!token) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
 }

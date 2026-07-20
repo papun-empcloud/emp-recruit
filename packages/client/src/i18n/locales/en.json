@@ -384,7 +384,7 @@
     "clear": "Clear",
     "count_one": "{{count}} referral",
     "count_other": "{{count}} referrals",
-    "countMatch_one": "{{count}} referral match your filters",
+    "countMatch_one": "{{count}} referral matches your filters",
     "countMatch_other": "{{count}} referrals match your filters",
     "noMatch": "No referrals match your filters.",
     "emptyState": "No referrals yet. Refer someone to get started!",
@@ -420,7 +420,7 @@
     "clear": "Clear",
     "count_one": "{{count}} application",
     "count_other": "{{count}} applications",
-    "countMatch_one": "{{count}} application match your filters",
+    "countMatch_one": "{{count}} application matches your filters",
     "countMatch_other": "{{count}} applications match your filters",
     "noApplications": "No applications found.",
     "stages": {

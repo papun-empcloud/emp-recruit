@@ -72,7 +72,13 @@ export function authenticate(req: Request, _res: Response, next: NextFunction) {
   }
 
   try {
-    const payload = jwt.verify(token, config.jwt.secret) as AuthPayload;
+    const payload = jwt.verify(token, config.jwt.secret) as AuthPayload & { type?: string };
+    // Reject tokens that aren't access tokens (refresh/portal share the secret).
+    // Legacy access tokens carry no `type`, so only an explicit non-access type
+    // is rejected — this won't break tokens issued before the type was added.
+    if (payload.type && payload.type !== "access") {
+      return next(new AppError(401, "INVALID_TOKEN", "Not an access token"));
+    }
     req.user = payload;
     next();
   } catch (err: any) {

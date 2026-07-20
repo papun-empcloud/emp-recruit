@@ -8,6 +8,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import path from "path";
+import jwt from "jsonwebtoken";
 import { config } from "./config";
 import { initDB, closeDB } from "./db/adapters";
 import { initEmpCloudDB, migrateEmpCloudDB, closeEmpCloudDB } from "./db/empcloud";
@@ -94,7 +95,16 @@ app.use(
   }),
 );
 app.use(compression());
-app.use(express.json({ limit: "10mb" }));
+// Capture the raw body so signed webhooks (e.g. Retell) can be verified against
+// the exact bytes received. Cheap — just keeps a reference to the parsed buffer.
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 // Guarantee req.body is always an object. express.json() only populates it when
 // a JSON content-type is present, so a body-less POST (e.g. POST /accept with no
@@ -152,17 +162,69 @@ v1.use("/job-publishing", jobPublishingRoutes); // outbound job-board publishing
 
 // Public routes (no auth required) — career pages, job listings, applications.
 // The AI-interview public router is mounted first so its more specific prefix
-// is matched before the general public router.
-app.use("/api/v1/public/ai-interviews", aiInterviewPublicRoutes);
-app.use("/api/v1/public", publicRoutes);
+// is matched before the general public router. These routers are mounted on
+// `app` (not the v1 router), so apply the rate limiter here too — otherwise
+// these unauthenticated endpoints (uploads, magic links, tokens) are unthrottled.
+app.use("/api/v1/public/ai-interviews", apiLimiter, aiInterviewPublicRoutes);
+app.use("/api/v1/public", apiLimiter, publicRoutes);
 
 // Candidate portal routes (portal auth — separate from employee auth)
-app.use("/api/v1/portal", portalRoutes);
+app.use("/api/v1/portal", apiLimiter, portalRoutes);
 
 app.use("/api/v1", v1);
 
-// Static file serving for uploads
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Uploaded files (resumes, ID proofs, offer letters, recordings) are PII and
+// were previously served by `express.static` with NO auth and NO org scoping —
+// anyone with a URL could download any tenant's files. Serve them through an
+// authenticated, org-scoped handler instead (audit H2).
+const UPLOADS_ROOT = path.join(process.cwd(), "uploads");
+app.get(/^\/uploads\/(.+)/, (req, res) => {
+  // Accept the token via ?token= (browser <a>/<img> can't send headers) or
+  // Authorization. Employee and portal tokens share the signing secret; both
+  // carry the org, so either can authorize its own org's files.
+  const header = req.headers.authorization;
+  const token =
+    (req.query.token as string | undefined) ||
+    (header?.startsWith("Bearer ") ? header.slice(7) : undefined);
+  if (!token) {
+    return res.status(401).json({ success: false, error: { code: "UNAUTHORIZED", message: "Authentication required" } });
+  }
+  let tokenOrg: string | null = null;
+  try {
+    const payload = jwt.verify(token, config.jwt.secret) as any;
+    tokenOrg = payload.empcloudOrgId != null ? String(payload.empcloudOrgId) : payload.orgId != null ? String(payload.orgId) : null;
+  } catch {
+    return res.status(401).json({ success: false, error: { code: "INVALID_TOKEN", message: "Invalid token" } });
+  }
+
+  const rel = req.params[0]; // path after /uploads/
+  const filePath = path.resolve(UPLOADS_ROOT, rel);
+  // Traversal guard: the resolved path must stay inside the uploads root.
+  if (filePath !== UPLOADS_ROOT && !filePath.startsWith(UPLOADS_ROOT + path.sep)) {
+    return res.status(400).json({ success: false, error: { code: "BAD_PATH", message: "Invalid path" } });
+  }
+  // Org scope: most paths are <category>/<orgId>/<file> — enforce the numeric
+  // org segment against the token's org. A few categories (e.g. ai-interviews/
+  // <uuid>) carry no org segment; those require a valid token only (the uuid is
+  // unguessable), since the path holds no org to match.
+  if (!tokenOrg) {
+    return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Not authorized" } });
+  }
+  const segments = rel.split(/[\\/]/);
+  const pathOrg = segments[1];
+  if (/^\d+$/.test(pathOrg || "") && String(tokenOrg) !== String(pathOrg)) {
+    return res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Not authorized for this file" } });
+  }
+
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Disposition", "attachment");
+  res.setHeader("Cache-Control", "private, no-store");
+  res.sendFile(filePath, (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "File not found" } });
+    }
+  });
+});
 
 // API Documentation
 // Self-hosted Swagger UI assets (swagger-ui-dist) served same-origin.

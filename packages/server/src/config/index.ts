@@ -41,13 +41,17 @@ export const config = {
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || "7d",
   },
 
-  // Email (interview invites, offer letters, notifications)
+  // Email (interview invites, offer letters, notifications).
+  // Pluggable provider: "smtp" (nodemailer — Mailhog in dev, any SMTP in prod)
+  // or "sendgrid" (SendGrid Web API v3). Defaults to smtp.
   email: {
+    provider: (process.env.EMAIL_PROVIDER || "smtp").toLowerCase(),
     host: process.env.SMTP_HOST || "localhost",
     port: parseInt(process.env.SMTP_PORT || "1025"),
     user: process.env.SMTP_USER || "",
     password: process.env.SMTP_PASSWORD || "",
-    from: process.env.SMTP_FROM || "recruit@empcloud.com",
+    from: process.env.SMTP_FROM || process.env.EMAIL_FROM || "recruit@empcloud.com",
+    sendgridApiKey: process.env.SENDGRID_API_KEY || "",
   },
 
   // CORS

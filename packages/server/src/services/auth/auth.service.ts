@@ -45,7 +45,9 @@ interface RegisterData {
 }
 
 function signAccessToken(payload: AuthPayload): string {
-  return jwt.sign(payload, config.jwt.secret, {
+  // Tag the token class so authenticate() can reject refresh/portal tokens
+  // presented as access tokens (they share one signing secret).
+  return jwt.sign({ ...payload, type: "access" }, config.jwt.secret, {
     expiresIn: config.jwt.accessExpiry as any,
   });
 }
@@ -163,23 +165,29 @@ export async function ssoLogin(empcloudToken: string): Promise<LoginResult> {
     throw new UnauthorizedError("SSO token missing user id");
   }
 
-  // Best-effort token validation — skip if empcloud DB unavailable
-  try {
-    if (decoded.jti) {
-      const { getEmpCloudDB } = await import("../../db/empcloud");
-      const empcloudDb = getEmpCloudDB();
-      const tokenRow = await empcloudDb("oauth_access_tokens")
-        .where({ jti: decoded.jti })
-        .whereNull("revoked_at")
-        .where("expires_at", ">", new Date())
-        .first();
-      if (!tokenRow) {
-        throw new UnauthorizedError("Invalid or expired SSO token");
-      }
-    }
-  } catch (err: any) {
-    if (err instanceof UnauthorizedError) throw err;
-    // DB not initialized or unavailable — skip validation, user lookup below is sufficient
+  // SECURITY (audit C1): the EmpCloud token is NOT signed with a key we hold, so
+  // its claims cannot be trusted by signature. We therefore require it to be a
+  // real, unrevoked, unexpired grant recorded in EmpCloud's oauth_access_tokens
+  // table — something an attacker cannot forge — and we FAIL CLOSED. Previously a
+  // forged `{sub}` token with no jti skipped validation entirely (and DB errors
+  // were swallowed), allowing pre-auth account takeover of any user.
+  if (!decoded.jti) {
+    throw new UnauthorizedError("Invalid SSO token");
+  }
+  const { getEmpCloudDB } = await import("../../db/empcloud");
+  const empcloudDb = getEmpCloudDB();
+  const tokenRow = await empcloudDb("oauth_access_tokens")
+    .where({ jti: decoded.jti })
+    .whereNull("revoked_at")
+    .where("expires_at", ">", new Date())
+    .first();
+  if (!tokenRow) {
+    throw new UnauthorizedError("Invalid or expired SSO token");
+  }
+  // Bind the grant to the user it was actually issued for, so a valid jti can't
+  // be paired with a different `sub` to impersonate another user.
+  if (tokenRow.user_id != null && Number(tokenRow.user_id) !== userId) {
+    throw new UnauthorizedError("SSO token does not match user");
   }
 
   const user = await findUserById(userId);

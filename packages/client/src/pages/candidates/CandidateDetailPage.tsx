@@ -22,7 +22,7 @@ import { apiGet, apiPost } from "@/api/client";
 import { resolveUploadUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
 import type { Candidate, Application, JobPosting, PaginatedResponse } from "@emp-recruit/shared";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
 
 const STAGE_BADGE: Record<string, string> = {
@@ -351,7 +351,7 @@ export function CandidateDetailPage() {
                     <span className="capitalize">{t("candidates.detail.sourceValue", { source: enumLabel(t, "source", app.source) })}</span>
                     {app.rating !== null && <span>{t("candidates.detail.ratingValue", { rating: app.rating })}</span>}
                     {app.expected_salary != null && (
-                      <span>{t("candidates.detail.expectedSalary", { amount: Number(app.expected_salary).toLocaleString() })}</span>
+                      <span>{t("candidates.detail.expectedSalary", { amount: formatCurrency(Number(app.expected_salary), "INR") })}</span>
                     )}
                   </div>
                   {app.cover_letter && (

@@ -61,3 +61,6 @@ export function rateLimit(options: RateLimitOptions) {
 const isDev = process.env.NODE_ENV !== "production";
 export const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: isDev ? 200 : 20 });
 export const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100 });
+// Tight limiter for expensive/abusable unauthenticated actions — magic-link
+// email sending, public file uploads, token brute-forcing.
+export const strictLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: isDev ? 100 : 10 });

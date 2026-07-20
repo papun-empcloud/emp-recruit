@@ -5,12 +5,17 @@ export function validateConfig(): void {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  // JWT secret
-  if (config.jwt.secret === "change-this-in-production" && config.env === "production") {
-    errors.push("JWT_SECRET must be changed from default in production");
+  // JWT secret (audit H1) — must be a real, strong secret outside local dev.
+  // The same secret signs access, refresh, and portal tokens, so a default/weak
+  // value means anyone can forge tokens for any user/org.
+  const devEnv = config.env === "development" || config.env === "test";
+  if (!devEnv && (config.jwt.secret === "change-this-in-production" || !process.env.JWT_SECRET)) {
+    errors.push("JWT_SECRET must be set to a real secret (not the default) outside development");
   }
-  if (config.jwt.secret.length < 16) {
-    warnings.push("JWT_SECRET should be at least 16 characters");
+  if (!devEnv && config.jwt.secret.length < 32) {
+    errors.push("JWT_SECRET must be at least 32 characters");
+  } else if (config.jwt.secret.length < 16) {
+    warnings.push("JWT_SECRET should be at least 32 characters");
   }
 
   // Database
@@ -18,6 +23,14 @@ export function validateConfig(): void {
   if (!config.db.name) errors.push("DB_NAME is required");
   if (config.env === "production" && !config.db.password) {
     errors.push("DB_PASSWORD is required in production");
+  }
+
+  // Email
+  if (config.email.provider === "sendgrid" && !config.email.sendgridApiKey) {
+    errors.push("EMAIL_PROVIDER=sendgrid but SENDGRID_API_KEY is not set");
+  }
+  if (!["smtp", "sendgrid"].includes(config.email.provider)) {
+    warnings.push(`Unknown EMAIL_PROVIDER "${config.email.provider}" — falling back to SMTP`);
   }
 
   // CORS
@@ -34,7 +47,7 @@ export function validateConfig(): void {
   }
   if (errors.length > 0) {
     for (const e of errors) logger.error(`Config error: ${e}`);
-    if (config.env === "production") {
+    if (!devEnv) {
       throw new Error(`Configuration errors:\n${errors.join("\n")}`);
     }
   }

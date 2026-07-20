@@ -107,13 +107,13 @@ export function JobListPage() {
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-1 overflow-x-auto border-b border-gray-200">
+      <div className="flex overflow-x-auto border-b border-gray-200">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setFilter("status", tab.value)}
             className={cn(
-              "whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+              "whitespace-nowrap border-b-2 px-5 py-3 text-sm font-medium transition-colors",
               statusFilter === tab.value
                 ? "border-brand-600 text-brand-600"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",

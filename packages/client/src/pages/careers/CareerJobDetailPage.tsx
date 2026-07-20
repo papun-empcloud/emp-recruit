@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useQuery } from "@tanstack/react-query";
 import {
   Loader2,
@@ -124,7 +125,7 @@ export function CareerJobDetailPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("careers.detail.jobDescription")}</h2>
             <div
               className="rte-content prose prose-sm max-w-none text-gray-700"
-              dangerouslySetInnerHTML={{ __html: job.description }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.description) }}
             />
           </div>
 
@@ -134,7 +135,7 @@ export function CareerJobDetailPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("careers.detail.requirements")}</h2>
               <div
                 className="rte-content prose prose-sm max-w-none text-gray-700"
-                dangerouslySetInnerHTML={{ __html: job.requirements }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.requirements) }}
               />
             </div>
           )}
@@ -145,7 +146,7 @@ export function CareerJobDetailPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("careers.detail.benefits")}</h2>
               <div
                 className="prose prose-sm max-w-none text-gray-700"
-                dangerouslySetInnerHTML={{ __html: job.benefits }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.benefits) }}
               />
             </div>
           )}
