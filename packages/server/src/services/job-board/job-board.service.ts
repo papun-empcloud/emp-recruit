@@ -11,6 +11,7 @@ import { getDB } from "../../db/adapters";
 import { config } from "../../config";
 import { findOrgById } from "../../db/empcloud";
 import { logger } from "../../utils/logger";
+import { encryptSecret, decryptSecret } from "../../utils/crypto";
 import { ValidationError } from "../../utils/errors";
 import { ALL_BOARDS, getBoard, isBoardKey } from "./providers";
 import type { JobBoardConfig, JobBoardKey, JobForPublish } from "./providers/types";
@@ -38,16 +39,37 @@ export interface JobBoardPosting {
   posted_at: Date | null;
 }
 
+// The board config holds credentials (API keys / OAuth tokens) and is encrypted
+// at rest (audit L8). `config` is a JSON column, so the ciphertext is wrapped in
+// a { __enc } envelope (valid JSON). Legacy plaintext rows have no __enc key and
+// are returned unchanged.
+function serializeConfig(cfg: Record<string, any> | null | undefined): string | null {
+  if (cfg == null) return null;
+  return JSON.stringify({ __enc: encryptSecret(JSON.stringify(cfg)) });
+}
+
 function parseJson(raw: ConfigRow["config"]): Record<string, any> | null {
   if (!raw) return null;
+  let obj: any;
   if (typeof raw === "string") {
     try {
-      return JSON.parse(raw);
+      obj = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  } else {
+    obj = raw;
+  }
+  if (obj && typeof obj === "object" && typeof obj.__enc === "string") {
+    const plain = decryptSecret(obj.__enc);
+    if (!plain) return null;
+    try {
+      return JSON.parse(plain);
     } catch {
       return null;
     }
   }
-  return raw;
+  return obj; // legacy plaintext config
 }
 
 function toBoardConfig(row: ConfigRow | null): JobBoardConfig | null {
@@ -112,7 +134,7 @@ export async function setBoardConfig(
     status,
     last_error: null,
   };
-  if (input.config !== undefined) patch.config = JSON.stringify(input.config);
+  if (input.config !== undefined) patch.config = serializeConfig(input.config);
 
   if (existing) {
     await db.update("job_board_configs", existing.id, patch);
@@ -122,7 +144,7 @@ export async function setBoardConfig(
       organization_id: orgId,
       board,
       ...patch,
-      config: input.config !== undefined ? JSON.stringify(input.config) : null,
+      config: input.config !== undefined ? serializeConfig(input.config) : null,
     });
   }
   return getBoardConfigs(orgId);

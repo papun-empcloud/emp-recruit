@@ -12,6 +12,7 @@ import jwt from "jsonwebtoken";
 import { getDB } from "../../../db/adapters";
 import { config } from "../../../config";
 import { logger } from "../../../utils/logger";
+import { encryptSecret, decryptSecret } from "../../../utils/crypto";
 import { NotFoundError, ValidationError, AppError } from "../../../utils/errors";
 
 export type ExternalProviderKey = "google_meet" | "teams" | "zoom";
@@ -35,6 +36,27 @@ export interface ProviderCredentials {
 
 const TABLE = "meeting_provider_credentials";
 
+// Secrets encrypted at rest (audit L8). All reads go through getCredentials and
+// all writes through upsertCredentials, so wrapping those two covers the table.
+const SECRET_FIELDS: Array<keyof ProviderCredentials> = ["client_secret", "access_token", "refresh_token"];
+
+function encryptCredsPatch<T extends Partial<ProviderCredentials>>(patch: T): T {
+  const out: any = { ...patch };
+  for (const f of SECRET_FIELDS) {
+    if (f in out && out[f] != null) out[f] = encryptSecret(out[f] as string);
+  }
+  return out;
+}
+
+function decryptCredsRow(row: ProviderCredentials | null): ProviderCredentials | null {
+  if (!row) return row;
+  const out: any = { ...row };
+  for (const f of SECRET_FIELDS) {
+    if (out[f] != null) out[f] = decryptSecret(out[f] as string);
+  }
+  return out;
+}
+
 // --- OAuth metadata --------------------------------------------------------
 
 function redirectUri(provider: ExternalProviderKey): string {
@@ -56,7 +78,8 @@ export async function getCredentials(
   provider: ExternalProviderKey,
 ): Promise<ProviderCredentials | null> {
   const db = getDB();
-  return db.findOne<ProviderCredentials>(TABLE, { organization_id: orgId, provider });
+  const row = await db.findOne<ProviderCredentials>(TABLE, { organization_id: orgId, provider });
+  return decryptCredsRow(row);
 }
 
 export async function upsertCredentials(
@@ -67,15 +90,16 @@ export async function upsertCredentials(
 ): Promise<ProviderCredentials> {
   const db = getDB();
   const existing = await getCredentials(orgId, provider);
+  const encPatch = encryptCredsPatch(patch);
   if (existing) {
-    await db.update(TABLE, existing.id, { ...patch });
+    await db.update(TABLE, existing.id, { ...encPatch });
   } else {
     await db.create(TABLE, {
       id: uuidv4(),
       organization_id: orgId,
       provider,
       connected_by: userId ?? null,
-      ...patch,
+      ...encPatch,
     });
   }
   return (await getCredentials(orgId, provider))!;

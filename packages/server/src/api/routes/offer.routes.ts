@@ -13,6 +13,7 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
+import { parsePage, parseLimit } from "../../utils/pagination";
 import { createOfferSchema, updateOfferSchema } from "@emp-recruit/shared";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
@@ -55,8 +56,8 @@ router.get(
       const result = await offerService.listOffers(orgId, {
         status: status as any,
         search: search as string | undefined,
-        page: page ? Number(page) : undefined,
-        limit: limit ? Number(limit) : perPage ? Number(perPage) : undefined,
+        page: page ? parsePage(page) : undefined,
+        limit: limit ? parseLimit(limit) : perPage ? parseLimit(perPage) : undefined,
       });
       sendPaginated(res, result.data, result.total, result.page, result.limit);
     } catch (err) {

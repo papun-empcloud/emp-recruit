@@ -50,7 +50,16 @@ export async function createApplication(
     applied_at: new Date(),
   };
 
-  const application = await db.create<Application>("applications", record as any);
+  let application: Application;
+  try {
+    application = await db.create<Application>("applications", record as any);
+  } catch (err: any) {
+    // Lost a race against the unique constraint (audit H10) — surface a clean 409.
+    if (err?.code === "ER_DUP_ENTRY" || /duplicate/i.test(String(err?.message))) {
+      throw new ConflictError("This candidate has already applied to this job");
+    }
+    throw err;
+  }
 
   // Insert initial stage history
   await db.create("application_stage_history", {
@@ -78,6 +87,21 @@ export async function moveStage(
   if (!app) throw new NotFoundError("Application", id);
 
   const fromStage = app.stage;
+
+  // Validate the target stage against the org's pipeline (audit M17) — otherwise
+  // any string could be written as an application stage.
+  const stageRows = await db.raw<any[][]>(
+    "SELECT slug FROM pipeline_stages WHERE organization_id = ? AND is_active = 1",
+    [orgId],
+  );
+  const configured = (stageRows[0] as any[]).map((s) => s.slug);
+  const allowed =
+    configured.length > 0
+      ? configured
+      : ["applied", "screened", "interview", "offer", "hired", "rejected", "withdrawn"];
+  if (!allowed.includes(newStage)) {
+    throw new ValidationError(`'${newStage}' is not a valid pipeline stage`);
+  }
 
   const updates: Record<string, any> = { stage: newStage };
   if (rejectionReason) updates.rejection_reason = rejectionReason;
@@ -249,10 +273,16 @@ export async function addNote(
   const app = await db.findOne<Application>("applications", { id: applicationId, organization_id: orgId });
   if (!app) throw new NotFoundError("Application", applicationId);
 
-  // Append note to existing notes
-  const existingNotes = app.notes ? app.notes + "\n\n" : "";
+  // Append atomically via SQL so two reviewers adding notes concurrently don't
+  // clobber each other (audit M18 — the previous read-modify-write lost updates).
   const timestamp = new Date().toISOString();
-  const updatedNotes = `${existingNotes}[${timestamp}] (User ${userId}): ${note}`;
-
-  return db.update<Application>("applications", applicationId, { notes: updatedNotes } as any);
+  const entry = `[${timestamp}] (User ${userId}): ${note}`;
+  await db.raw(
+    `UPDATE applications
+        SET notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE CONCAT(notes, '\n\n', ?) END
+      WHERE id = ? AND organization_id = ?`,
+    [entry, entry, applicationId, orgId],
+  );
+  const updated = await db.findOne<Application>("applications", { id: applicationId, organization_id: orgId });
+  return updated as Application;
 }

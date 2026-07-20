@@ -43,6 +43,7 @@ import { organizationRoutes } from "./api/routes/organization.routes";
 import { meetingProviderRoutes } from "./api/routes/meeting-provider.routes";
 import { jobBoardRoutes } from "./api/routes/job-board.routes";
 import { jobPublishingRoutes } from "./api/routes/job-publishing.routes";
+import { readCookie } from "./api/middleware/auth.middleware";
 import { errorHandler } from "./api/middleware/error.middleware";
 import { apiLimiter, authLimiter } from "./api/middleware/rate-limit.middleware";
 import { swaggerUIHandler, openapiHandler } from "./api/docs";
@@ -74,16 +75,22 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (config.cors.origin === "*") return callback(null, true);
+      // Never reflect an arbitrary origin together with credentials:true in
+      // production (audit M7) — a wildcard is only honoured in development.
+      if (config.cors.origin === "*") {
+        if (config.env === "development") return callback(null, true);
+        logger.warn("CORS_ORIGIN=* is ignored in production; configure an explicit allowlist");
+        return callback(new Error("Not allowed by CORS"));
+      }
       // Allow empcloud.com subdomains (production & test)
       if (origin.endsWith(".empcloud.com") && origin.startsWith("https://")) {
         return callback(null, true);
       }
+      // Local dev only. `.ngrok-free.dev` is intentionally NOT trusted — those
+      // hostnames are attacker-registerable (audit M7).
       if (
         config.env === "development" &&
-        (origin.startsWith("http://localhost") ||
-          origin.startsWith("http://127.0.0.1") ||
-          origin.endsWith(".ngrok-free.dev"))
+        (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))
       ) {
         return callback(null, true);
       }
@@ -179,13 +186,15 @@ app.use("/api/v1", v1);
 // authenticated, org-scoped handler instead (audit H2).
 const UPLOADS_ROOT = path.join(process.cwd(), "uploads");
 app.get(/^\/uploads\/(.+)/, (req, res) => {
-  // Accept the token via ?token= (browser <a>/<img> can't send headers) or
-  // Authorization. Employee and portal tokens share the signing secret; both
-  // carry the org, so either can authorize its own org's files.
+  // Accept the token via the httpOnly cookie (audit H3), ?token= (browser
+  // <a>/<img> can't send headers, and carry it in-session), or Authorization.
+  // Employee and portal tokens share the signing secret; both carry the org, so
+  // either can authorize its own org's files.
   const header = req.headers.authorization;
   const token =
     (req.query.token as string | undefined) ||
-    (header?.startsWith("Bearer ") ? header.slice(7) : undefined);
+    (header?.startsWith("Bearer ") ? header.slice(7) : undefined) ||
+    readCookie(req, "access_token");
   if (!token) {
     return res.status(401).json({ success: false, error: { code: "UNAUTHORIZED", message: "Authentication required" } });
   }

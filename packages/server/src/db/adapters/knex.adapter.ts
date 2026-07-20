@@ -5,10 +5,12 @@
 import knex from "knex";
 import type { Knex } from "knex";
 import { v4 as uuidv4 } from "uuid";
-import { IDBAdapter, QueryOptions, QueryResult, TransactionContext } from "./interface";
+import { IDBAdapter, QueryOptions, QueryResult } from "./interface";
 
 export class KnexAdapter implements IDBAdapter {
   private db: Knex | null = null;
+  // When set (inside transaction()), all queries run on this transaction handle.
+  private trx: Knex.Transaction | null = null;
   private config: Knex.Config;
   private tableColumns: Map<string, Set<string>> = new Map();
 
@@ -84,8 +86,11 @@ export class KnexAdapter implements IDBAdapter {
   }
 
   private getDb(): Knex {
-    if (!this.db) throw new Error("Database not connected. Call connect() first.");
-    return this.db;
+    // Inside a transaction, route every query through the transaction handle so
+    // multi-statement operations are atomic (audit A1).
+    const executor = (this.trx ?? this.db) as Knex | null;
+    if (!executor) throw new Error("Database not connected. Call connect() first.");
+    return executor;
   }
 
   /** Check whether a table has a specific column (cached per table). */
@@ -249,15 +254,21 @@ export class KnexAdapter implements IDBAdapter {
     return Number(total) || 0;
   }
 
-  // Transactions
-  async transaction<T>(fn: (trx: TransactionContext) => Promise<T>): Promise<T> {
-    const db = this.getDb();
-    return db.transaction(async (trx) => {
-      const ctx: TransactionContext = {
-        commit: async () => { await trx.commit(); },
-        rollback: async () => { await trx.rollback(); },
-      };
-      return fn(ctx);
+  // Transactions. The callback receives a scoped adapter whose every
+  // create/update/findOne/raw call runs on the same transaction, so services
+  // can do atomic multi-writes (audit A1). Knex auto-commits when the callback
+  // resolves and rolls back if it throws.
+  async transaction<T>(fn: (tx: IDBAdapter) => Promise<T>): Promise<T> {
+    if (!this.db) throw new Error("Database not connected. Call connect() first.");
+    // Reuse an in-progress transaction (single logical unit of work).
+    if (this.trx) return fn(this);
+    return this.db.transaction(async (trx) => {
+      const scoped: KnexAdapter = Object.assign(
+        Object.create(Object.getPrototypeOf(this)),
+        this,
+        { trx },
+      );
+      return fn(scoped);
     });
   }
 

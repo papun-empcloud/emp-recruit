@@ -291,6 +291,11 @@ export async function submitForApproval(
     throw new ValidationError("At least one approver is required");
   }
 
+  // Clear approver rows from any previous round (e.g. after a reject sent the
+  // offer back to draft) so a fresh approval cycle isn't blocked by stale
+  // pending/rejected rows and the approval count is correct (audit M11).
+  await db.deleteMany("offer_approvers", { offer_id: id });
+
   // Create approver records
   for (let i = 0; i < approverUserIds.length; i++) {
     await db.create<OfferApprover>("offer_approvers", {
@@ -356,19 +361,21 @@ export async function approve(
     );
   }
 
-  // Check if all approvers have approved
-  const pendingCount = await db.count("offer_approvers", {
-    offer_id: offerId,
-    status: "pending",
-  });
-
-  if (pendingCount === 0) {
-    return db.update<Offer>("offers", offerId, {
-      status: "approved" as OfferStatus,
-      approved_by: userId,
-      approved_at: toMysqlDateTime(),
-    });
-  }
+  // Flip the offer to approved atomically — only while it is still pending and
+  // no approver remains pending (audit L14). A single conditional UPDATE avoids
+  // the count-then-update race where two concurrent approvals could each read a
+  // stale pending count and leave the offer stuck in pending_approval.
+  await db.raw(
+    `UPDATE offers o
+        SET o.status = 'approved', o.approved_by = ?, o.approved_at = ?
+      WHERE o.id = ?
+        AND o.status = 'pending_approval'
+        AND NOT EXISTS (
+          SELECT 1 FROM offer_approvers a
+           WHERE a.offer_id = o.id AND a.status = 'pending'
+        )`,
+    [userId, toMysqlDateTime(), offerId],
+  );
 
   return db.findById<Offer>("offers", offerId) as Promise<Offer>;
 }
@@ -454,30 +461,36 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
   if (offer.status !== "sent") {
     throw new ValidationError("Only sent offers can be accepted");
   }
-
-  // Update offer
-  const updated = await db.update<Offer>("offers", id, {
-    status: "accepted" as OfferStatus,
-    notes: notes || offer.notes,
-    responded_at: toMysqlDateTime(),
-  });
-
-  // Move application to hired stage
-  await db.update("applications", offer.application_id, { stage: "hired" });
-
-  // Mark the underlying job posting as "filled" so HR sees it in the Filled
-  // tab on the job listings page.
-  let department: string | null = null;
-  if (offer.job_id) {
-    const job = await db.findOne<{ id: string; status: string; department: string | null }>(
-      "job_postings",
-      { id: offer.job_id, organization_id: orgId },
-    );
-    department = job?.department ?? null;
-    if (job && job.status !== "closed") {
-      await db.update("job_postings", offer.job_id, { status: "filled" });
-    }
+  // Reject acceptance of an offer past its stated expiry (audit M12) — otherwise
+  // stale salary/terms could become binding weeks later.
+  if (offer.expiry_date && new Date(offer.expiry_date).getTime() < Date.now()) {
+    throw new ValidationError("This offer has expired and can no longer be accepted");
   }
+
+  // offer→accepted, application→hired and job→filled must be atomic (audit M15):
+  // a mid-way failure previously left inconsistent state (e.g. offer accepted but
+  // application still in 'offer'). Onboarding + webhook below stay best-effort
+  // AFTER the commit.
+  let department: string | null = null;
+  const updated = await db.transaction(async (tx) => {
+    const upd = await tx.update<Offer>("offers", id, {
+      status: "accepted" as OfferStatus,
+      notes: notes || offer.notes,
+      responded_at: toMysqlDateTime(),
+    });
+    await tx.update("applications", offer.application_id, { stage: "hired" });
+    if (offer.job_id) {
+      const job = await tx.findOne<{ id: string; status: string; department: string | null }>(
+        "job_postings",
+        { id: offer.job_id, organization_id: orgId },
+      );
+      department = job?.department ?? null;
+      if (job && job.status !== "closed") {
+        await tx.update("job_postings", offer.job_id, { status: "filled" });
+      }
+    }
+    return upd;
+  });
 
   // Auto-generate the onboarding checklist for the new hire (the offer-to-
   // onboarding handoff the UI advertises). Best-effort — a missing default

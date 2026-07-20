@@ -44,10 +44,11 @@ describe("Recruit Auth Middleware", () => {
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401 }));
     });
 
-    it("internal service bypass", () => {
+    it("internal service bypass (GET only)", () => {
       const orig = process.env.INTERNAL_SERVICE_SECRET;
       process.env.INTERNAL_SERVICE_SECRET = "s123";
       const req = mockReq({
+        method: "GET",
         headers: { "x-internal-service": "empcloud-dashboard", "x-internal-secret": "s123" },
         query: { organization_id: "3" },
       });
@@ -56,6 +57,22 @@ describe("Recruit Auth Middleware", () => {
       expect(next).toHaveBeenCalledWith();
       expect(req.user.empcloudOrgId).toBe(3);
       expect(req.user.recruitProfileId).toBeNull();
+      process.env.INTERNAL_SERVICE_SECRET = orig;
+    });
+
+    it("internal service bypass is rejected for non-GET (audit H7)", () => {
+      const orig = process.env.INTERNAL_SERVICE_SECRET;
+      process.env.INTERNAL_SERVICE_SECRET = "s123";
+      const req = mockReq({
+        method: "POST",
+        headers: { "x-internal-service": "empcloud-dashboard", "x-internal-secret": "s123" },
+        query: { organization_id: "3" },
+      });
+      const next = vi.fn();
+      authenticate(req, mockRes(), next);
+      // Not a GET → bypass skipped → falls through to the missing-auth 401.
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401 }));
+      expect(req.user).toBeUndefined();
       process.env.INTERNAL_SERVICE_SECRET = orig;
     });
 

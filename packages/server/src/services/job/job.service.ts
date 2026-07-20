@@ -172,12 +172,6 @@ export async function listJobs(
   // If search is provided, we filter in raw query for LIKE
   if (params.search) {
     const search = `%${params.search}%`;
-    const countRows = await db.raw<any[][]>(
-      "SELECT COUNT(*) as total FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)",
-      [orgId, search, search, search],
-    );
-    const total = Number(countRows[0]?.[0]?.total ?? 0);
-
     const offset = (page - 1) * perPage;
     let statusFilter = "";
     const queryParams: any[] = [orgId, search, search, search];
@@ -185,6 +179,13 @@ export async function listJobs(
       statusFilter = " AND status = ?";
       queryParams.push(params.status);
     }
+    // The count must apply the SAME status filter as the data query, otherwise
+    // total is overstated and the UI shows phantom empty pages (audit M21).
+    const countRows = await db.raw<any[][]>(
+      `SELECT COUNT(*) as total FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)${statusFilter}`,
+      queryParams,
+    );
+    const total = Number(countRows[0]?.[0]?.total ?? 0);
     const dataRows = await db.raw<any[][]>(
       `SELECT * FROM job_postings WHERE organization_id = ? AND (title LIKE ? OR department LIKE ? OR location LIKE ?)${statusFilter} ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
       [...queryParams, perPage, offset],
@@ -203,6 +204,18 @@ export async function getJob(orgId: number, id: string): Promise<JobPosting> {
   return job;
 }
 
+// Allowed job status transitions (audit L15). Without this table any status
+// could jump to any other — e.g. a filled job silently reverting to draft, or
+// a nonsensical closed -> paused. Same-status is treated as a no-op and always
+// allowed. Reopening (closed/filled -> open) is permitted deliberately.
+const JOB_STATUS_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
+  draft: ["open", "closed"],
+  open: ["paused", "closed", "filled"],
+  paused: ["open", "closed", "filled"],
+  closed: ["draft", "open"],
+  filled: ["open", "closed"],
+} as Record<JobStatus, JobStatus[]>;
+
 export async function changeStatus(
   orgId: number,
   id: string,
@@ -211,6 +224,11 @@ export async function changeStatus(
   const db = getDB();
   const existing = await db.findOne<JobPosting>("job_postings", { id, organization_id: orgId });
   if (!existing) throw new NotFoundError("Job", id);
+
+  const current = existing.status as JobStatus;
+  if (status !== current && !(JOB_STATUS_TRANSITIONS[current] || []).includes(status)) {
+    throw new ValidationError(`Cannot change job status from '${current}' to '${status}'`);
+  }
 
   const updates: Record<string, any> = { status };
   if (status === "open" && !existing.published_at) {

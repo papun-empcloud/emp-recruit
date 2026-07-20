@@ -209,9 +209,18 @@ export async function updateReferralStatus(
     throw new NotFoundError("Referral", id);
   }
 
+  // A paid bonus is terminal — block re-paying or amount changes so a bonus
+  // can't be re-recorded repeatedly or edited after payment (audit M13).
+  if (referral.status === "bonus_paid") {
+    throw new ValidationError("This referral bonus has already been paid and cannot be changed");
+  }
+
   const updateData: Partial<Referral> = { status } as Partial<Referral>;
 
   if (bonusAmount !== undefined) {
+    if (!Number.isInteger(bonusAmount) || bonusAmount < 0) {
+      throw new ValidationError("Bonus amount must be a non-negative integer (minor units)");
+    }
     (updateData as any).bonus_amount = bonusAmount;
   }
 

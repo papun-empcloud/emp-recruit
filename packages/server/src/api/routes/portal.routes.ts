@@ -28,6 +28,20 @@ function ensureDir(dir: string) {
   }
 }
 
+// Map each allowed MIME to a fixed, safe extension. The client-supplied
+// originalname extension is never used for the stored file — otherwise a
+// candidate could upload a `.html`/`.svg` and have it served as active content
+// (audit M6). An unknown type is stored as `.bin`.
+const MIME_TO_EXT: Record<string, string> = {
+  "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+};
+
+const ALLOWED_MIMES = Object.keys(MIME_TO_EXT);
+
 const documentStorage = multer.diskStorage({
   destination: (req: Request, _file, cb) => {
     const orgId = req.candidate?.orgId || "unknown";
@@ -36,18 +50,10 @@ const documentStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = MIME_TO_EXT[file.mimetype] || ".bin";
     cb(null, `${uuidv4()}${ext}`);
   },
 });
-
-const ALLOWED_MIMES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "image/jpeg",
-  "image/png",
-];
 
 const documentUpload = multer({
   storage: documentStorage,

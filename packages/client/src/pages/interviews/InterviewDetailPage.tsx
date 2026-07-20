@@ -523,11 +523,13 @@ function CalendarLinksSection({ interviewId }: { interviewId: string }) {
 // Recording Section
 // ---------------------------------------------------------------------------
 // Build a same-origin/API-anchored URL to stream a recording. A native media
-// element can't send an auth header, so the access token rides in the query
-// string (authenticate() accepts ?token=).
+// element can't send an auth header, so the in-memory access token rides in the
+// query string when present (authenticate() accepts ?token=). After a reload
+// the token is empty and the same-origin httpOnly auth cookie authenticates the
+// request instead (audit H3).
 function recordingFileUrl(interviewId: string, recId: string): string {
   const apiBase = (import.meta.env.VITE_API_URL as string | undefined) || "/api/v1";
-  const token = localStorage.getItem("access_token") || "";
+  const token = useAuthStore.getState().accessToken || "";
   return `${apiBase}/interviews/${interviewId}/recordings/${recId}/file?token=${encodeURIComponent(token)}`;
 }
 

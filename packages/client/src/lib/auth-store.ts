@@ -30,41 +30,45 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
 
   login: (user, tokens) => {
-    localStorage.setItem("access_token", tokens.accessToken);
-    localStorage.setItem("refresh_token", tokens.refreshToken);
+    // Tokens are also delivered as httpOnly cookies by the server (audit H3).
+    // We never persist them to localStorage where XSS could read them: the
+    // access token is kept in memory only (for the Authorization header and
+    // in-session media links) and the refresh token lives solely in its cookie.
+    // Only the non-secret `user` is stored so the UI can restore after a reload.
     localStorage.setItem("user", JSON.stringify(user));
     set({
       user,
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      refreshToken: null,
       isAuthenticated: true,
     });
   },
 
   logout: () => {
+    // The auth cookies are httpOnly, so only the server can clear them.
+    try {
+      void fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+    } catch {
+      // best-effort — proceed with local cleanup regardless
+    }
+    localStorage.removeItem("user");
+    // Legacy cleanup for sessions created by an older build.
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
     window.location.href = "/login";
   },
 
   loadFromStorage: () => {
-    const token = localStorage.getItem("access_token");
+    // Session persistence rides on the httpOnly cookie, so a stored `user` is
+    // enough to restore the UI — API/media calls re-authenticate via the cookie.
+    // The in-memory access token stays null until the next login/refresh.
     const userStr = localStorage.getItem("user");
-    if (token && userStr) {
+    if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        set({
-          user,
-          accessToken: token,
-          refreshToken: localStorage.getItem("refresh_token"),
-          isAuthenticated: true,
-        });
+        set({ user, accessToken: null, refreshToken: null, isAuthenticated: true });
       } catch {
-        // corrupted — clear
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");
       }
     }
@@ -82,9 +86,13 @@ export function extractSSOToken(): string | null {
   const ssoToken = params.get("sso_token");
   if (!ssoToken) return null;
 
-  // Mark that this session came from EMP Cloud SSO
+  // Mark that this session came from EMP Cloud SSO. The dashboard return URL is
+  // environment-configurable rather than hardcoded to the test host (audit L10).
   localStorage.setItem('sso_source', 'empcloud');
-  localStorage.setItem('empcloud_return_url', 'https://test-empcloud.empcloud.com/dashboard');
+  localStorage.setItem(
+    'empcloud_return_url',
+    import.meta.env.VITE_EMPCLOUD_DASHBOARD_URL || 'https://test-empcloud.empcloud.com/dashboard',
+  );
 
   // Clean the URL immediately so the token doesn't linger
   const url = new URL(window.location.href);
@@ -102,9 +110,13 @@ export function getUser(): AuthUser | null {
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem("access_token");
+  // In-memory access token (audit H3). Null after a reload — API/media calls
+  // then authenticate via the httpOnly cookie instead.
+  return useAuthStore.getState().accessToken;
 }
 
 export function isLoggedIn(): boolean {
-  return !!getToken();
+  // The session is carried by the httpOnly cookie, so presence of the stored
+  // (non-secret) user is the reload-safe signal, not an in-memory token.
+  return !!localStorage.getItem("user");
 }

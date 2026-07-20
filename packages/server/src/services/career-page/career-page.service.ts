@@ -137,6 +137,22 @@ export interface PublicJobsResult {
   locations: string[];
 }
 
+// Only these job-posting fields are exposed on the public career site. Internal
+// columns (created_by, hiring_manager_id, is_internal, max_applications, etc.)
+// must never reach unauthenticated visitors / competitors (audit M4).
+const PUBLIC_JOB_FIELDS = [
+  "id", "organization_id", "title", "slug", "description", "requirements", "benefits",
+  "location", "department", "employment_type", "remote_policy",
+  "experience_min", "experience_max", "salary_min", "salary_max", "salary_currency",
+  "published_at", "closes_at", "created_at",
+] as const;
+
+function pickPublicJob(job: any): any {
+  const out: any = {};
+  for (const k of PUBLIC_JOB_FIELDS) if (k in job) out[k] = job[k];
+  return out;
+}
+
 export async function getPublicJobs(
   slug: string,
   params: {
@@ -199,7 +215,7 @@ export async function getPublicJobs(
     [...args, perPage, offset],
   );
   const data = ((dataRows[0] as any[]) || []).map((j) => ({
-    ...j,
+    ...pickPublicJob(j),
     applicant_count: Number(j.applicant_count ?? 0),
   })) as PublicJob[];
 
@@ -235,7 +251,7 @@ export async function getPublicJobDetail(slug: string, jobId: string): Promise<J
     throw new NotFoundError("Job posting", jobId);
   }
 
-  return job;
+  return pickPublicJob(job) as JobPosting;
 }
 
 export async function submitPublicApplication(

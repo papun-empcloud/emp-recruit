@@ -1,3 +1,4 @@
+import { parsePage, parseLimit } from "../../utils/pagination";
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess } from "../../utils/response";
@@ -92,12 +93,8 @@ router.get(
       if (!jobId) throw new ValidationError("Job ID is required");
 
       const orgId = req.user!.empcloudOrgId;
-      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-      const limit = req.query.limit
-        ? parseInt(req.query.limit as string, 10)
-        : req.query.perPage
-          ? parseInt(req.query.perPage as string, 10)
-          : 10;
+      const page = parsePage(req.query.page);
+      const limit = parseLimit(req.query.limit ?? req.query.perPage, 10);
       const rankings = await scoringService.getJobRankingsPaginated(orgId, jobId, { page, limit });
 
       return sendSuccess(res, rankings);
