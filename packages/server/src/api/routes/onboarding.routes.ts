@@ -14,6 +14,11 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
+import {
+  createOnboardingTemplateSchema,
+  addTemplateTaskSchema,
+  updateTaskStatusSchema,
+} from "@emp-recruit/shared";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
 import * as onboardingService from "../../services/onboarding/onboarding.service";
@@ -48,7 +53,10 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const template = await onboardingService.createTemplate(orgId, req.body);
+      // Whitelist the body via the schema so unexpected fields (e.g.
+      // organization_id) can't be mass-assigned (audit M8).
+      const data = createOnboardingTemplateSchema.parse(req.body);
+      const template = await onboardingService.createTemplate(orgId, data);
       sendSuccess(res, template, 201);
     } catch (err) {
       next(err);
@@ -63,7 +71,8 @@ router.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const template = await onboardingService.updateTemplate(orgId, String(req.params.id), req.body);
+      const data = createOnboardingTemplateSchema.partial().parse(req.body);
+      const template = await onboardingService.updateTemplate(orgId, String(req.params.id), data);
       sendSuccess(res, template);
     } catch (err) {
       next(err);
@@ -92,7 +101,8 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
-      const task = await onboardingService.addTemplateTask(orgId, String(req.params.id), req.body);
+      const data = addTemplateTaskSchema.parse(req.body);
+      const task = await onboardingService.addTemplateTask(orgId, String(req.params.id), data);
       sendSuccess(res, task, 201);
     } catch (err) {
       next(err);
@@ -107,11 +117,12 @@ router.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
+      const data = addTemplateTaskSchema.partial().parse(req.body);
       const task = await onboardingService.updateTemplateTask(
         orgId,
         String(req.params.id),
         String(req.params.taskId),
-        req.body,
+        data,
       );
       sendSuccess(res, task);
     } catch (err) {
@@ -200,7 +211,7 @@ router.patch(
     try {
       const orgId = req.user!.empcloudOrgId;
       const userId = req.user!.empcloudUserId;
-      const { status } = req.body;
+      const { status } = updateTaskStatusSchema.parse(req.body);
       const task = await onboardingService.updateTaskStatus(orgId, String(req.params.id), status, userId);
       sendSuccess(res, task);
     } catch (err) {
