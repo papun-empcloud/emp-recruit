@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
+import { parsePage, parseLimit } from "../../utils/pagination";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -122,8 +123,8 @@ router.get("/careers/:slug/jobs", async (req: Request, res: Response, next: Next
   try {
     const { page, perPage, search, department, location } = req.query;
     const result = await careerPageService.getPublicJobs(String(req.params.slug), {
-      page: page ? Number(page) : undefined,
-      perPage: perPage ? Number(perPage) : undefined,
+      page: page ? parsePage(page) : undefined,
+      perPage: perPage ? parseLimit(perPage) : undefined,
       search: search ? String(search) : undefined,
       department: department ? String(department) : undefined,
       location: location ? String(location) : undefined,

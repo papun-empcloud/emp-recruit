@@ -5,6 +5,7 @@
 // GET  /:id           — session detail (transcript + evaluation)
 // ============================================================================
 
+import { parsePage, parseLimit } from "../../utils/pagination";
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import * as aiInterviewService from "../../services/ai-interview/ai-interview.service";
@@ -66,12 +67,8 @@ router.post("/:id/approve", async (req: Request, res: Response, next: NextFuncti
 router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await aiInterviewService.listSessions(req.user!.empcloudOrgId, {
-      page: req.query.page ? Number(req.query.page) : undefined,
-      limit: req.query.limit
-        ? Number(req.query.limit)
-        : req.query.perPage
-          ? Number(req.query.perPage)
-          : undefined,
+      page: parsePage(req.query.page),
+      limit: parseLimit(req.query.limit ?? req.query.perPage),
       status: req.query.status as string | undefined,
     });
     sendSuccess(res, result);

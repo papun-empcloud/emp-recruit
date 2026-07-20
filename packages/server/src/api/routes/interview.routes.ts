@@ -4,6 +4,7 @@
 // ============================================================================
 
 import fs from "fs";
+import { parsePage, parseLimit } from "../../utils/pagination";
 import path from "path";
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticate, authorize } from "../middleware/auth.middleware";
@@ -29,8 +30,8 @@ router.get("/", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Re
     const { page, limit, application_id, status, search, sort_field, sort_order } = req.query;
 
     const result = await interviewService.listInterviews(orgId, {
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+      page: page ? parsePage(page) : undefined,
+      limit: limit ? parseLimit(limit) : undefined,
       application_id: application_id as string | undefined,
       status: status as InterviewStatus | undefined,
       search: search as string | undefined,

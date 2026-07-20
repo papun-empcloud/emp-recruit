@@ -335,9 +335,13 @@ export async function scoreCandidate(
 
   // Gather candidate skills from profile + resume
   // Handle both string (raw JSON) and already-parsed array from MySQL JSON column
-  const candidateSkills: string[] = candidate.skills
-    ? (typeof candidate.skills === "string" ? JSON.parse(candidate.skills) : candidate.skills)
-    : [];
+  let candidateSkills: string[] = [];
+  try {
+    const cs = typeof candidate.skills === "string" ? JSON.parse(candidate.skills) : candidate.skills;
+    if (Array.isArray(cs)) candidateSkills = cs.filter((s) => typeof s === "string");
+  } catch {
+    /* malformed skills JSON — treat as no skills rather than 500 (audit L11) */
+  }
 
   // If candidate has a resume, extract skills from it too — and keep the text
   // so the LLM scorer can read it.
@@ -363,9 +367,13 @@ export async function scoreCandidate(
   ]);
 
   // Parse job required skills (handle both string and already-parsed array)
-  const jobSkills: string[] = job.skills
-    ? (typeof job.skills === "string" ? JSON.parse(job.skills) : job.skills)
-    : [];
+  let jobSkills: string[] = [];
+  try {
+    const js = typeof job.skills === "string" ? JSON.parse(job.skills) : job.skills;
+    if (Array.isArray(js)) jobSkills = js.filter((s) => typeof s === "string");
+  } catch {
+    /* malformed skills JSON — treat as no skills rather than 500 (audit L11) */
+  }
   const jobSkillsLower = jobSkills.map((s) => s.toLowerCase());
 
   // Real AI scoring when a provider is configured; deterministic heuristic

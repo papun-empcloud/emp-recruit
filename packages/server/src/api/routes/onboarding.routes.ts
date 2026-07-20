@@ -14,6 +14,7 @@
 // ============================================================================
 
 import { Router, Request, Response, NextFunction } from "express";
+import { parsePage, parseLimit } from "../../utils/pagination";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
 import * as onboardingService from "../../services/onboarding/onboarding.service";
@@ -169,8 +170,8 @@ router.get(
       const { status, page, limit } = req.query;
       const result = await onboardingService.listChecklists(orgId, {
         status: status as any,
-        page: page ? Number(page) : undefined,
-        limit: limit ? Number(limit) : undefined,
+        page: page ? parsePage(page) : undefined,
+        limit: limit ? parseLimit(limit) : undefined,
       });
       sendPaginated(res, result.data, result.total, result.page, result.limit);
     } catch (err) {

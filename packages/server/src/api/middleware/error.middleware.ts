@@ -39,14 +39,15 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     return res.status(400).json(response);
   }
 
+  // Log the real error server-side, but NEVER return err.message to the client —
+  // in any environment — as it can leak SQL/driver/stack internals (audit L2).
   logger.error("Unhandled error:", err);
 
-  const isDev = process.env.NODE_ENV !== "production";
   const response: ApiResponse<null> = {
     success: false,
     error: {
       code: "INTERNAL_ERROR",
-      message: isDev ? err.message : "An unexpected error occurred",
+      message: "An unexpected error occurred",
     },
   };
   return res.status(500).json(response);
