@@ -74,16 +74,22 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (config.cors.origin === "*") return callback(null, true);
+      // Never reflect an arbitrary origin together with credentials:true in
+      // production (audit M7) — a wildcard is only honoured in development.
+      if (config.cors.origin === "*") {
+        if (config.env === "development") return callback(null, true);
+        logger.warn("CORS_ORIGIN=* is ignored in production; configure an explicit allowlist");
+        return callback(new Error("Not allowed by CORS"));
+      }
       // Allow empcloud.com subdomains (production & test)
       if (origin.endsWith(".empcloud.com") && origin.startsWith("https://")) {
         return callback(null, true);
       }
+      // Local dev only. `.ngrok-free.dev` is intentionally NOT trusted — those
+      // hostnames are attacker-registerable (audit M7).
       if (
         config.env === "development" &&
-        (origin.startsWith("http://localhost") ||
-          origin.startsWith("http://127.0.0.1") ||
-          origin.endsWith(".ngrok-free.dev"))
+        (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))
       ) {
         return callback(null, true);
       }
