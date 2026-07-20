@@ -270,40 +270,57 @@ export async function listInterviews(
     totalPages = result.totalPages;
   }
 
-  // Enrich with candidate name, job title, and panelist count
-  const enriched = await Promise.all(
-    rows.map(async (interview) => {
-      // Get application -> candidate + job
-      const appRow = await db.findById<{
-        id: string;
-        candidate_id: string;
-        job_id: string;
-      }>("applications", interview.application_id);
+  // Enrich with candidate name, job title, and panelist count. Batch the lookups
+  // instead of running ~4 queries per row (audit M20): one JOIN across all the
+  // applications on this page, and one grouped panelist count.
+  if (rows.length === 0) {
+    return { data: [], total, page, perPage: limit, totalPages };
+  }
 
-      let candidate_name = "Unknown";
-      let job_title = "Unknown";
+  const appIds = [...new Set(rows.map((r) => r.application_id))];
+  const interviewIds = rows.map((r) => r.id);
+  const appPlaceholders = appIds.map(() => "?").join(", ");
+  const ivPlaceholders = interviewIds.map(() => "?").join(", ");
 
-      if (appRow) {
-        const candidate = await db.findById<{ first_name: string; last_name: string }>(
-          "candidates",
-          appRow.candidate_id,
-        );
-        if (candidate) {
-          candidate_name = `${candidate.first_name} ${candidate.last_name}`;
-        }
-        const job = await db.findById<{ title: string }>("job_postings", appRow.job_id);
-        if (job) {
-          job_title = job.title;
-        }
-      }
-
-      const panelist_count = await db.count("interview_panelists", {
-        interview_id: interview.id,
-      });
-
-      return { ...interview, candidate_name, job_title, panelist_count };
-    }),
+  const appInfoRows = await db.raw<any[][]>(
+    `SELECT a.id AS application_id,
+            CONCAT(c.first_name, ' ', c.last_name) AS candidate_name,
+            j.title AS job_title
+     FROM applications a
+     LEFT JOIN candidates c ON c.id = a.candidate_id
+     LEFT JOIN job_postings j ON j.id = a.job_id
+     WHERE a.id IN (${appPlaceholders})`,
+    appIds,
   );
+  const appInfo = new Map<string, { candidate_name: string; job_title: string }>();
+  for (const r of (appInfoRows[0] || []) as any[]) {
+    appInfo.set(r.application_id, {
+      candidate_name: (r.candidate_name && String(r.candidate_name).trim()) || "Unknown",
+      job_title: r.job_title || "Unknown",
+    });
+  }
+
+  const panelistRows = await db.raw<any[][]>(
+    `SELECT interview_id, COUNT(*) AS cnt
+     FROM interview_panelists
+     WHERE interview_id IN (${ivPlaceholders})
+     GROUP BY interview_id`,
+    interviewIds,
+  );
+  const panelistCounts = new Map<string, number>();
+  for (const r of (panelistRows[0] || []) as any[]) {
+    panelistCounts.set(r.interview_id, Number(r.cnt));
+  }
+
+  const enriched = rows.map((interview) => {
+    const info = appInfo.get(interview.application_id);
+    return {
+      ...interview,
+      candidate_name: info?.candidate_name || "Unknown",
+      job_title: info?.job_title || "Unknown",
+      panelist_count: panelistCounts.get(interview.id) || 0,
+    };
+  });
 
   return {
     data: enriched,
