@@ -291,6 +291,11 @@ export async function submitForApproval(
     throw new ValidationError("At least one approver is required");
   }
 
+  // Clear approver rows from any previous round (e.g. after a reject sent the
+  // offer back to draft) so a fresh approval cycle isn't blocked by stale
+  // pending/rejected rows and the approval count is correct (audit M11).
+  await db.deleteMany("offer_approvers", { offer_id: id });
+
   // Create approver records
   for (let i = 0; i < approverUserIds.length; i++) {
     await db.create<OfferApprover>("offer_approvers", {
