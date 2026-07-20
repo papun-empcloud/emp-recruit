@@ -386,9 +386,9 @@ export const submitSurveyResponseSchema = z.object({
     z.object({
       question_key: z.string().min(1).max(100),
       rating: z.number().int().min(1).max(10).optional(),
-      text_response: z.string().optional(),
+      text_response: z.string().max(5000).optional(),
     }),
-  ).min(1),
+  ).min(1).max(200),
 });
 
 // ---------------------------------------------------------------------------
@@ -422,8 +422,8 @@ export const submitAssessmentSchema = z.object({
   answers: z.array(
     z.object({
       question_index: z.number().int().min(0),
-      answer: z.string().min(1),
+      answer: z.string().min(1).max(10000),
       time_taken_seconds: z.number().int().min(0).optional(),
     }),
-  ).min(1),
+  ).min(1).max(500),
 });
