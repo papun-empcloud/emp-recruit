@@ -82,9 +82,13 @@ export function extractSSOToken(): string | null {
   const ssoToken = params.get("sso_token");
   if (!ssoToken) return null;
 
-  // Mark that this session came from EMP Cloud SSO
+  // Mark that this session came from EMP Cloud SSO. The dashboard return URL is
+  // environment-configurable rather than hardcoded to the test host (audit L10).
   localStorage.setItem('sso_source', 'empcloud');
-  localStorage.setItem('empcloud_return_url', 'https://test-empcloud.empcloud.com/dashboard');
+  localStorage.setItem(
+    'empcloud_return_url',
+    import.meta.env.VITE_EMPCLOUD_DASHBOARD_URL || 'https://test-empcloud.empcloud.com/dashboard',
+  );
 
   // Clean the URL immediately so the token doesn't linger
   const url = new URL(window.location.href);
