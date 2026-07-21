@@ -129,7 +129,11 @@ export const createCandidateSchema = z.object({
   portfolio_url: z.string().url().optional(),
   current_company: z.string().max(200).optional(),
   current_title: z.string().max(200).optional(),
-  experience_years: z.number().min(0).max(50).optional(),
+  experience_years: z
+    .number()
+    .min(0, "Experience (years) cannot be negative")
+    .max(50, "Experience (years) can't exceed 50")
+    .optional(),
   skills: z.array(z.string()).optional(),
   notes: z.string().optional(),
   tags: z.array(z.string()).optional(),

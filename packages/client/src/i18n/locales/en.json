@@ -122,6 +122,7 @@
       "addedSuccess": "Candidate added successfully",
       "addError": "Failed to add candidate",
       "expYearsNegative": "Experience years cannot be negative",
+      "expYearsMax": "Experience (years) can't exceed 50",
       "expMonthsRange": "Experience months must be between 0 and 11",
       "updatedSuccess": "Candidate updated",
       "updateError": "Failed to update candidate",
