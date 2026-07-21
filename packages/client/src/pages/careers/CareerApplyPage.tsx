@@ -135,8 +135,13 @@ export function CareerApplyPage() {
     const next: Record<string, string> = {};
     const emailInvalid =
       form.email.trim() !== "" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim());
+    // Phone is optional. The input filter already strips letters/symbols
+    // (BUG-02), so here we only reject clearly-non-phone input: something typed
+    // that contains no digits at all, or an absurdly long string. A real phone
+    // number of any reasonable length must never block submission (BUG-09).
     const phoneDigits = form.phone.replace(/\D/g, "");
-    const phoneInvalid = form.phone.trim() !== "" && (phoneDigits.length < 7 || phoneDigits.length > 15);
+    const phoneInvalid =
+      form.phone.trim() !== "" && (phoneDigits.length === 0 || phoneDigits.length > 20);
     const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
     const yearsTooHigh =
       form.experience_years !== "" && Number(form.experience_years) > MAX_EXPERIENCE_YEARS;
