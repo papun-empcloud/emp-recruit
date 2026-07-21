@@ -139,12 +139,16 @@ export async function getKpiMetrics(orgId: number): Promise<{
   const hired = await db.count("applications", { organization_id: orgId, stage: "hired" });
   const hireRate = totalApplications > 0 ? Math.round((hired / totalApplications) * 100) : 0;
 
-  const offerTotal = await db.count("offers", { organization_id: orgId });
   const accepted = await db.count("offers", { organization_id: orgId, status: "accepted" });
   const declined = await db.count("offers", { organization_id: orgId, status: "declined" });
   const expired = await db.count("offers", { organization_id: orgId, status: "expired" });
   // Pending = extended to the candidate and awaiting their response.
   const pending = await db.count("offers", { organization_id: orgId, status: "sent" });
+  // "Extended" means actually sent to a candidate — the sum of the four outcome
+  // buckets shown in the breakdown. Counting ALL offer rows here (including
+  // drafts / pending-approval / approved-but-unsent) made the footer total
+  // contradict its own breakdown. BUG-16.
+  const offerTotal = accepted + declined + expired + pending;
   // Acceptance rate is over decided offers only (accepted + declined).
   const decided = accepted + declined;
   const acceptanceRate = decided > 0 ? Math.round((accepted / decided) * 100) : 0;
