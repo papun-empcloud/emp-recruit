@@ -97,8 +97,17 @@ const applySchema = z.object({
     .optional(),
   cover_letter: z.string().optional(),
   current_company: z.string().optional(),
-  experience_years: z.coerce.number().min(0, "Years of experience cannot be negative").optional(),
-  expected_salary: z.coerce.number().min(0, "Expected salary cannot be negative").optional(),
+  // Upper bounds reject unrealistic values (BUG-10): 999 years, 999,999,999 salary.
+  experience_years: z.coerce
+    .number()
+    .min(0, "Years of experience cannot be negative")
+    .max(50, "Years of experience can't exceed 50")
+    .optional(),
+  expected_salary: z.coerce
+    .number()
+    .min(0, "Expected salary cannot be negative")
+    .max(100000000, "Please enter a realistic expected salary")
+    .optional(),
 });
 
 // ---------------------------------------------------------------------------
