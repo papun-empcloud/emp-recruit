@@ -348,7 +348,11 @@ export function ReferralListPage() {
               <input
                 type="tel"
                 value={form.phone}
-                onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                // Strip anything that isn't a digit or phone punctuation as it's
+                // typed, so alphabetic input can't be entered at all. BUG-13.
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, phone: e.target.value.replace(/[^\d+\-()\s]/g, "") }))
+                }
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
