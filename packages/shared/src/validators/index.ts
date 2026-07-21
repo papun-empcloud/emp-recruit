@@ -223,20 +223,43 @@ const salaryAmount = z
   .min(0)
   .max(MAX_SALARY, { message: "Salary exceeds the maximum allowed value" });
 
-export const createOfferSchema = z.object({
-  application_id: z.string().uuid(),
-  salary_amount: salaryAmount,
-  salary_currency: z.string().length(3).default("INR"),
-  joining_date: z.string(),
-  expiry_date: z.string(),
-  // Optional — defaults from the applied job's title/department server-side.
-  job_title: z.string().min(2).max(200).optional(),
-  department: z.string().max(100).optional(),
-  benefits: z.string().optional(),
-  notes: z.string().optional(),
-  approver_ids: z.array(z.number().int()).optional(),
-});
+// An offer's expiry (accept-by deadline) must be on or before the joining date
+// — a candidate has to accept before their start date. Returns true when the
+// relationship holds or either date is missing/unparseable (base string
+// validation handles those). Enforced client-side already; added here so a
+// direct API call can't create an inconsistent offer either. BUG-12.
+export function expiryOnOrBeforeJoining(joining?: string, expiry?: string): boolean {
+  if (!joining || !expiry) return true;
+  const j = new Date(joining).getTime();
+  const e = new Date(expiry).getTime();
+  if (Number.isNaN(j) || Number.isNaN(e)) return true;
+  return e <= j;
+}
 
+export const OFFER_DATE_ORDER_MESSAGE = "Offer expiry date must be on or before the joining date";
+
+export const createOfferSchema = z
+  .object({
+    application_id: z.string().uuid(),
+    salary_amount: salaryAmount,
+    salary_currency: z.string().length(3).default("INR"),
+    joining_date: z.string(),
+    expiry_date: z.string(),
+    // Optional — defaults from the applied job's title/department server-side.
+    job_title: z.string().min(2).max(200).optional(),
+    department: z.string().max(100).optional(),
+    benefits: z.string().optional(),
+    notes: z.string().optional(),
+    approver_ids: z.array(z.number().int()).optional(),
+  })
+  .refine((d) => expiryOnOrBeforeJoining(d.joining_date, d.expiry_date), {
+    message: OFFER_DATE_ORDER_MESSAGE,
+    path: ["expiry_date"],
+  });
+
+// Kept as a plain object (the route calls `.omit({ status })` on it). The
+// expiry-vs-joining relationship on update is enforced in the offer service,
+// which can also compare an incoming date against the stored one. BUG-12.
 export const updateOfferSchema = z.object({
   salary_amount: salaryAmount.optional(),
   salary_currency: z.string().length(3).optional(),
