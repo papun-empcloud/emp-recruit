@@ -120,8 +120,8 @@ export const changeJobStatusSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createCandidateSchema = z.object({
-  first_name: z.string().min(1).max(64),
-  last_name: z.string().min(1).max(64),
+  first_name: z.string().trim().min(1).max(64),
+  last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
   phone: z.string().max(20).optional(),
   source: z.nativeEnum(CandidateSource).default(CandidateSource.DIRECT),
@@ -143,8 +143,8 @@ export const updateCandidateSchema = createCandidateSchema.partial();
 
 // Bulk import: one CSV row (a subset of createCandidate — no notes/tags/urls).
 export const bulkImportCandidateRowSchema = z.object({
-  first_name: z.string().min(1).max(64),
-  last_name: z.string().min(1).max(64),
+  first_name: z.string().trim().min(1).max(64),
+  last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
   phone: z.string().max(20).optional(),
   source: z.nativeEnum(CandidateSource).optional(),
@@ -189,7 +189,7 @@ export const scheduleInterviewSchema = z.object({
   application_id: z.string().uuid(),
   type: z.nativeEnum(InterviewType),
   round: z.number().int().min(1).default(1),
-  title: z.string().min(2).max(200),
+  title: z.string().trim().min(2).max(200),
   scheduled_at: z.string().datetime(),
   duration_minutes: z.number().int().min(15).max(480).default(60),
   location: z.string().max(500).optional(),
@@ -246,7 +246,7 @@ export const createOfferSchema = z
     joining_date: z.string(),
     expiry_date: z.string(),
     // Optional — defaults from the applied job's title/department server-side.
-    job_title: z.string().min(2).max(200).optional(),
+    job_title: z.string().trim().min(2).max(200).optional(),
     department: z.string().max(100).optional(),
     benefits: z.string().optional(),
     notes: z.string().optional(),
@@ -265,7 +265,7 @@ export const updateOfferSchema = z.object({
   salary_currency: z.string().length(3).optional(),
   joining_date: z.string().optional(),
   expiry_date: z.string().optional(),
-  job_title: z.string().min(2).max(200).optional(),
+  job_title: z.string().trim().min(2).max(200).optional(),
   department: z.string().max(100).optional(),
   benefits: z.string().optional(),
   notes: z.string().optional(),
@@ -277,14 +277,14 @@ export const updateOfferSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createOnboardingTemplateSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   department: z.string().max(100).optional(),
   is_default: z.boolean().default(false),
 });
 
 export const addTemplateTaskSchema = z.object({
-  title: z.string().min(2).max(200),
+  title: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   category: z.string().min(1).max(50),
   assignee_role: z.string().max(50).optional(),
@@ -314,9 +314,9 @@ export const createReferralSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createEmailTemplateSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   trigger: z.string().min(1).max(50),
-  subject: z.string().min(2).max(500),
+  subject: z.string().trim().min(2).max(500),
   body: z.string().min(10),
   is_active: z.boolean().default(true),
 });
@@ -326,7 +326,7 @@ export const createEmailTemplateSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const updateCareerPageSchema = z.object({
-  title: z.string().min(2).max(200).optional(),
+  title: z.string().trim().min(2).max(200).optional(),
   description: z.string().optional(),
   logo_url: z.string().url().optional().nullable(),
   banner_url: z.string().url().optional().nullable(),
@@ -341,8 +341,8 @@ export const updateCareerPageSchema = z.object({
 
 export const publicApplicationSchema = z.object({
   job_id: z.string().uuid(),
-  first_name: z.string().min(1).max(64),
-  last_name: z.string().min(1).max(64),
+  first_name: z.string().trim().min(1).max(64),
+  last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
   phone: z.string().max(20).optional(),
   cover_letter: z.string().optional(),
@@ -366,7 +366,7 @@ export const initiateBackgroundCheckSchema = z.object({
 });
 
 export const createBackgroundCheckPackageSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   checks_included: z.array(BackgroundCheckType).min(1),
   provider: BackgroundCheckProvider,
@@ -386,7 +386,7 @@ export const updateBackgroundCheckResultSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const generateJobDescriptionSchema = z.object({
-  title: z.string().min(2).max(200),
+  title: z.string().trim().min(2).max(200),
   department: z.string().max(100).optional(),
   seniority: z.enum(["intern", "junior", "mid", "senior", "lead", "director", "vp", "c_level"]),
   skills: z.array(z.string()).min(1),
@@ -426,7 +426,7 @@ const AssessmentType = z.enum(["behavioral", "cognitive", "personality", "situat
 const QuestionType = z.enum(["multiple_choice", "true_false", "text", "scale"]);
 
 export const createAssessmentTemplateSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   assessment_type: AssessmentType,
   time_limit_minutes: z.number().int().min(1).max(480).optional(),

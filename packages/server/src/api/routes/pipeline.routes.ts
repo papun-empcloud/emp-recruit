@@ -21,13 +21,13 @@ router.use(authenticate);
 // id, is_default, ...) can't be mass-assigned through the update path, which
 // passes the body straight to the DB (audit M8).
 const createStageSchema = z.object({
-  name: z.string().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
   slug: z.string().max(100).optional(),
   color: z.string().max(20).optional(),
   sort_order: z.number().int().optional(),
 });
 const updateStageSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
+  name: z.string().trim().min(1).max(100).optional(),
   color: z.string().max(20).optional(),
   sort_order: z.number().int().optional(),
   is_active: z.boolean().optional(),
