@@ -9,7 +9,13 @@ import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
 import { toMysqlDateTime } from "../../utils/date";
 import { logger } from "../../utils/logger";
 import * as onboardingService from "../onboarding/onboarding.service";
-import type { Offer, OfferApprover, OfferStatus } from "@emp-recruit/shared";
+import {
+  expiryOnOrBeforeJoining,
+  OFFER_DATE_ORDER_MESSAGE,
+  type Offer,
+  type OfferApprover,
+  type OfferStatus,
+} from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -143,6 +149,17 @@ export async function updateOffer(orgId: number, id: string, data: UpdateOfferDa
   }
   if (offer.status !== "draft") {
     throw new ValidationError("Only draft offers can be edited");
+  }
+
+  // Validate the expiry-vs-joining relationship against the *effective* values:
+  // whatever is being changed in this payload, falling back to the stored value
+  // for whichever date isn't being touched. BUG-12.
+  const effectiveJoining =
+    data.joining_date ?? (offer.joining_date ? String(offer.joining_date) : undefined);
+  const effectiveExpiry =
+    data.expiry_date ?? (offer.expiry_date ? String(offer.expiry_date) : undefined);
+  if (!expiryOnOrBeforeJoining(effectiveJoining, effectiveExpiry)) {
+    throw new ValidationError(OFFER_DATE_ORDER_MESSAGE, { expiry_date: [OFFER_DATE_ORDER_MESSAGE] });
   }
 
   return db.update<Offer>("offers", id, data);

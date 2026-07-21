@@ -15,6 +15,11 @@ import type { JobPosting } from "@emp-recruit/shared";
 
 const PUBLIC_API = "/api/v1/public";
 
+// Upper bounds for the optional numeric fields (BUG-10). Negatives were already
+// rejected; these cap unrealistic values like 999 years / 999,999,999 salary.
+const MAX_EXPERIENCE_YEARS = 50;
+const MAX_EXPECTED_SALARY = 100_000_000;
+
 export function CareerApplyPage() {
   const { t } = useTranslation();
   const { slug, jobId } = useParams<{ slug: string; jobId: string }>();
@@ -130,10 +135,19 @@ export function CareerApplyPage() {
     const next: Record<string, string> = {};
     const emailInvalid =
       form.email.trim() !== "" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim());
+    // Phone is optional. The input filter already strips letters/symbols
+    // (BUG-02), so here we only reject clearly-non-phone input: something typed
+    // that contains no digits at all, or an absurdly long string. A real phone
+    // number of any reasonable length must never block submission (BUG-09).
     const phoneDigits = form.phone.replace(/\D/g, "");
-    const phoneInvalid = form.phone.trim() !== "" && (phoneDigits.length < 7 || phoneDigits.length > 15);
+    const phoneInvalid =
+      form.phone.trim() !== "" && (phoneDigits.length === 0 || phoneDigits.length > 20);
     const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
+    const yearsTooHigh =
+      form.experience_years !== "" && Number(form.experience_years) > MAX_EXPERIENCE_YEARS;
     const salaryNegative = form.expected_salary !== "" && Number(form.expected_salary) < 0;
+    const salaryTooHigh =
+      form.expected_salary !== "" && Number(form.expected_salary) > MAX_EXPECTED_SALARY;
 
     if (!form.first_name.trim()) next.first_name = t("careers.apply.errorFirstNameRequired");
     if (!form.last_name.trim()) next.last_name = t("careers.apply.errorLastNameRequired");
@@ -141,7 +155,10 @@ export function CareerApplyPage() {
     else if (emailInvalid) next.email = t("careers.apply.errorEmailInvalid");
     if (phoneInvalid) next.phone = t("careers.apply.errorPhoneInvalid");
     if (yearsNegative) next.experience_years = t("careers.apply.errorYearsNegative");
+    else if (yearsTooHigh)
+      next.experience_years = t("careers.apply.errorYearsMax", { max: MAX_EXPERIENCE_YEARS });
     if (salaryNegative) next.expected_salary = t("careers.apply.errorSalaryNegative");
+    else if (salaryTooHigh) next.expected_salary = t("careers.apply.errorSalaryMax");
     setErrors(next);
 
     // Keep the exact toast messages/priority the QA verified (CHK-01/02/03).
@@ -161,8 +178,16 @@ export function CareerApplyPage() {
       toast.error(t("careers.apply.errorYearsNegative"));
       return;
     }
+    if (yearsTooHigh) {
+      toast.error(t("careers.apply.errorYearsMax", { max: MAX_EXPERIENCE_YEARS }));
+      return;
+    }
     if (salaryNegative) {
       toast.error(t("careers.apply.errorSalaryNegative"));
+      return;
+    }
+    if (salaryTooHigh) {
+      toast.error(t("careers.apply.errorSalaryMax"));
       return;
     }
     setSubmitError(null);

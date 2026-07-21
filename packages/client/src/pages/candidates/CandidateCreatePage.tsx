@@ -104,7 +104,11 @@ export function CandidateCreatePage() {
       }
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.error?.message ?? t("candidates.form.addError");
+      // Surface the specific field-level error (e.g. "Experience (years) can't
+      // exceed 50") instead of the generic "Invalid candidate data". BUG-14.
+      const details = err.response?.data?.error?.details as Record<string, string[]> | undefined;
+      const fieldMsg = details ? Object.values(details).flat().filter(Boolean)[0] : undefined;
+      const msg = fieldMsg ?? err.response?.data?.error?.message ?? t("candidates.form.addError");
       toast.error(msg);
     },
   });
@@ -116,6 +120,12 @@ export function CandidateCreatePage() {
     const months = form.experience_months ? Number(form.experience_months) : 0;
     if (!Number.isFinite(years) || years < 0) {
       toast.error(t("candidates.form.expYearsNegative"));
+      return;
+    }
+    // Give the same clear, immediate feedback for the upper bound as the Months
+    // field already does, instead of letting it hit the server. BUG-14.
+    if (years > 50) {
+      toast.error(t("candidates.form.expYearsMax"));
       return;
     }
     if (!Number.isFinite(months) || months < 0 || months > 11) {

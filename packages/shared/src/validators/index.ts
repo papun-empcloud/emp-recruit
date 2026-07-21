@@ -120,8 +120,8 @@ export const changeJobStatusSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createCandidateSchema = z.object({
-  first_name: z.string().min(1).max(64),
-  last_name: z.string().min(1).max(64),
+  first_name: z.string().trim().min(1).max(64),
+  last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
   phone: z.string().max(20).optional(),
   source: z.nativeEnum(CandidateSource).default(CandidateSource.DIRECT),
@@ -129,7 +129,11 @@ export const createCandidateSchema = z.object({
   portfolio_url: z.string().url().optional(),
   current_company: z.string().max(200).optional(),
   current_title: z.string().max(200).optional(),
-  experience_years: z.number().min(0).max(50).optional(),
+  experience_years: z
+    .number()
+    .min(0, "Experience (years) cannot be negative")
+    .max(50, "Experience (years) can't exceed 50")
+    .optional(),
   skills: z.array(z.string()).optional(),
   notes: z.string().optional(),
   tags: z.array(z.string()).optional(),
@@ -139,8 +143,8 @@ export const updateCandidateSchema = createCandidateSchema.partial();
 
 // Bulk import: one CSV row (a subset of createCandidate — no notes/tags/urls).
 export const bulkImportCandidateRowSchema = z.object({
-  first_name: z.string().min(1).max(64),
-  last_name: z.string().min(1).max(64),
+  first_name: z.string().trim().min(1).max(64),
+  last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
   phone: z.string().max(20).optional(),
   source: z.nativeEnum(CandidateSource).optional(),
@@ -185,7 +189,7 @@ export const scheduleInterviewSchema = z.object({
   application_id: z.string().uuid(),
   type: z.nativeEnum(InterviewType),
   round: z.number().int().min(1).default(1),
-  title: z.string().min(2).max(200),
+  title: z.string().trim().min(2).max(200),
   scheduled_at: z.string().datetime(),
   duration_minutes: z.number().int().min(15).max(480).default(60),
   location: z.string().max(500).optional(),
@@ -219,26 +223,49 @@ const salaryAmount = z
   .min(0)
   .max(MAX_SALARY, { message: "Salary exceeds the maximum allowed value" });
 
-export const createOfferSchema = z.object({
-  application_id: z.string().uuid(),
-  salary_amount: salaryAmount,
-  salary_currency: z.string().length(3).default("INR"),
-  joining_date: z.string(),
-  expiry_date: z.string(),
-  // Optional — defaults from the applied job's title/department server-side.
-  job_title: z.string().min(2).max(200).optional(),
-  department: z.string().max(100).optional(),
-  benefits: z.string().optional(),
-  notes: z.string().optional(),
-  approver_ids: z.array(z.number().int()).optional(),
-});
+// An offer's expiry (accept-by deadline) must be on or before the joining date
+// — a candidate has to accept before their start date. Returns true when the
+// relationship holds or either date is missing/unparseable (base string
+// validation handles those). Enforced client-side already; added here so a
+// direct API call can't create an inconsistent offer either. BUG-12.
+export function expiryOnOrBeforeJoining(joining?: string, expiry?: string): boolean {
+  if (!joining || !expiry) return true;
+  const j = new Date(joining).getTime();
+  const e = new Date(expiry).getTime();
+  if (Number.isNaN(j) || Number.isNaN(e)) return true;
+  return e <= j;
+}
 
+export const OFFER_DATE_ORDER_MESSAGE = "Offer expiry date must be on or before the joining date";
+
+export const createOfferSchema = z
+  .object({
+    application_id: z.string().uuid(),
+    salary_amount: salaryAmount,
+    salary_currency: z.string().length(3).default("INR"),
+    joining_date: z.string(),
+    expiry_date: z.string(),
+    // Optional — defaults from the applied job's title/department server-side.
+    job_title: z.string().trim().min(2).max(200).optional(),
+    department: z.string().max(100).optional(),
+    benefits: z.string().optional(),
+    notes: z.string().optional(),
+    approver_ids: z.array(z.number().int()).optional(),
+  })
+  .refine((d) => expiryOnOrBeforeJoining(d.joining_date, d.expiry_date), {
+    message: OFFER_DATE_ORDER_MESSAGE,
+    path: ["expiry_date"],
+  });
+
+// Kept as a plain object (the route calls `.omit({ status })` on it). The
+// expiry-vs-joining relationship on update is enforced in the offer service,
+// which can also compare an incoming date against the stored one. BUG-12.
 export const updateOfferSchema = z.object({
   salary_amount: salaryAmount.optional(),
   salary_currency: z.string().length(3).optional(),
   joining_date: z.string().optional(),
   expiry_date: z.string().optional(),
-  job_title: z.string().min(2).max(200).optional(),
+  job_title: z.string().trim().min(2).max(200).optional(),
   department: z.string().max(100).optional(),
   benefits: z.string().optional(),
   notes: z.string().optional(),
@@ -250,14 +277,14 @@ export const updateOfferSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createOnboardingTemplateSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   department: z.string().max(100).optional(),
   is_default: z.boolean().default(false),
 });
 
 export const addTemplateTaskSchema = z.object({
-  title: z.string().min(2).max(200),
+  title: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   category: z.string().min(1).max(50),
   assignee_role: z.string().max(50).optional(),
@@ -287,9 +314,9 @@ export const createReferralSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const createEmailTemplateSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   trigger: z.string().min(1).max(50),
-  subject: z.string().min(2).max(500),
+  subject: z.string().trim().min(2).max(500),
   body: z.string().min(10),
   is_active: z.boolean().default(true),
 });
@@ -299,7 +326,7 @@ export const createEmailTemplateSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const updateCareerPageSchema = z.object({
-  title: z.string().min(2).max(200).optional(),
+  title: z.string().trim().min(2).max(200).optional(),
   description: z.string().optional(),
   logo_url: z.string().url().optional().nullable(),
   banner_url: z.string().url().optional().nullable(),
@@ -314,8 +341,8 @@ export const updateCareerPageSchema = z.object({
 
 export const publicApplicationSchema = z.object({
   job_id: z.string().uuid(),
-  first_name: z.string().min(1).max(64),
-  last_name: z.string().min(1).max(64),
+  first_name: z.string().trim().min(1).max(64),
+  last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
   phone: z.string().max(20).optional(),
   cover_letter: z.string().optional(),
@@ -339,7 +366,7 @@ export const initiateBackgroundCheckSchema = z.object({
 });
 
 export const createBackgroundCheckPackageSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   checks_included: z.array(BackgroundCheckType).min(1),
   provider: BackgroundCheckProvider,
@@ -359,7 +386,7 @@ export const updateBackgroundCheckResultSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const generateJobDescriptionSchema = z.object({
-  title: z.string().min(2).max(200),
+  title: z.string().trim().min(2).max(200),
   department: z.string().max(100).optional(),
   seniority: z.enum(["intern", "junior", "mid", "senior", "lead", "director", "vp", "c_level"]),
   skills: z.array(z.string()).min(1),
@@ -399,7 +426,7 @@ const AssessmentType = z.enum(["behavioral", "cognitive", "personality", "situat
 const QuestionType = z.enum(["multiple_choice", "true_false", "text", "scale"]);
 
 export const createAssessmentTemplateSchema = z.object({
-  name: z.string().min(2).max(200),
+  name: z.string().trim().min(2).max(200),
   description: z.string().optional(),
   assessment_type: AssessmentType,
   time_limit_minutes: z.number().int().min(1).max(480).optional(),

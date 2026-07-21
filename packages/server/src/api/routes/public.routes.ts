@@ -81,8 +81,10 @@ const applySchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  // Phone is optional; when given it must be a real number (7–15 digits, only
-  // digits and phone punctuation). BUG-02.
+  // Phone is optional. When given, it must contain only digits and phone
+  // punctuation (no letters/symbols — BUG-02) and at least one digit, but we do
+  // NOT enforce a strict length: a real number of any reasonable length must
+  // never be rejected, which was blocking legitimate applications (BUG-09).
   phone: z
     .string()
     .refine(
@@ -90,15 +92,24 @@ const applySchema = z.object({
         if (!v.trim()) return true;
         if (/[^\d+\-()\s]/.test(v)) return false;
         const digits = v.replace(/\D/g, "");
-        return digits.length >= 7 && digits.length <= 15;
+        return digits.length >= 1 && digits.length <= 20;
       },
       { message: "Please enter a valid phone number" },
     )
     .optional(),
   cover_letter: z.string().optional(),
   current_company: z.string().optional(),
-  experience_years: z.coerce.number().min(0, "Years of experience cannot be negative").optional(),
-  expected_salary: z.coerce.number().min(0, "Expected salary cannot be negative").optional(),
+  // Upper bounds reject unrealistic values (BUG-10): 999 years, 999,999,999 salary.
+  experience_years: z.coerce
+    .number()
+    .min(0, "Years of experience cannot be negative")
+    .max(50, "Years of experience can't exceed 50")
+    .optional(),
+  expected_salary: z.coerce
+    .number()
+    .min(0, "Expected salary cannot be negative")
+    .max(100000000, "Please enter a realistic expected salary")
+    .optional(),
 });
 
 // ---------------------------------------------------------------------------

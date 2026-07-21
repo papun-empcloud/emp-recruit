@@ -276,7 +276,12 @@ export function JobFormPage() {
     [K in keyof FormData]: FormData[K] extends string ? K : never;
   }[keyof FormData];
 
-  function field(label: string, name: StringFieldKey, type = "text", opts?: { required?: boolean; placeholder?: string; min?: number }) {
+  function field(
+    label: string,
+    name: StringFieldKey,
+    type = "text",
+    opts?: { required?: boolean; placeholder?: string; min?: number; sanitize?: (v: string) => string },
+  ) {
     return (
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -285,7 +290,10 @@ export function JobFormPage() {
         <input
           type={type}
           value={form[name]}
-          onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))}
+          onChange={(e) => {
+            const v = opts?.sanitize ? opts.sanitize(e.target.value) : e.target.value;
+            setForm((p) => ({ ...p, [name]: v }));
+          }}
           placeholder={opts?.placeholder}
           required={opts?.required}
           min={opts?.min}
@@ -323,7 +331,13 @@ export function JobFormPage() {
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">{t("jobs.form.basicInfo")}</h2>
 
-          {field(t("jobs.form.jobTitle"), "title", "text", { required: true, placeholder: t("jobs.form.jobTitlePlaceholder") })}
+          {/* Sanitize the title at input time: strip < and > so HTML/script
+              markup can never be entered (the server also rejects it). */}
+          {field(t("jobs.form.jobTitle"), "title", "text", {
+            required: true,
+            placeholder: t("jobs.form.jobTitlePlaceholder"),
+            sanitize: (v) => v.replace(/[<>]/g, ""),
+          })}
 
           <div>
             <label htmlFor="job-description" className="block text-sm font-medium text-gray-700 mb-1">
