@@ -17,6 +17,7 @@
     "clsx": "^2.1.0",
     "dayjs": "^1.11.13",
     "dompurify": "^3.2.4",
+    "exceljs": "^4.4.0",
     "i18next": "^24.2.0",
     "i18next-browser-languagedetector": "^8.0.2",
     "lucide-react": "^0.468.0",

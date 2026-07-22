@@ -12,7 +12,14 @@ import {
   Briefcase,
 } from "lucide-react";
 import { apiPost } from "@/api/client";
-import { parseCsv, normalizeHeader } from "@/lib/csv";
+import { readSheetRows, downloadSheet, normalizeHeader, type SheetColumn } from "@/lib/xlsx";
+import {
+  employmentTypeToValue,
+  remotePolicyToValue,
+  EMPLOYMENT_TYPE_LABELS,
+  REMOTE_POLICY_LABELS,
+  SALARY_CURRENCIES,
+} from "@/lib/jobFields";
 
 interface BulkImportJobsModalProps {
   open: boolean;
@@ -21,32 +28,27 @@ interface BulkImportJobsModalProps {
   onImported: () => void;
 }
 
-const REMOTE_POLICIES = ["onsite", "remote", "hybrid"];
-
-// CSV columns we understand. Only title and description are required.
-const TEMPLATE_HEADERS = [
-  "title",
-  "description",
-  "department",
-  "location",
-  "employment_type",
-  "experience_min",
-  "experience_max",
-  "salary_min",
-  "salary_max",
-  "salary_currency",
-  "remote_policy",
-  "skills",
+// Template columns. Only title and description are required; employment_type,
+// salary_currency and remote_policy render as Excel dropdowns.
+const TEMPLATE_COLUMNS: SheetColumn[] = [
+  { header: "title", width: 28 },
+  { header: "description", width: 44 },
+  { header: "department", width: 18 },
+  { header: "location", width: 18 },
+  { header: "employment_type", width: 16, options: EMPLOYMENT_TYPE_LABELS },
+  { header: "experience_min", width: 14 },
+  { header: "experience_max", width: 14 },
+  { header: "salary_min", width: 14 },
+  { header: "salary_max", width: 14 },
+  { header: "salary_currency", width: 14, options: SALARY_CURRENCIES },
+  { header: "remote_policy", width: 14, options: REMOTE_POLICY_LABELS },
+  { header: "skills", width: 26 },
 ];
 
-const TEMPLATE_SAMPLE =
-  TEMPLATE_HEADERS.join(",") +
-  "\n" +
-  [
-    'Senior Software Engineer,"Build and scale our core platform with a small, senior team.",Engineering,Bangalore,full_time,5,8,2000000,3500000,INR,hybrid,React;Node.js;TypeScript',
-    'Product Designer,"Own end-to-end product design across web and mobile.",Design,Remote,full_time,3,6,1500000,2500000,INR,remote,Figma;UX Research',
-  ].join("\n") +
-  "\n";
+const SAMPLE_ROWS: Array<Array<string | number>> = [
+  ["Senior Software Engineer", "Build and scale our core platform with a small, senior team.", "Engineering", "Bangalore", "Full Time", 5, 8, 2000000, 3500000, "INR", "Hybrid", "React;Node.js;TypeScript"],
+  ["Product Designer", "Own end-to-end product design across web and mobile.", "Design", "Remote", "Full Time", 3, 6, 1500000, 2500000, "INR", "Remote", "Figma;UX Research"],
+];
 
 interface ParsedRow {
   index: number; // 1-based data row number (for messages)
@@ -70,21 +72,18 @@ interface ImportResults {
   failed: { row: number; title: string; reason: string }[];
 }
 
-// A whole non-negative integer, or empty. Returns undefined for empty/invalid.
+// A whole non-negative integer, or empty. Returns undefined for empty, NaN for invalid.
 function asInt(v: string): number | undefined {
   if (v.trim() === "") return undefined;
   const n = Number(v);
   return Number.isInteger(n) && n >= 0 ? n : NaN;
 }
 
-function rowsFromCsv(
-  text: string,
-  t: TFunction,
-): { rows: ParsedRow[]; headerError: string | null } {
-  const table = parseCsv(text).filter((r) => r.some((c) => c.trim() !== ""));
-  if (table.length === 0) return { rows: [], headerError: t("components.bulkImportJobs.errFileEmpty") };
+function rowsFromTable(table: string[][], t: TFunction): { rows: ParsedRow[]; headerError: string | null } {
+  const filtered = table.filter((r) => r.some((c) => c.trim() !== ""));
+  if (filtered.length === 0) return { rows: [], headerError: t("components.bulkImportJobs.errFileEmpty") };
 
-  const headers = table[0].map(normalizeHeader);
+  const headers = filtered[0].map(normalizeHeader);
   const col = (name: string) => headers.indexOf(name);
   const ci = {
     title: col("title"),
@@ -106,14 +105,14 @@ function rowsFromCsv(
   }
 
   const get = (r: string[], idx: number) => (idx >= 0 ? (r[idx] ?? "").trim() : "");
-  const rows: ParsedRow[] = table.slice(1).map((r, i) => {
+  const rows: ParsedRow[] = filtered.slice(1).map((r, i) => {
     const title = get(r, ci.title);
     const description = get(r, ci.description);
     const expMin = get(r, ci.experience_min);
     const expMax = get(r, ci.experience_max);
     const salMin = get(r, ci.salary_min);
     const salMax = get(r, ci.salary_max);
-    const remoteRaw = get(r, ci.remote_policy).toLowerCase();
+    const etRaw = get(r, ci.employment_type);
     const currencyRaw = get(r, ci.salary_currency).toUpperCase();
     const skills = get(r, ci.skills)
       .split(/[;|]/)
@@ -126,7 +125,7 @@ function rowsFromCsv(
     if (!title) error = t("components.bulkImportJobs.errMissingTitle");
     else if (/[<>]/.test(title)) error = t("components.bulkImportJobs.errTitleMarkup");
     else if (description.length < 10) error = t("components.bulkImportJobs.errDescriptionShort");
-    else if (Object.values(nums).some((n) => Number.isNaN(n)))
+    else if (Object.values(nums).some((n) => n !== undefined && Number.isNaN(n)))
       error = t("components.bulkImportJobs.errBadNumber");
     else if (nums.expMin != null && nums.expMax != null && nums.expMin > nums.expMax)
       error = t("components.bulkImportJobs.errExpRange");
@@ -139,14 +138,14 @@ function rowsFromCsv(
       description,
       department: get(r, ci.department) || undefined,
       location: get(r, ci.location) || undefined,
-      employment_type: get(r, ci.employment_type) || undefined,
+      // employment_type is free-form: map a known label to its value, else keep raw.
+      employment_type: etRaw ? employmentTypeToValue(etRaw) ?? etRaw : undefined,
       experience_min: expMin || undefined,
       experience_max: expMax || undefined,
       salary_min: salMin || undefined,
       salary_max: salMax || undefined,
-      // Only forward a 3-letter currency; anything else falls back to the server default.
       salary_currency: currencyRaw.length === 3 ? currencyRaw : undefined,
-      remote_policy: REMOTE_POLICIES.includes(remoteRaw) ? remoteRaw : "onsite",
+      remote_policy: remotePolicyToValue(get(r, ci.remote_policy)) ?? "onsite",
       skills,
       error,
     };
@@ -161,6 +160,7 @@ export function BulkImportJobsModal({ open, onClose, onImported }: BulkImportJob
   const [fileName, setFileName] = useState<string | null>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [headerError, setHeaderError] = useState<string | null>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<ImportResults | null>(null);
 
@@ -182,26 +182,27 @@ export function BulkImportJobsModal({ open, onClose, onImported }: BulkImportJob
     onClose();
   }
 
-  function downloadTemplate() {
-    const blob = new Blob([TEMPLATE_SAMPLE], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "jobs-template.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  async function downloadTemplate() {
+    setTemplateLoading(true);
+    try {
+      await downloadSheet("jobs-template", TEMPLATE_COLUMNS, SAMPLE_ROWS);
+    } finally {
+      setTemplateLoading(false);
+    }
   }
 
-  function handleFile(file: File) {
+  async function handleFile(file: File) {
     setResults(null);
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const parsed = rowsFromCsv(String(reader.result || ""), t);
+    try {
+      const table = await readSheetRows(file);
+      const parsed = rowsFromTable(table, t);
       setRows(parsed.rows);
       setHeaderError(parsed.headerError);
-    };
-    reader.readAsText(file);
+    } catch {
+      setRows([]);
+      setHeaderError(t("components.bulkImportJobs.errReadFailed"));
+    }
   }
 
   async function runImport() {
@@ -229,7 +230,6 @@ export function BulkImportJobsModal({ open, onClose, onImported }: BulkImportJob
       setResults(summary);
       if (summary.created > 0) onImported();
     } catch (err: any) {
-      // Whole request failed — surface it against every row we tried to import.
       setResults({
         created: 0,
         failed: validRows.map((r) => ({ row: r.index, title: r.title, reason: errMsg(err, t) })),
@@ -319,9 +319,10 @@ export function BulkImportJobsModal({ open, onClose, onImported }: BulkImportJob
                 </p>
                 <button
                   onClick={downloadTemplate}
-                  className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  disabled={templateLoading}
+                  className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  <Download className="h-4 w-4" />
+                  {templateLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                   {t("components.bulkImportJobs.template")}
                 </button>
               </div>
@@ -351,7 +352,7 @@ export function BulkImportJobsModal({ open, onClose, onImported }: BulkImportJob
               <input
                 ref={fileRef}
                 type="file"
-                accept=".csv,text/csv"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];

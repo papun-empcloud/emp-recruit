@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
@@ -7,8 +7,14 @@ import { apiPatch } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { ExportButtons } from "@/components/ExportButtons";
-import { BulkImportJobsModal } from "@/components/BulkImportJobsModal";
-import { BulkUpdateJobsModal } from "@/components/BulkUpdateJobsModal";
+// Lazy-loaded so the Excel library (exceljs) is only fetched when a bulk dialog
+// is actually opened, keeping the initial Job Postings page light.
+const BulkImportJobsModal = lazy(() =>
+  import("@/components/BulkImportJobsModal").then((m) => ({ default: m.BulkImportJobsModal })),
+);
+const BulkUpdateJobsModal = lazy(() =>
+  import("@/components/BulkUpdateJobsModal").then((m) => ({ default: m.BulkUpdateJobsModal })),
+);
 import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
@@ -126,18 +132,26 @@ export function JobListPage() {
         </div>
       </div>
 
-      <BulkImportJobsModal
-        open={showBulkImport}
-        onClose={() => setShowBulkImport(false)}
-        onImported={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
-      />
+      {showBulkImport && (
+        <Suspense fallback={null}>
+          <BulkImportJobsModal
+            open={showBulkImport}
+            onClose={() => setShowBulkImport(false)}
+            onImported={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
+          />
+        </Suspense>
+      )}
 
-      <BulkUpdateJobsModal
-        open={showBulkUpdate}
-        onClose={() => setShowBulkUpdate(false)}
-        fetchRows={() => fetchAllRows<JobPosting>("/jobs", {})}
-        onUpdated={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
-      />
+      {showBulkUpdate && (
+        <Suspense fallback={null}>
+          <BulkUpdateJobsModal
+            open={showBulkUpdate}
+            onClose={() => setShowBulkUpdate(false)}
+            fetchRows={() => fetchAllRows<JobPosting>("/jobs", {})}
+            onUpdated={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
+          />
+        </Suspense>
+      )}
 
       {/* Status tabs */}
       <div className="flex overflow-x-auto border-b border-gray-200">
