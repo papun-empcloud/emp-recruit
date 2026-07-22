@@ -6,6 +6,7 @@ import {
   createJobSchema,
   updateJobSchema,
   changeJobStatusSchema,
+  bulkImportJobsSchema,
   idParamSchema,
   paginationSchema,
 } from "@emp-recruit/shared";
@@ -51,6 +52,26 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   } catch (err: any) {
     if (err.name === "ZodError") {
       return next(new ValidationError("Invalid job data", err.flatten().fieldErrors));
+    }
+    next(err);
+  }
+});
+
+// POST /bulk — import many job postings in one request. Each row is validated
+// and created independently; the response reports how many were created and
+// per-row failures. (Registered before "/:id" — /bulk is a POST so there's no
+// route collision, but keeping it next to POST / keeps the create paths together.)
+router.post("/bulk", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { jobs } = bulkImportJobsSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+    const createdBy = req.user!.empcloudUserId;
+
+    const result = await jobService.bulkImportJobs(orgId, jobs, createdBy);
+    return sendSuccess(res, result, 201);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid job import data", err.flatten().fieldErrors));
     }
     next(err);
   }

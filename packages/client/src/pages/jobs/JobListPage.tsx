@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight } from "lucide-react";
+import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight, Upload } from "lucide-react";
 import { apiPatch } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { ExportButtons } from "@/components/ExportButtons";
+import { BulkImportJobsModal } from "@/components/BulkImportJobsModal";
 import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
@@ -52,6 +53,7 @@ export function JobListPage() {
   const page = Number(searchParams.get("page") ?? "1");
   const searchTerm = searchParams.get("search") ?? "";
   const [searchInput, setSearchInput] = useState(searchTerm);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const queryClient = useQueryClient();
 
   function setFilter(key: string, value: string) {
@@ -96,6 +98,14 @@ export function JobListPage() {
             columns={JOB_COLUMNS}
             fetchRows={() => fetchAllRows<JobPosting>("/jobs", { status: statusFilter, search: searchTerm })}
           />
+          <button
+            type="button"
+            onClick={() => setShowBulkImport(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            {t("jobs.list.bulkImport")}
+          </button>
           <Link
             to="/jobs/new"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
@@ -105,6 +115,12 @@ export function JobListPage() {
           </Link>
         </div>
       </div>
+
+      <BulkImportJobsModal
+        open={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
+      />
 
       {/* Status tabs */}
       <div className="flex overflow-x-auto border-b border-gray-200">

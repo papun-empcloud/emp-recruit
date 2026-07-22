@@ -115,6 +115,42 @@ export const changeJobStatusSchema = z.object({
   status: z.nativeEnum(JobStatus),
 });
 
+// Bulk import: one job row. Same required fields as creating a single job
+// (title + description) with the rest optional, and the same min/max range
+// checks. Each row is validated independently so one bad row can't fail the
+// whole import.
+export const bulkImportJobRowSchema = withRangeChecks(
+  z.object({
+    title: noMarkupTitle,
+    description: z.string().trim().min(10, "Description must be at least 10 characters"),
+    department: plainText(z.string().max(100)).optional(),
+    location: plainText(z.string().max(200)).optional(),
+    employment_type: z.string().max(50).optional(),
+    experience_min: z.number().int().min(0).optional(),
+    experience_max: z.number().int().min(0).optional(),
+    salary_min: z.number().int().min(0).optional(),
+    salary_max: z.number().int().min(0).optional(),
+    salary_currency: z.string().length(3).optional(),
+    remote_policy: z.enum(["onsite", "remote", "hybrid"]).optional(),
+    is_internal: z.boolean().optional(),
+    skills: z.array(z.string()).optional(),
+    requirements: z.string().optional(),
+    benefits: z.string().optional(),
+  }),
+);
+
+export type BulkImportJobRow = z.infer<typeof bulkImportJobRowSchema>;
+
+// The import request: a batch of up to 200 rows. Rows are left as `unknown`
+// here and validated one-by-one server-side (via bulkImportJobRowSchema) so a
+// single invalid row is reported, not fatal to the whole batch.
+export const bulkImportJobsSchema = z.object({
+  jobs: z
+    .array(z.unknown())
+    .min(1, "At least one job is required")
+    .max(200, "You can import at most 200 jobs at once"),
+});
+
 // ---------------------------------------------------------------------------
 // Candidates
 // ---------------------------------------------------------------------------

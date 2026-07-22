@@ -4,6 +4,7 @@ import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { publishJobToBoards } from "../job-board/job-board.service";
+import { bulkImportJobRowSchema } from "@emp-recruit/shared";
 import type { JobPosting, JobStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -95,6 +96,51 @@ export async function createJob(
   };
 
   return db.create<JobPosting>("job_postings", record as any);
+}
+
+export interface BulkImportJobsResult {
+  created: number;
+  failed: { row: number; title: string; reason: string }[];
+}
+
+/**
+ * Create many job postings in one request. Each row is validated and created
+ * independently: an invalid or failing row is recorded in `failed` (with its
+ * 1-based row number) and the rest still import, so one bad row never aborts
+ * the whole batch. Jobs are created as drafts (same as single create).
+ */
+export async function bulkImportJobs(
+  orgId: number,
+  rows: unknown[],
+  createdBy: number,
+): Promise<BulkImportJobsResult> {
+  const result: BulkImportJobsResult = { created: 0, failed: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNo = i + 1;
+    const parsed = bulkImportJobRowSchema.safeParse(rows[i]);
+    if (!parsed.success) {
+      const title = (rows[i] as { title?: unknown })?.title;
+      result.failed.push({
+        row: rowNo,
+        title: typeof title === "string" ? title : "",
+        reason: parsed.error.issues.map((iss) => iss.message).join("; "),
+      });
+      continue;
+    }
+    try {
+      await createJob(orgId, parsed.data, createdBy);
+      result.created++;
+    } catch (err: any) {
+      result.failed.push({
+        row: rowNo,
+        title: parsed.data.title,
+        reason: err?.message ?? "Unknown error",
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function updateJob(
