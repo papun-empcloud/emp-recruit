@@ -223,20 +223,20 @@ const salaryAmount = z
   .min(0)
   .max(MAX_SALARY, { message: "Salary exceeds the maximum allowed value" });
 
-// An offer's expiry (accept-by deadline) must be on or before the joining date
-// — a candidate has to accept before their start date. Returns true when the
+// An offer's expiry date must be on or after the joining date — the offer must
+// not lapse before the candidate is due to join. Returns true when the
 // relationship holds or either date is missing/unparseable (base string
 // validation handles those). Enforced client-side already; added here so a
 // direct API call can't create an inconsistent offer either. BUG-12.
-export function expiryOnOrBeforeJoining(joining?: string, expiry?: string): boolean {
+export function expiryOnOrAfterJoining(joining?: string, expiry?: string): boolean {
   if (!joining || !expiry) return true;
   const j = new Date(joining).getTime();
   const e = new Date(expiry).getTime();
   if (Number.isNaN(j) || Number.isNaN(e)) return true;
-  return e <= j;
+  return e >= j;
 }
 
-export const OFFER_DATE_ORDER_MESSAGE = "Offer expiry date must be on or before the joining date";
+export const OFFER_DATE_ORDER_MESSAGE = "Offer expiry date must be on or after the joining date";
 
 export const createOfferSchema = z
   .object({
@@ -252,7 +252,7 @@ export const createOfferSchema = z
     notes: z.string().optional(),
     approver_ids: z.array(z.number().int()).optional(),
   })
-  .refine((d) => expiryOnOrBeforeJoining(d.joining_date, d.expiry_date), {
+  .refine((d) => expiryOnOrAfterJoining(d.joining_date, d.expiry_date), {
     message: OFFER_DATE_ORDER_MESSAGE,
     path: ["expiry_date"],
   });

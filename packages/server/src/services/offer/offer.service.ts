@@ -10,7 +10,7 @@ import { toMysqlDateTime } from "../../utils/date";
 import { logger } from "../../utils/logger";
 import * as onboardingService from "../onboarding/onboarding.service";
 import {
-  expiryOnOrBeforeJoining,
+  expiryOnOrAfterJoining,
   OFFER_DATE_ORDER_MESSAGE,
   type Offer,
   type OfferApprover,
@@ -158,7 +158,7 @@ export async function updateOffer(orgId: number, id: string, data: UpdateOfferDa
     data.joining_date ?? (offer.joining_date ? String(offer.joining_date) : undefined);
   const effectiveExpiry =
     data.expiry_date ?? (offer.expiry_date ? String(offer.expiry_date) : undefined);
-  if (!expiryOnOrBeforeJoining(effectiveJoining, effectiveExpiry)) {
+  if (!expiryOnOrAfterJoining(effectiveJoining, effectiveExpiry)) {
     throw new ValidationError(OFFER_DATE_ORDER_MESSAGE, { expiry_date: [OFFER_DATE_ORDER_MESSAGE] });
   }
 

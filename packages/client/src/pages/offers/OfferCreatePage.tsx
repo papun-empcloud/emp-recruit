@@ -128,9 +128,10 @@ export function OfferCreatePage() {
       toast.error(t("offers.form.errExpiryPast"));
       return;
     }
-    // Expiry (accept-by deadline) must be on or before the joining date.
-    if (form.expiry_date > form.joining_date) {
-      toast.error(t("offers.form.errExpiryAfterJoining"));
+    // Offer expiry must be on or after the joining date — the offer must not
+    // lapse before the candidate is due to join. (BUG-12)
+    if (form.joining_date && form.expiry_date && form.expiry_date < form.joining_date) {
+      toast.error(t("offers.form.errExpiryBeforeJoining"));
       return;
     }
     if (!form.joining_date) {
@@ -371,8 +372,8 @@ export function OfferCreatePage() {
               <DateInput
                 required
                 value={form.expiry_date}
-                min={minDate}
-                max={form.joining_date || "9999-12-31"}
+                min={form.joining_date && form.joining_date > minDate ? form.joining_date : minDate}
+                max="9999-12-31"
                 onChange={(e) => setForm((p) => ({ ...p, expiry_date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />

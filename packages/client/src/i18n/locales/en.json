@@ -1162,7 +1162,7 @@
       "errSalaryNegativeShort": "Salary cannot be negative",
       "errJoiningPast": "Joining date cannot be in the past",
       "errExpiryPast": "Expiry date cannot be in the past",
-      "errExpiryAfterJoining": "Offer expiry date must be on or before the joining date",
+      "errExpiryBeforeJoining": "Offer expiry date must be on or after the joining date",
       "errSelectJoining": "Please select a joining date",
       "errSelectExpiry": "Please select an offer expiry date",
       "errEnterJobTitle": "Please enter a job title",
