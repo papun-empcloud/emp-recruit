@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight, Upload } from "lucide-react";
+import { Plus, Search, Briefcase, MapPin, Clock, ChevronRight, Upload, PencilLine } from "lucide-react";
 import { apiPatch } from "@/api/client";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { ExportButtons } from "@/components/ExportButtons";
 import { BulkImportJobsModal } from "@/components/BulkImportJobsModal";
+import { BulkUpdateJobsModal } from "@/components/BulkUpdateJobsModal";
 import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { JobPosting } from "@emp-recruit/shared";
 import { JobStatus } from "@emp-recruit/shared";
@@ -54,6 +55,7 @@ export function JobListPage() {
   const searchTerm = searchParams.get("search") ?? "";
   const [searchInput, setSearchInput] = useState(searchTerm);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const queryClient = useQueryClient();
 
   function setFilter(key: string, value: string) {
@@ -106,6 +108,14 @@ export function JobListPage() {
             <Upload className="h-4 w-4" />
             {t("jobs.list.bulkImport")}
           </button>
+          <button
+            type="button"
+            onClick={() => setShowBulkUpdate(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <PencilLine className="h-4 w-4" />
+            {t("jobs.list.bulkUpdate")}
+          </button>
           <Link
             to="/jobs/new"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
@@ -120,6 +130,13 @@ export function JobListPage() {
         open={showBulkImport}
         onClose={() => setShowBulkImport(false)}
         onImported={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
+      />
+
+      <BulkUpdateJobsModal
+        open={showBulkUpdate}
+        onClose={() => setShowBulkUpdate(false)}
+        fetchRows={() => fetchAllRows<JobPosting>("/jobs", {})}
+        onUpdated={() => queryClient.invalidateQueries({ queryKey: ["jobs"] })}
       />
 
       {/* Status tabs */}

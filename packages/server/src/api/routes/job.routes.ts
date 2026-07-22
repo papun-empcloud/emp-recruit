@@ -7,6 +7,7 @@ import {
   updateJobSchema,
   changeJobStatusSchema,
   bulkImportJobsSchema,
+  bulkUpdateJobsSchema,
   idParamSchema,
   paginationSchema,
 } from "@emp-recruit/shared";
@@ -72,6 +73,24 @@ router.post("/bulk", async (req: Request, res: Response, next: NextFunction) => 
   } catch (err: any) {
     if (err.name === "ZodError") {
       return next(new ValidationError("Invalid job import data", err.flatten().fieldErrors));
+    }
+    next(err);
+  }
+});
+
+// POST /bulk-update — update many job postings in one request, each keyed on
+// the job id. Only the fields present on a row are changed; the response reports
+// how many were updated and per-row failures.
+router.post("/bulk-update", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { jobs } = bulkUpdateJobsSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+
+    const result = await jobService.bulkUpdateJobs(orgId, jobs);
+    return sendSuccess(res, result);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid job update data", err.flatten().fieldErrors));
     }
     next(err);
   }

@@ -151,6 +151,41 @@ export const bulkImportJobsSchema = z.object({
     .max(200, "You can import at most 200 jobs at once"),
 });
 
+// Bulk update: one row identified by the job `id`. Every field is optional —
+// only the fields present are changed (an omitted field is left as-is). `status`
+// is applied through the normal status-transition rules. Range checks apply to
+// whichever ends are present. Rows are validated independently.
+export const bulkUpdateJobRowSchema = withRangeChecks(
+  z.object({
+    id: z.string().uuid("A valid job id is required"),
+    title: noMarkupTitle.optional(),
+    description: z.string().trim().min(10, "Description must be at least 10 characters").optional(),
+    department: plainText(z.string().max(100)).optional(),
+    location: plainText(z.string().max(200)).optional(),
+    employment_type: z.string().max(50).optional(),
+    experience_min: z.number().int().min(0).optional(),
+    experience_max: z.number().int().min(0).optional(),
+    salary_min: z.number().int().min(0).optional(),
+    salary_max: z.number().int().min(0).optional(),
+    salary_currency: z.string().length(3).optional(),
+    remote_policy: z.enum(["onsite", "remote", "hybrid"]).optional(),
+    is_internal: z.boolean().optional(),
+    skills: z.array(z.string()).optional(),
+    requirements: z.string().optional(),
+    benefits: z.string().optional(),
+    status: z.nativeEnum(JobStatus).optional(),
+  }),
+);
+
+export type BulkUpdateJobRow = z.infer<typeof bulkUpdateJobRowSchema>;
+
+export const bulkUpdateJobsSchema = z.object({
+  jobs: z
+    .array(z.unknown())
+    .min(1, "At least one job is required")
+    .max(200, "You can update at most 200 jobs at once"),
+});
+
 // ---------------------------------------------------------------------------
 // Candidates
 // ---------------------------------------------------------------------------
