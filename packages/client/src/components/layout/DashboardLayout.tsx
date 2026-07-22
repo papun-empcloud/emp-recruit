@@ -114,7 +114,7 @@ export function DashboardLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+        <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-5">
           {NAV_GROUPS.map((group) => {
             const items = group.items.filter(
               (item) => !(item.adminOnly && !canAccessRecruit(user)),
@@ -213,7 +213,7 @@ export function DashboardLayout() {
         {/* Page content. The ErrorBoundary is keyed on the path so a crash on one
             page is isolated (sidebar stays usable) and clears when the user
             navigates elsewhere, instead of blanking the whole app. */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main className="flex-1 overflow-y-auto scrollbar-thin p-4 lg:p-8">
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>
