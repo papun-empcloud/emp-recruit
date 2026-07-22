@@ -4,6 +4,7 @@ import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { publishJobToBoards } from "../job-board/job-board.service";
+import { bulkImportJobRowSchema, bulkUpdateJobRowSchema } from "@emp-recruit/shared";
 import type { JobPosting, JobStatus } from "@emp-recruit/shared";
 
 // ---------------------------------------------------------------------------
@@ -95,6 +96,105 @@ export async function createJob(
   };
 
   return db.create<JobPosting>("job_postings", record as any);
+}
+
+export interface BulkImportJobsResult {
+  created: number;
+  failed: { row: number; title: string; reason: string }[];
+}
+
+/**
+ * Create many job postings in one request. Each row is validated and created
+ * independently: an invalid or failing row is recorded in `failed` (with its
+ * 1-based row number) and the rest still import, so one bad row never aborts
+ * the whole batch. Jobs are created as drafts (same as single create).
+ */
+export async function bulkImportJobs(
+  orgId: number,
+  rows: unknown[],
+  createdBy: number,
+): Promise<BulkImportJobsResult> {
+  const result: BulkImportJobsResult = { created: 0, failed: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNo = i + 1;
+    const parsed = bulkImportJobRowSchema.safeParse(rows[i]);
+    if (!parsed.success) {
+      const title = (rows[i] as { title?: unknown })?.title;
+      result.failed.push({
+        row: rowNo,
+        title: typeof title === "string" ? title : "",
+        reason: parsed.error.issues.map((iss) => iss.message).join("; "),
+      });
+      continue;
+    }
+    try {
+      await createJob(orgId, parsed.data, createdBy);
+      result.created++;
+    } catch (err: any) {
+      result.failed.push({
+        row: rowNo,
+        title: parsed.data.title,
+        reason: err?.message ?? "Unknown error",
+      });
+    }
+  }
+
+  return result;
+}
+
+export interface BulkUpdateJobsResult {
+  updated: number;
+  failed: { row: number; id: string; reason: string }[];
+}
+
+/**
+ * Update many job postings in one request. Each row is keyed on the job `id`;
+ * only the fields present on the row are changed (an omitted field is left
+ * as-is), and `status` is routed through the normal status-transition rules.
+ * Rows are validated and applied independently, so one bad row (unknown id,
+ * invalid transition, inverted range) is reported in `failed` and the rest
+ * still update.
+ */
+export async function bulkUpdateJobs(orgId: number, rows: unknown[]): Promise<BulkUpdateJobsResult> {
+  const result: BulkUpdateJobsResult = { updated: 0, failed: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNo = i + 1;
+    const parsed = bulkUpdateJobRowSchema.safeParse(rows[i]);
+    if (!parsed.success) {
+      const id = (rows[i] as { id?: unknown })?.id;
+      result.failed.push({
+        row: rowNo,
+        id: typeof id === "string" ? id : "",
+        reason: parsed.error.issues.map((iss) => iss.message).join("; "),
+      });
+      continue;
+    }
+
+    const { id, status, ...fields } = parsed.data;
+    // Only apply the fields actually supplied on this row.
+    const changes = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined));
+
+    if (Object.keys(changes).length === 0 && status === undefined) {
+      result.failed.push({ row: rowNo, id, reason: "No fields to update" });
+      continue;
+    }
+
+    try {
+      if (Object.keys(changes).length > 0) {
+        await updateJob(orgId, id, changes);
+      }
+      if (status !== undefined) {
+        await changeStatus(orgId, id, status);
+      }
+      result.updated++;
+    } catch (err: any) {
+      result.failed.push({ row: rowNo, id, reason: err?.message ?? "Unknown error" });
+    }
+  }
+
+  return result;
 }
 
 export async function updateJob(

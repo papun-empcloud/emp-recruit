@@ -6,6 +6,8 @@ import {
   createJobSchema,
   updateJobSchema,
   changeJobStatusSchema,
+  bulkImportJobsSchema,
+  bulkUpdateJobsSchema,
   idParamSchema,
   paginationSchema,
 } from "@emp-recruit/shared";
@@ -51,6 +53,44 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   } catch (err: any) {
     if (err.name === "ZodError") {
       return next(new ValidationError("Invalid job data", err.flatten().fieldErrors));
+    }
+    next(err);
+  }
+});
+
+// POST /bulk — import many job postings in one request. Each row is validated
+// and created independently; the response reports how many were created and
+// per-row failures. (Registered before "/:id" — /bulk is a POST so there's no
+// route collision, but keeping it next to POST / keeps the create paths together.)
+router.post("/bulk", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { jobs } = bulkImportJobsSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+    const createdBy = req.user!.empcloudUserId;
+
+    const result = await jobService.bulkImportJobs(orgId, jobs, createdBy);
+    return sendSuccess(res, result, 201);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid job import data", err.flatten().fieldErrors));
+    }
+    next(err);
+  }
+});
+
+// POST /bulk-update — update many job postings in one request, each keyed on
+// the job id. Only the fields present on a row are changed; the response reports
+// how many were updated and per-row failures.
+router.post("/bulk-update", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { jobs } = bulkUpdateJobsSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+
+    const result = await jobService.bulkUpdateJobs(orgId, jobs);
+    return sendSuccess(res, result);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid job update data", err.flatten().fieldErrors));
     }
     next(err);
   }
