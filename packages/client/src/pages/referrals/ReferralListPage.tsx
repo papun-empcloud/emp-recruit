@@ -8,11 +8,11 @@ import { ExportButtons } from "@/components/ExportButtons";
 import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
 import { getUser } from "@/lib/auth-store";
+import { canAccessRecruit } from "@/lib/roles";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { JobPosting, PaginatedResponse } from "@emp-recruit/shared";
 
-const ADMIN_ROLES = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
 
 const REFERRAL_COLUMNS: ExportColumn<ReferralRow>[] = [
   { header: "Candidate", value: (r) => r.candidate_name },
@@ -65,7 +65,7 @@ export function ReferralListPage() {
   const [editingRef, setEditingRef] = useState<ReferralRow | null>(null);
   const [editForm, setEditForm] = useState({ status: "", bonus_amount: "" });
   const user = getUser();
-  const isAdmin = ADMIN_ROLES.includes((user?.role as string) || "");
+  const isAdmin = canAccessRecruit(user);
 
   // List controls: search (candidate/job), status filter, pagination.
   const [listPage, setListPage] = useState(1);

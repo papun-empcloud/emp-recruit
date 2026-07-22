@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate } from "react-router-dom";
 import { Calendar, Users, Plus, Search, ShieldAlert, AlertTriangle } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
+import { canAccessRecruit } from "@/lib/roles";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
 import { usePaginatedList } from "@/lib/usePaginatedList";
@@ -62,14 +63,12 @@ function isOverdue(interview: InterviewRow): boolean {
   return Number.isFinite(when) && when < Date.now();
 }
 
-const ADMIN_ROLES = ["org_admin", "hr_admin", "hr_manager"];
-
 export function InterviewListPage() {
   const { t } = useTranslation();
   const user = getUser();
 
-  // RBAC: only admin/HR roles can access interview management
-  if (user && !ADMIN_ROLES.includes(user.role)) {
+  // RBAC: admin/HR roles OR a federated recruit:* permission can access.
+  if (user && !canAccessRecruit(user)) {
     return <Navigate to="/dashboard" replace />;
   }
 

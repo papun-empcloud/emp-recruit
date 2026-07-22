@@ -11,6 +11,10 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   orgName: string;
+  // Fine-grained permissions federated from EmpCloud (e.g. "recruit:view").
+  // Present when the user was granted recruit access via a custom role rather
+  // than an admin role. Optional for older sessions.
+  permissions?: string[];
 }
 
 interface AuthState {

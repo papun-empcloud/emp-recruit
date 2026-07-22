@@ -26,7 +26,7 @@ import { BackToDashboard } from "@/components/BackToDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { isAdminRole } from "@/lib/roles";
+import { isAdminRole, canAccessRecruit } from "@/lib/roles";
 
 interface NavItem {
   to: string;
@@ -100,7 +100,7 @@ export function DashboardLayout() {
 
   const user = getUser();
   const displayName = user ? `${user.firstName} ${user.lastName}` : "User";
-  const roleLabel = isAdminRole(user?.role) ? t("nav.admin") : t("nav.employee");
+  const roleLabel = canAccessRecruit(user) ? t("nav.admin") : t("nav.employee");
 
   function SidebarContent() {
     return (
@@ -117,7 +117,7 @@ export function DashboardLayout() {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {NAV_GROUPS.map((group) => {
             const items = group.items.filter(
-              (item) => !(item.adminOnly && !isAdminRole(user?.role)),
+              (item) => !(item.adminOnly && !canAccessRecruit(user)),
             );
             if (items.length === 0) return null;
             return (

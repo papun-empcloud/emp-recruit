@@ -16,13 +16,14 @@ import {
 } from "lucide-react";
 import { apiGet } from "@/api/client";
 import { getUser } from "@/lib/auth-store";
+import { canAccessRecruit } from "@/lib/roles";
 import type { JobPosting, Candidate, PaginatedResponse } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 
-// Staff roles that get the recruiting overview. A plain `employee` cannot hit
-// the admin APIs (jobs/candidates/applications all 403), so they get a
-// referral-focused dashboard instead of admin stat tiles that always read 0.
-const ADMIN_ROLES = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
+// Staff who get the recruiting overview: an admin role OR a user granted recruit
+// access via an EmpCloud custom role (recruit:* permission). A plain `employee`
+// with neither cannot hit the admin APIs (jobs/candidates/applications all 403),
+// so they get a referral-focused dashboard instead of admin tiles that read 0.
 
 const STAGE_COLORS: Record<string, string> = {
   applied: "from-blue-400 to-blue-500",
@@ -44,8 +45,7 @@ const STAGE_BADGE: Record<string, string> = {
 };
 
 export function DashboardPage() {
-  const role = (getUser()?.role as string) || "employee";
-  return ADMIN_ROLES.includes(role) ? <AdminDashboard /> : <EmployeeDashboard />;
+  return canAccessRecruit(getUser()) ? <AdminDashboard /> : <EmployeeDashboard />;
 }
 
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { getUser } from "@/lib/auth-store";
-import { ADMIN_ROLES, type Role } from "@/lib/roles";
+import { ADMIN_ROLES, hasRecruitPermission, type Role } from "@/lib/roles";
 
 /**
  * Route guard for staff-only pages. Renders the nested routes only when the
@@ -15,8 +15,12 @@ import { ADMIN_ROLES, type Role } from "@/lib/roles";
 export function RequireRole({ roles = ADMIN_ROLES }: { roles?: Role[] }) {
   const { t } = useTranslation();
   const location = useLocation();
-  const role = (getUser()?.role || "employee") as Role;
-  const allowed = roles.includes(role);
+  const user = getUser();
+  const role = (user?.role || "employee") as Role;
+  // Allowed by role, OR by a federated recruit:* permission (a core "employee"
+  // granted Recruit access via an EmpCloud custom role). Mirrors the server's
+  // permission-aware authorize().
+  const allowed = roles.includes(role) || hasRecruitPermission(user?.permissions);
 
   useEffect(() => {
     if (!allowed) {

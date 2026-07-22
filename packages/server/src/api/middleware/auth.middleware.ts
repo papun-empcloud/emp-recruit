@@ -7,6 +7,7 @@ import {
   findValidApiKey,
   findUserById,
   findOrgById,
+  getUserPermissions,
 } from "../../db/empcloud";
 
 export interface AuthPayload {
@@ -21,6 +22,21 @@ export interface AuthPayload {
   firstName: string;
   lastName: string;
   orgName: string;
+  /**
+   * Fine-grained permissions federated from EmpCloud RBAC (e.g. "recruit:view").
+   * Lets a user whose org-wide role is "employee" still work in Recruit when an
+   * EmpCloud admin has granted them a custom role carrying recruit permissions.
+   * Optional for backward compatibility with tokens issued before this field.
+   */
+  permissions?: string[];
+}
+
+/** Permission keys under this prefix grant access to the Recruit workspace. */
+export const RECRUIT_PERMISSION_PREFIX = "recruit:";
+
+/** True if the user holds any recruit:* permission. */
+export function hasRecruitPermission(user: AuthPayload | undefined): boolean {
+  return !!user?.permissions?.some((p) => p.startsWith(RECRUIT_PERMISSION_PREFIX));
 }
 
 declare global {
@@ -159,6 +175,7 @@ async function authenticateApiKey(rawKey: string, req: Request, next: NextFuncti
     }
 
     const ecOrg = await findOrgById(ecUser.organization_id);
+    const permissions = await getUserPermissions(ecUser.id).catch(() => [] as string[]);
 
     req.user = {
       empcloudUserId: ecUser.id,
@@ -169,6 +186,7 @@ async function authenticateApiKey(rawKey: string, req: Request, next: NextFuncti
       firstName: ecUser.first_name,
       lastName: ecUser.last_name,
       orgName: ecOrg?.name ?? "",
+      permissions,
     };
     next();
   } catch {
@@ -181,11 +199,35 @@ export function authorize(...roles: AuthPayload["role"][]) {
     if (!req.user) {
       return next(new AppError(401, "UNAUTHORIZED", "Not authenticated"));
     }
-    if (roles.length > 0 && !roles.includes(req.user.role)) {
+    // Pass if the user's org-wide role is allowed, OR they carry a recruit:*
+    // permission granted via an EmpCloud custom role. The latter is how a core
+    // "employee" gets Recruit access without changing their org-wide role.
+    const roleAllowed = roles.length === 0 || roles.includes(req.user.role);
+    if (!roleAllowed && !hasRecruitPermission(req.user)) {
       return next(
         new AppError(403, "FORBIDDEN", "You do not have permission to perform this action"),
       );
     }
     next();
+  };
+}
+
+/**
+ * Require a specific recruit permission (e.g. "recruit:hire"). Admin roles that
+ * historically had blanket access always pass. Use on sensitive operations that
+ * need finer control than the coarse workspace gate in authorize().
+ */
+export function requirePermission(...perms: string[]) {
+  const ADMIN_ROLES: AuthPayload["role"][] = ["super_admin", "org_admin", "hr_admin", "hr_manager"];
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AppError(401, "UNAUTHORIZED", "Not authenticated"));
+    }
+    if (ADMIN_ROLES.includes(req.user.role)) return next();
+    const held = new Set(req.user.permissions ?? []);
+    if (perms.some((p) => held.has(p))) return next();
+    return next(
+      new AppError(403, "FORBIDDEN", "You do not have permission to perform this action"),
+    );
   };
 }

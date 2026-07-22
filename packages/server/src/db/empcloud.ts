@@ -132,6 +132,38 @@ export async function findUserById(id: number): Promise<EmpCloudUser | null> {
 }
 
 /**
+ * Resolve a user's custom-role permissions from the EmpCloud RBAC tables
+ * (user_roles → roles.permissions). This is how a plain "employee" can carry
+ * recruit access: an EmpCloud admin assigns them a custom role whose permission
+ * list includes `recruit:*`, without touching their org-wide users.role.
+ *
+ * Only custom-role permissions are read here (system-role defaults like
+ * hr_admin already pass Recruit's role check). Returns the deduped union of
+ * permission keys; empty when the user has no custom roles.
+ */
+export async function getUserPermissions(userId: number): Promise<string[]> {
+  const db = getEmpCloudDB();
+  const rows = await db("user_roles as ur")
+    .join("roles as r", "r.id", "ur.role_id")
+    .where("ur.user_id", userId)
+    .select("r.permissions as permissions");
+  const perms = new Set<string>();
+  for (const row of rows as Array<{ permissions: unknown }>) {
+    if (!row.permissions) continue;
+    try {
+      const arr =
+        typeof row.permissions === "string" ? JSON.parse(row.permissions) : row.permissions;
+      if (Array.isArray(arr)) {
+        for (const p of arr) if (typeof p === "string") perms.add(p);
+      }
+    } catch {
+      // malformed permissions JSON — skip this role rather than fail auth
+    }
+  }
+  return [...perms];
+}
+
+/**
  * Find an organization by ID.
  */
 export async function findOrgById(id: number): Promise<EmpCloudOrganization | null> {

@@ -14,6 +14,7 @@ import {
   findOrgById,
   createOrganization,
   createUser,
+  getUserPermissions,
 } from "../../db/empcloud";
 import { UnauthorizedError, ValidationError, ConflictError } from "../../utils/errors";
 import type { AuthPayload } from "../../api/middleware/auth.middleware";
@@ -78,6 +79,8 @@ export async function login(email: string, password: string): Promise<LoginResul
     throw new UnauthorizedError("Organization is inactive");
   }
 
+  const permissions = await getUserPermissions(user.id).catch(() => [] as string[]);
+
   const payload: AuthPayload = {
     empcloudUserId: user.id,
     empcloudOrgId: user.organization_id,
@@ -87,6 +90,7 @@ export async function login(email: string, password: string): Promise<LoginResul
     firstName: user.first_name,
     lastName: user.last_name,
     orgName: org.name,
+    permissions,
   };
 
   const accessToken = signAccessToken(payload);
@@ -200,6 +204,8 @@ export async function ssoLogin(empcloudToken: string): Promise<LoginResult> {
     throw new UnauthorizedError("Organization is inactive");
   }
 
+  const permissions = await getUserPermissions(user.id).catch(() => [] as string[]);
+
   const payload: AuthPayload = {
     empcloudUserId: user.id,
     empcloudOrgId: user.organization_id,
@@ -209,6 +215,7 @@ export async function ssoLogin(empcloudToken: string): Promise<LoginResult> {
     firstName: user.first_name,
     lastName: user.last_name,
     orgName: org.name,
+    permissions,
   };
 
   const accessToken = signAccessToken(payload);
@@ -244,6 +251,8 @@ export async function refreshToken(token: string): Promise<{ accessToken: string
     throw new UnauthorizedError("Organization is inactive");
   }
 
+  const permissions = await getUserPermissions(user.id).catch(() => [] as string[]);
+
   const payload: AuthPayload = {
     empcloudUserId: user.id,
     empcloudOrgId: user.organization_id,
@@ -253,6 +262,7 @@ export async function refreshToken(token: string): Promise<{ accessToken: string
     firstName: user.first_name,
     lastName: user.last_name,
     orgName: org.name,
+    permissions,
   };
 
   const newAccessToken = signAccessToken(payload);
