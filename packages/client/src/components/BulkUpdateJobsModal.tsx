@@ -12,8 +12,20 @@ import {
   PencilLine,
 } from "lucide-react";
 import { apiPost } from "@/api/client";
-import { parseCsv, normalizeHeader } from "@/lib/csv";
-import { downloadCsv, type ExportColumn } from "@/lib/export";
+import { readSheetRows, downloadSheet, normalizeHeader, type SheetColumn } from "@/lib/xlsx";
+import {
+  employmentTypeToValue,
+  remotePolicyToValue,
+  statusToValue,
+  employmentTypeLabel,
+  remotePolicyLabel,
+  statusLabel,
+  fetchDeptAndLocationOptions,
+  EMPLOYMENT_TYPE_LABELS,
+  REMOTE_POLICY_LABELS,
+  JOB_STATUS_LABELS,
+  SALARY_CURRENCIES,
+} from "@/lib/jobFields";
 import type { JobPosting } from "@emp-recruit/shared";
 
 interface BulkUpdateJobsModalProps {
@@ -25,25 +37,41 @@ interface BulkUpdateJobsModalProps {
   onUpdated: () => void;
 }
 
-const REMOTE_POLICIES = ["onsite", "remote", "hybrid"];
-const STATUSES = ["draft", "open", "paused", "closed", "filled"];
-
-// Columns written to the downloadable template (a snapshot of current jobs the
-// user edits and re-uploads). `id` identifies the row; the rest are editable.
-const TEMPLATE_COLUMNS: ExportColumn<JobPosting>[] = [
-  { header: "id", value: (j) => j.id },
-  { header: "title", value: (j) => j.title },
-  { header: "department", value: (j) => j.department },
-  { header: "location", value: (j) => j.location },
-  { header: "employment_type", value: (j) => j.employment_type },
-  { header: "experience_min", value: (j) => j.experience_min },
-  { header: "experience_max", value: (j) => j.experience_max },
-  { header: "salary_min", value: (j) => j.salary_min },
-  { header: "salary_max", value: (j) => j.salary_max },
-  { header: "salary_currency", value: (j) => j.salary_currency },
-  { header: "remote_policy", value: (j) => (j as { remote_policy?: string }).remote_policy ?? "onsite" },
-  { header: "status", value: (j) => j.status },
+// Template columns. `id` identifies the row; employment_type, salary_currency,
+// remote_policy and status render as Excel dropdowns.
+const TEMPLATE_COLUMNS: SheetColumn[] = [
+  { header: "id", width: 38 },
+  { header: "title", width: 28 },
+  { header: "department", width: 18 },
+  { header: "location", width: 18 },
+  { header: "employment_type", width: 16, options: EMPLOYMENT_TYPE_LABELS },
+  { header: "experience_min", width: 14 },
+  { header: "experience_max", width: 14 },
+  { header: "salary_min", width: 14 },
+  { header: "salary_max", width: 14 },
+  { header: "salary_currency", width: 14, options: SALARY_CURRENCIES },
+  { header: "remote_policy", width: 14, options: REMOTE_POLICY_LABELS },
+  { header: "status", width: 12, options: JOB_STATUS_LABELS },
 ];
+
+// Convert a job to a template row — enum values become their friendly labels so
+// the cell matches the dropdown selection.
+function jobToRow(j: JobPosting): Array<string | number | null | undefined> {
+  return [
+    j.id,
+    j.title,
+    j.department,
+    j.location,
+    employmentTypeLabel(j.employment_type),
+    j.experience_min,
+    j.experience_max,
+    j.salary_min,
+    j.salary_max,
+    j.salary_currency,
+    remotePolicyLabel((j as { remote_policy?: string }).remote_policy ?? "onsite"),
+    statusLabel(j.status),
+  ];
+}
 
 interface ParsedRow {
   index: number; // 1-based data row number
@@ -57,17 +85,17 @@ interface ParsedRow {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // A whole non-negative integer, or empty. Returns undefined for empty, NaN for invalid.
-function asInt(v: string): number | undefined | typeof NaN {
+function asInt(v: string): number | undefined {
   if (v.trim() === "") return undefined;
   const n = Number(v);
   return Number.isInteger(n) && n >= 0 ? n : NaN;
 }
 
-function rowsFromCsv(text: string, t: TFunction): { rows: ParsedRow[]; headerError: string | null } {
-  const table = parseCsv(text).filter((r) => r.some((c) => c.trim() !== ""));
-  if (table.length === 0) return { rows: [], headerError: t("components.bulkUpdateJobs.errFileEmpty") };
+function rowsFromTable(table: string[][], t: TFunction): { rows: ParsedRow[]; headerError: string | null } {
+  const filtered = table.filter((r) => r.some((c) => c.trim() !== ""));
+  if (filtered.length === 0) return { rows: [], headerError: t("components.bulkUpdateJobs.errFileEmpty") };
 
-  const headers = table[0].map(normalizeHeader);
+  const headers = filtered[0].map(normalizeHeader);
   const col = (name: string) => headers.indexOf(name);
   const ci = {
     id: col("id"),
@@ -91,7 +119,7 @@ function rowsFromCsv(text: string, t: TFunction): { rows: ParsedRow[]; headerErr
   }
 
   const get = (r: string[], idx: number) => (idx >= 0 ? (r[idx] ?? "").trim() : "");
-  const rows: ParsedRow[] = table.slice(1).map((r, i) => {
+  const rows: ParsedRow[] = filtered.slice(1).map((r, i) => {
     const id = get(r, ci.id);
     const title = get(r, ci.title);
     const description = get(r, ci.description);
@@ -99,9 +127,9 @@ function rowsFromCsv(text: string, t: TFunction): { rows: ParsedRow[]; headerErr
     const expMax = asInt(get(r, ci.experience_max));
     const salMin = asInt(get(r, ci.salary_min));
     const salMax = asInt(get(r, ci.salary_max));
-    const remoteRaw = get(r, ci.remote_policy).toLowerCase();
-    const statusRaw = get(r, ci.status).toLowerCase();
     const currencyRaw = get(r, ci.salary_currency).toUpperCase();
+    const statusRaw = get(r, ci.status);
+    const status = statusRaw ? statusToValue(statusRaw) : undefined;
     const skills = get(r, ci.skills)
       .split(/[;|]/)
       .map((s) => s.trim())
@@ -113,18 +141,16 @@ function rowsFromCsv(text: string, t: TFunction): { rows: ParsedRow[]; headerErr
     if (ci.description >= 0 && description) changes.description = description;
     if (ci.department >= 0 && get(r, ci.department)) changes.department = get(r, ci.department);
     if (ci.location >= 0 && get(r, ci.location)) changes.location = get(r, ci.location);
-    if (ci.employment_type >= 0 && get(r, ci.employment_type))
-      changes.employment_type = get(r, ci.employment_type);
+    const etRaw = get(r, ci.employment_type);
+    if (etRaw) changes.employment_type = employmentTypeToValue(etRaw) ?? etRaw;
     if (expMin != null && !Number.isNaN(expMin)) changes.experience_min = expMin;
     if (expMax != null && !Number.isNaN(expMax)) changes.experience_max = expMax;
     if (salMin != null && !Number.isNaN(salMin)) changes.salary_min = salMin;
     if (salMax != null && !Number.isNaN(salMax)) changes.salary_max = salMax;
     if (currencyRaw.length === 3) changes.salary_currency = currencyRaw;
-    if (remoteRaw && REMOTE_POLICIES.includes(remoteRaw)) changes.remote_policy = remoteRaw;
+    const rp = remotePolicyToValue(get(r, ci.remote_policy));
+    if (rp) changes.remote_policy = rp;
     if (skills.length) changes.skills = skills;
-
-    let status: string | undefined;
-    if (statusRaw) status = statusRaw;
 
     let error: string | null = null;
     if (!id) error = t("components.bulkUpdateJobs.errMissingId");
@@ -132,13 +158,13 @@ function rowsFromCsv(text: string, t: TFunction): { rows: ParsedRow[]; headerErr
     else if (title && /[<>]/.test(title)) error = t("components.bulkUpdateJobs.errTitleMarkup");
     else if (ci.description >= 0 && description && description.length < 10)
       error = t("components.bulkUpdateJobs.errDescriptionShort");
-    else if ([expMin, expMax, salMin, salMax].some((n) => Number.isNaN(n)))
+    else if ([expMin, expMax, salMin, salMax].some((n) => n !== undefined && Number.isNaN(n)))
       error = t("components.bulkUpdateJobs.errBadNumber");
     else if (expMin != null && expMax != null && !Number.isNaN(expMin) && !Number.isNaN(expMax) && expMin > expMax)
       error = t("components.bulkUpdateJobs.errExpRange");
     else if (salMin != null && salMax != null && !Number.isNaN(salMin) && !Number.isNaN(salMax) && salMin > salMax)
       error = t("components.bulkUpdateJobs.errSalaryRange");
-    else if (status && !STATUSES.includes(status)) error = t("components.bulkUpdateJobs.errBadStatus");
+    else if (statusRaw && !status) error = t("components.bulkUpdateJobs.errBadStatus");
     else if (Object.keys(changes).length === 0 && !status)
       error = t("components.bulkUpdateJobs.errNoChanges");
 
@@ -149,7 +175,7 @@ function rowsFromCsv(text: string, t: TFunction): { rows: ParsedRow[]; headerErr
       id,
       changes,
       displayTitle: title || "—",
-      displayStatus: status || "—",
+      displayStatus: statusRaw || "—",
       error,
     };
   });
@@ -196,24 +222,35 @@ export function BulkUpdateJobsModal({ open, onClose, fetchRows, onUpdated }: Bul
     setTemplateError(null);
     setTemplateLoading(true);
     try {
-      const jobs = await fetchRows();
-      downloadCsv("jobs-update", TEMPLATE_COLUMNS, jobs);
+      // Pull the current jobs plus the org's latest departments & locations so
+      // those columns are dropdowns of up-to-date values on every download.
+      const [jobs, opts] = await Promise.all([fetchRows(), fetchDeptAndLocationOptions()]);
+      const columns = TEMPLATE_COLUMNS.map((c) =>
+        c.header === "department"
+          ? { ...c, options: opts.departments.length ? opts.departments : c.options }
+          : c.header === "location"
+            ? { ...c, options: opts.locations.length ? opts.locations : c.options }
+            : c,
+      );
+      await downloadSheet("jobs-update", columns, jobs.map(jobToRow));
     } catch (err: any) {
       setTemplateError(errMsg(err, t));
     }
     setTemplateLoading(false);
   }
 
-  function handleFile(file: File) {
+  async function handleFile(file: File) {
     setResults(null);
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const parsed = rowsFromCsv(String(reader.result || ""), t);
+    try {
+      const table = await readSheetRows(file);
+      const parsed = rowsFromTable(table, t);
       setRows(parsed.rows);
       setHeaderError(parsed.headerError);
-    };
-    reader.readAsText(file);
+    } catch {
+      setRows([]);
+      setHeaderError(t("components.bulkUpdateJobs.errReadFailed"));
+    }
   }
 
   async function runUpdate() {
@@ -348,7 +385,7 @@ export function BulkUpdateJobsModal({ open, onClose, fetchRows, onUpdated }: Bul
               <input
                 ref={fileRef}
                 type="file"
-                accept=".csv,text/csv"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
