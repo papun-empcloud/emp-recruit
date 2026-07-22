@@ -87,33 +87,48 @@ export async function downloadSheet(
 
   for (const r of dataRows) ws.addRow(r);
 
-  // Every column with options gets its list written to a hidden "Lists" sheet
-  // (one column each) and referenced by range. Using a range instead of an
-  // inline "a,b,c" formula sidesteps Excel's ~255-char inline-list limit and
-  // any comma-in-value escaping — important for dynamic department/location
-  // lists. errorStyle "warning" still lets a user type a value not in the list.
   const optionCols = columns
     .map((c, i) => ({ c, i }))
     .filter((x) => x.c.options && x.c.options.length > 0);
 
   if (optionCols.length > 0) {
-    const lists = wb.addWorksheet("Lists");
-    lists.state = "veryHidden";
     const lastRow = dataRows.length + 200; // extra blank rows keep the dropdown on new entries
+    let lists: ExcelJS.Worksheet | null = null; // created lazily, only for long lists
+    let listColIdx = 0;
 
-    optionCols.forEach(({ c, i }, listIdx) => {
+    optionCols.forEach(({ c, i }) => {
       const options = c.options!;
-      const listCol = colLetter(listIdx + 1);
-      options.forEach((opt, r) => {
-        lists.getCell(`${listCol}${r + 1}`).value = opt;
-      });
-      const ref = `Lists!$${listCol}$1:$${listCol}$${options.length}`;
+      const inline = `"${options.join(",")}"`;
+      let formula: string;
+
+      // Prefer an inline "a,b,c" list — it renders as a dropdown in every Excel
+      // version. A cross-sheet range reference is NOT honoured by Excel 2007, so
+      // only when the inline list would blow the ~255-char cell-formula limit do
+      // we fall back to a hidden list + a defined name (which every version
+      // accepts for cross-sheet validation).
+      if (inline.length <= 255) {
+        formula = inline;
+      } else {
+        if (!lists) {
+          lists = wb.addWorksheet("Lists");
+          lists.state = "veryHidden";
+        }
+        listColIdx += 1;
+        const listCol = colLetter(listColIdx);
+        options.forEach((opt, r) => {
+          lists!.getCell(`${listCol}${r + 1}`).value = opt;
+        });
+        const name = `list_${c.header.replace(/[^A-Za-z0-9_]/g, "_")}`;
+        wb.definedNames.add(`Lists!$${listCol}$1:$${listCol}$${options.length}`, name);
+        formula = name;
+      }
+
       const dataCol = colLetter(i + 1);
       for (let row = 2; row <= lastRow; row++) {
         ws.getCell(`${dataCol}${row}`).dataValidation = {
           type: "list",
           allowBlank: true,
-          formulae: [ref],
+          formulae: [formula],
           showErrorMessage: true,
           errorStyle: "warning",
           errorTitle: "Choose from the list",
