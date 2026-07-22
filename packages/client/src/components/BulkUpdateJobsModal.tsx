@@ -20,6 +20,7 @@ import {
   employmentTypeLabel,
   remotePolicyLabel,
   statusLabel,
+  fetchDeptAndLocationOptions,
   EMPLOYMENT_TYPE_LABELS,
   REMOTE_POLICY_LABELS,
   JOB_STATUS_LABELS,
@@ -221,8 +222,17 @@ export function BulkUpdateJobsModal({ open, onClose, fetchRows, onUpdated }: Bul
     setTemplateError(null);
     setTemplateLoading(true);
     try {
-      const jobs = await fetchRows();
-      await downloadSheet("jobs-update", TEMPLATE_COLUMNS, jobs.map(jobToRow));
+      // Pull the current jobs plus the org's latest departments & locations so
+      // those columns are dropdowns of up-to-date values on every download.
+      const [jobs, opts] = await Promise.all([fetchRows(), fetchDeptAndLocationOptions()]);
+      const columns = TEMPLATE_COLUMNS.map((c) =>
+        c.header === "department"
+          ? { ...c, options: opts.departments.length ? opts.departments : c.options }
+          : c.header === "location"
+            ? { ...c, options: opts.locations.length ? opts.locations : c.options }
+            : c,
+      );
+      await downloadSheet("jobs-update", columns, jobs.map(jobToRow));
     } catch (err: any) {
       setTemplateError(errMsg(err, t));
     }

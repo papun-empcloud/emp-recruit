@@ -87,23 +87,41 @@ export async function downloadSheet(
 
   for (const r of dataRows) ws.addRow(r);
 
-  const lastRow = dataRows.length + 200; // extra blank rows keep the dropdown on new entries
-  columns.forEach((c, idx) => {
-    if (!c.options || c.options.length === 0) return;
-    const letter = colLetter(idx + 1);
-    const formulae = [`"${c.options.join(",")}"`];
-    for (let row = 2; row <= lastRow; row++) {
-      ws.getCell(`${letter}${row}`).dataValidation = {
-        type: "list",
-        allowBlank: true,
-        formulae,
-        showErrorMessage: true,
-        errorStyle: "warning",
-        errorTitle: "Choose from the list",
-        error: `Please pick one of: ${c.options.join(", ")}`,
-      };
-    }
-  });
+  // Every column with options gets its list written to a hidden "Lists" sheet
+  // (one column each) and referenced by range. Using a range instead of an
+  // inline "a,b,c" formula sidesteps Excel's ~255-char inline-list limit and
+  // any comma-in-value escaping — important for dynamic department/location
+  // lists. errorStyle "warning" still lets a user type a value not in the list.
+  const optionCols = columns
+    .map((c, i) => ({ c, i }))
+    .filter((x) => x.c.options && x.c.options.length > 0);
+
+  if (optionCols.length > 0) {
+    const lists = wb.addWorksheet("Lists");
+    lists.state = "veryHidden";
+    const lastRow = dataRows.length + 200; // extra blank rows keep the dropdown on new entries
+
+    optionCols.forEach(({ c, i }, listIdx) => {
+      const options = c.options!;
+      const listCol = colLetter(listIdx + 1);
+      options.forEach((opt, r) => {
+        lists.getCell(`${listCol}${r + 1}`).value = opt;
+      });
+      const ref = `Lists!$${listCol}$1:$${listCol}$${options.length}`;
+      const dataCol = colLetter(i + 1);
+      for (let row = 2; row <= lastRow; row++) {
+        ws.getCell(`${dataCol}${row}`).dataValidation = {
+          type: "list",
+          allowBlank: true,
+          formulae: [ref],
+          showErrorMessage: true,
+          errorStyle: "warning",
+          errorTitle: "Choose from the list",
+          error: "Please pick a value from the dropdown (or type your own).",
+        };
+      }
+    });
+  }
 
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer as unknown as ArrayBuffer], { type: XLSX_MIME });

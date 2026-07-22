@@ -16,6 +16,7 @@ import { readSheetRows, downloadSheet, normalizeHeader, type SheetColumn } from 
 import {
   employmentTypeToValue,
   remotePolicyToValue,
+  fetchDeptAndLocationOptions,
   EMPLOYMENT_TYPE_LABELS,
   REMOTE_POLICY_LABELS,
   SALARY_CURRENCIES,
@@ -185,7 +186,17 @@ export function BulkImportJobsModal({ open, onClose, onImported }: BulkImportJob
   async function downloadTemplate() {
     setTemplateLoading(true);
     try {
-      await downloadSheet("jobs-template", TEMPLATE_COLUMNS, SAMPLE_ROWS);
+      // Fetch the org's current departments & locations so those columns are
+      // dropdowns of the latest values, refreshed on every download.
+      const { departments, locations } = await fetchDeptAndLocationOptions();
+      const columns = TEMPLATE_COLUMNS.map((c) =>
+        c.header === "department"
+          ? { ...c, options: departments.length ? departments : c.options }
+          : c.header === "location"
+            ? { ...c, options: locations.length ? locations : c.options }
+            : c,
+      );
+      await downloadSheet("jobs-template", columns, SAMPLE_ROWS);
     } finally {
       setTemplateLoading(false);
     }

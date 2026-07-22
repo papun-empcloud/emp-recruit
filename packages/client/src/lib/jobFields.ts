@@ -1,6 +1,7 @@
 // Job select fields shared by the bulk import/update Excel flows. Excel
 // dropdowns show the friendly `label`; on read we map a cell (label OR raw
 // value, case-insensitive) back to the stored `value`.
+import { apiGet } from "@/api/client";
 
 export interface Option {
   value: string;
@@ -53,3 +54,22 @@ export const statusToValue = (cell: string) => toValue(JOB_STATUSES, cell);
 export const employmentTypeLabel = (value?: string | null) => toLabel(EMPLOYMENT_TYPES, value);
 export const remotePolicyLabel = (value?: string | null) => toLabel(REMOTE_POLICIES, value);
 export const statusLabel = (value?: string | null) => toLabel(JOB_STATUSES, value);
+
+/**
+ * Fetch the org's current department and location names (from the EmpCloud
+ * master DB) to populate template dropdowns. Called on every template download
+ * so the lists are always up to date. A failing lookup yields an empty list
+ * (that column just falls back to free text) rather than breaking the download.
+ */
+export async function fetchDeptAndLocationOptions(): Promise<{
+  departments: string[];
+  locations: string[];
+}> {
+  const names = (res: { data?: { name?: string }[] } | undefined) =>
+    (res?.data ?? []).map((x) => x.name ?? "").filter(Boolean);
+  const [dept, loc] = await Promise.all([
+    apiGet<{ id: number; name: string }[]>("/organizations/departments").catch(() => undefined),
+    apiGet<{ id: number; name: string }[]>("/organizations/locations").catch(() => undefined),
+  ]);
+  return { departments: names(dept), locations: names(loc) };
+}
