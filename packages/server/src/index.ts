@@ -190,7 +190,13 @@ app.use("/api/v1", v1);
 // anyone with a URL could download any tenant's files. Serve them through an
 // authenticated, org-scoped handler instead (audit H2).
 const UPLOADS_ROOT = path.join(process.cwd(), "uploads");
-app.get(/^\/uploads\/(.+)/, (req, res) => {
+// Served at BOTH /uploads/* and /api/v1/uploads/* (BUG-006). The bare path only
+// resolves where the web origin proxies /uploads to this service — true for the
+// Vite dev proxy but not for deployments that only route /api, where the SPA
+// catch-all swallowed the request and rendered its own 404 page. Routing
+// uploads through the API base makes the link work anywhere the API is
+// reachable; the bare path stays for backwards compatibility.
+app.get(/^(?:\/api\/v1)?\/uploads\/(.+)/, (req, res) => {
   // Accept the token via the httpOnly cookie (audit H3), ?token= (browser
   // <a>/<img> can't send headers, and carry it in-session), or Authorization.
   // Employee and portal tokens share the signing secret; both carry the org, so

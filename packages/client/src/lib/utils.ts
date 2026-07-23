@@ -87,20 +87,20 @@ export function resolveUploadUrl(path: string | null | undefined): string {
   if (!path) return "";
   if (/^https?:\/\//i.test(path)) return path;
 
-  const apiBase = (import.meta.env.VITE_API_URL as string | undefined) || "/api/v1";
-  let origin = "";
-  if (/^https?:\/\//i.test(apiBase)) {
-    try {
-      origin = new URL(apiBase).origin;
-    } catch {
-      origin = "";
-    }
-  }
-  if (!origin && typeof window !== "undefined") {
-    origin = window.location.origin;
-  }
+  // Uploads are addressed through the API base rather than the bare app origin
+  // (BUG-006): only /api is guaranteed to route to the backend in deployed
+  // environments, so `${origin}/uploads/...` hit the SPA catch-all and rendered
+  // the client's 404 page. The server accepts both paths.
+  const apiBase = ((import.meta.env.VITE_API_URL as string | undefined) || "/api/v1").replace(/\/+$/, "");
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const url = `${origin}${normalized}`;
+
+  let url: string;
+  if (/^https?:\/\//i.test(apiBase)) {
+    url = `${apiBase}${normalized}`;
+  } else {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    url = `${origin}${apiBase}${normalized}`;
+  }
   // Uploads are authenticated + org-scoped server-side. When we still hold the
   // in-memory access token, pass it as a query param (browsers can't add an
   // Authorization header to <a>/<img> requests). After a reload the token is
