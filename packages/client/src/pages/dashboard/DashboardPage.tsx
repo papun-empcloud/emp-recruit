@@ -315,11 +315,13 @@ function EmployeeDashboard() {
   const hired = referrals.filter((r) => r.status === "hired").length;
   const rewarded = referrals.filter((r) => ["bonus_eligible", "bonus_paid"].includes(r.status)).length;
 
+  // Each card deep-links to the referral list pre-filtered to the status it
+  // counts (mirrors the AdminDashboard card pattern above).
   const stats = [
-    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600" },
-    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600" },
-    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
-    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600" },
+    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600", link: "/referrals" },
+    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600", link: "/referrals?status=under_review" },
+    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600", link: "/referrals?status=hired" },
+    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600", link: "/referrals?status=bonus_eligible" },
   ];
 
   return (
@@ -331,19 +333,20 @@ function EmployeeDashboard() {
         </p>
       </div>
 
-      {/* Referral stat cards */}
+      {/* Referral stat cards — clickable, deep-link to the filtered list */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div
+          <Link
             key={stat.label}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            to={stat.link}
+            className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <div className={cn("inline-flex rounded-xl p-3", stat.color)}>
               <stat.icon className="h-5 w-5" />
             </div>
             <p className="mt-4 text-3xl font-bold tracking-tight text-gray-900">{stat.value}</p>
             <p className="mt-0.5 text-sm font-medium text-gray-500">{stat.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 

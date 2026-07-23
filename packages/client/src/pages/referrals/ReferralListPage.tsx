@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Gift, Plus, X, Pencil, Search } from "lucide-react";
 import { api, apiGet, apiPost } from "@/api/client";
@@ -68,8 +69,10 @@ export function ReferralListPage() {
   const isAdmin = canAccessRecruit(user);
 
   // List controls: search (candidate/job), status filter, pagination.
+  // The status filter honours ?status= so dashboard cards can deep-link here.
+  const [searchParams] = useSearchParams();
   const [listPage, setListPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
   const [listSearchInput, setListSearchInput] = useState("");
   const [listSearch, setListSearch] = useState("");
 
