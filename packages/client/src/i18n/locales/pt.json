@@ -1270,7 +1270,18 @@
       "joining": "Início: {{date}}",
       "pageInfo": "Página {{page}} de {{totalPages}} ({{total}} no total)",
       "previous": "Anterior",
-      "next": "Próximo"
+      "next": "Próximo",
+      "startOnboarding": "Iniciar integração",
+      "startModalSubtitle": "Atribuir um modelo de integração a um candidato",
+      "applicationLabel": "Candidato (candidatura)",
+      "applicationPlaceholder": "Selecione um candidato…",
+      "noEligible": "Nenhuma candidatura com oferta ou contratada disponível",
+      "templateLabel": "Modelo",
+      "templatePlaceholder": "Selecione um modelo…",
+      "joiningDateLabel": "Data de admissão",
+      "startButton": "Iniciar",
+      "toastStarted": "Integração iniciada",
+      "toastStartFailed": "Falha ao iniciar a integração"
     },
     "detail": {
       "notFound": "Lista de verificação não encontrada",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
@@ -8,10 +8,19 @@ import {
   Calendar,
   User,
   Search,
+  X,
 } from "lucide-react";
-import { apiGet } from "@/api/client";
+import toast from "react-hot-toast";
+import { apiGet, apiPost } from "@/api/client";
 import { formatDate } from "@/lib/utils";
-import type { OnboardingStatus, PaginatedResponse } from "@emp-recruit/shared";
+import type { OnboardingStatus, OnboardingTemplate, PaginatedResponse } from "@emp-recruit/shared";
+
+interface EligibleApplication {
+  id: string;
+  stage: string;
+  candidate_name: string;
+  job_title: string;
+}
 
 interface EnrichedChecklist {
   id: string;
@@ -61,9 +70,12 @@ function ProgressBar({ percentage }: { percentage: number }) {
 
 export function OnboardingListPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [startForm, setStartForm] = useState({ application_id: "", template_id: "", joining_date: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["onboarding-checklists", activeTab, page],
@@ -73,6 +85,39 @@ export function OnboardingListPage() {
         page,
         limit: 20,
       }),
+  });
+
+  // Candidates eligible to onboard: applications at the offer or hired stage.
+  // Fetched only while the Start modal is open.
+  const { data: eligibleRes } = useQuery({
+    queryKey: ["onboarding-eligible-applications"],
+    queryFn: async () => {
+      const [offer, hired] = await Promise.all([
+        apiGet<PaginatedResponse<EligibleApplication>>("/applications", { stage: "offer", perPage: 100 }),
+        apiGet<PaginatedResponse<EligibleApplication>>("/applications", { stage: "hired", perPage: 100 }),
+      ]);
+      return [...(offer.data?.data ?? []), ...(hired.data?.data ?? [])];
+    },
+    enabled: showStartModal,
+  });
+  const eligibleApps = eligibleRes ?? [];
+
+  const { data: templatesRes } = useQuery({
+    queryKey: ["onboarding-templates"],
+    queryFn: () => apiGet<(OnboardingTemplate & { task_count: number })[]>("/onboarding/templates"),
+    enabled: showStartModal,
+  });
+  const startTemplates = templatesRes?.data ?? [];
+
+  const startOnboarding = useMutation({
+    mutationFn: () => apiPost("/onboarding/checklists", startForm),
+    onSuccess: () => {
+      toast.success(t("onboarding.list.toastStarted"));
+      queryClient.invalidateQueries({ queryKey: ["onboarding-checklists"] });
+      setShowStartModal(false);
+      setStartForm({ application_id: "", template_id: "", joining_date: "" });
+    },
+    onError: (err: any) => toast.error(err?.message || t("onboarding.list.toastStartFailed")),
   });
 
   const checklists = data?.data;
@@ -98,8 +143,116 @@ export function OnboardingListPage() {
           >
             {t("onboarding.list.manageTemplates")}
           </Link>
+          <button
+            onClick={() => setShowStartModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            {t("onboarding.list.startOnboarding")}
+          </button>
         </div>
       </div>
+
+      {/* Start Onboarding modal — assign a template to an offer/hired
+          application (wires the existing POST /onboarding/checklists) */}
+      {showStartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowStartModal(false)} />
+          <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {t("onboarding.list.startOnboarding")}
+                </h2>
+                <p className="mt-0.5 text-sm text-gray-500">{t("onboarding.list.startModalSubtitle")}</p>
+              </div>
+              <button
+                onClick={() => setShowStartModal(false)}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form
+              className="mt-4 space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                startOnboarding.mutate();
+              }}
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {t("onboarding.list.applicationLabel")}
+                </label>
+                <select
+                  required
+                  value={startForm.application_id}
+                  onChange={(e) => setStartForm({ ...startForm, application_id: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="">
+                    {eligibleApps.length === 0
+                      ? t("onboarding.list.noEligible")
+                      : t("onboarding.list.applicationPlaceholder")}
+                  </option>
+                  {eligibleApps.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.candidate_name} — {a.job_title} ({a.stage})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {t("onboarding.list.templateLabel")}
+                </label>
+                <select
+                  required
+                  value={startForm.template_id}
+                  onChange={(e) => setStartForm({ ...startForm, template_id: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="">{t("onboarding.list.templatePlaceholder")}</option>
+                  {startTemplates.map((tp) => (
+                    <option key={tp.id} value={tp.id}>
+                      {tp.name}
+                      {tp.department ? ` — ${tp.department}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {t("onboarding.list.joiningDateLabel")}
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={startForm.joining_date}
+                  onChange={(e) => setStartForm({ ...startForm, joining_date: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStartModal(false)}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  {t("onboarding.templates.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={startOnboarding.isPending}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                >
+                  {t("onboarding.list.startButton")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">

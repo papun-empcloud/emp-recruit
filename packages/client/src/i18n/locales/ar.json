@@ -1330,7 +1330,18 @@
       "joining": "الالتحاق: {{date}}",
       "pageInfo": "الصفحة {{page}} من {{totalPages}} ({{total}} إجمالاً)",
       "previous": "السابق",
-      "next": "التالي"
+      "next": "التالي",
+      "startOnboarding": "بدء الإعداد الوظيفي",
+      "startModalSubtitle": "إسناد قالب إعداد وظيفي إلى مرشح",
+      "applicationLabel": "المرشح (طلب التوظيف)",
+      "applicationPlaceholder": "اختر مرشحًا…",
+      "noEligible": "لا توجد طلبات بعرض عمل أو معيّنة متاحة",
+      "templateLabel": "القالب",
+      "templatePlaceholder": "اختر قالبًا…",
+      "joiningDateLabel": "تاريخ الالتحاق",
+      "startButton": "بدء",
+      "toastStarted": "تم بدء الإعداد الوظيفي",
+      "toastStartFailed": "فشل بدء الإعداد الوظيفي"
     },
     "detail": {
       "notFound": "لم يتم العثور على قائمة المراجعة",

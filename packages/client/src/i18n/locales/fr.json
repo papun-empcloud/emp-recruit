@@ -1270,7 +1270,18 @@
       "joining": "Arrivée : {{date}}",
       "pageInfo": "Page {{page}} sur {{totalPages}} ({{total}} au total)",
       "previous": "Précédent",
-      "next": "Suivant"
+      "next": "Suivant",
+      "startOnboarding": "Démarrer l'intégration",
+      "startModalSubtitle": "Attribuer un modèle d'intégration à un candidat",
+      "applicationLabel": "Candidat (candidature)",
+      "applicationPlaceholder": "Sélectionnez un candidat…",
+      "noEligible": "Aucune candidature avec offre ou embauchée disponible",
+      "templateLabel": "Modèle",
+      "templatePlaceholder": "Sélectionnez un modèle…",
+      "joiningDateLabel": "Date d'entrée",
+      "startButton": "Démarrer",
+      "toastStarted": "Intégration démarrée",
+      "toastStartFailed": "Échec du démarrage de l'intégration"
     },
     "detail": {
       "notFound": "Checklist introuvable",

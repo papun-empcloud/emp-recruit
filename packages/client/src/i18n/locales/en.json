@@ -1347,7 +1347,18 @@
       "joining": "Joining: {{date}}",
       "pageInfo": "Page {{page}} of {{totalPages}} ({{total}} total)",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "startOnboarding": "Start Onboarding",
+      "startModalSubtitle": "Assign an onboarding template to a candidate",
+      "applicationLabel": "Candidate (application)",
+      "applicationPlaceholder": "Select a candidate…",
+      "noEligible": "No offer or hired applications available",
+      "templateLabel": "Template",
+      "templatePlaceholder": "Select a template…",
+      "joiningDateLabel": "Joining date",
+      "startButton": "Start",
+      "toastStarted": "Onboarding started",
+      "toastStartFailed": "Failed to start onboarding"
     },
     "detail": {
       "notFound": "Checklist not found",

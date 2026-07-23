@@ -1249,7 +1249,18 @@
       "joining": "Bergabung: {{date}}",
       "pageInfo": "Halaman {{page}} dari {{totalPages}} ({{total}} total)",
       "previous": "Sebelumnya",
-      "next": "Berikutnya"
+      "next": "Berikutnya",
+      "startOnboarding": "Mulai Onboarding",
+      "startModalSubtitle": "Tetapkan templat onboarding ke kandidat",
+      "applicationLabel": "Kandidat (lamaran)",
+      "applicationPlaceholder": "Pilih kandidat…",
+      "noEligible": "Tidak ada lamaran dengan penawaran atau yang diterima",
+      "templateLabel": "Templat",
+      "templatePlaceholder": "Pilih templat…",
+      "joiningDateLabel": "Tanggal bergabung",
+      "startButton": "Mulai",
+      "toastStarted": "Onboarding dimulai",
+      "toastStartFailed": "Gagal memulai onboarding"
     },
     "detail": {
       "notFound": "Daftar periksa tidak ditemukan",
