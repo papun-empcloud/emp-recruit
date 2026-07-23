@@ -339,7 +339,7 @@ function EmployeeDashboard() {
       );
       queryClient.invalidateQueries({ queryKey: ["my-offer-approvals"] });
     },
-    onError: (err: any) => toast.error(err?.message || t("dashboard.approvals.toastActionFailed")),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("dashboard.approvals.toastActionFailed")),
   });
 
   const referrals: ReferralRow[] = refData?.data ?? [];
@@ -348,13 +348,14 @@ function EmployeeDashboard() {
   const hired = referrals.filter((r) => r.status === "hired").length;
   const rewarded = referrals.filter((r) => ["bonus_eligible", "bonus_paid"].includes(r.status)).length;
 
-  // Each card deep-links to the referral list pre-filtered to the status it
-  // counts (mirrors the AdminDashboard card pattern above).
+  // Each card deep-links to the referral list pre-filtered to the SAME statuses
+  // its number counts — In Review and Bonus each span two statuses, so filtering
+  // on just one showed a list that didn't match the count (BUG-010).
   const stats = [
     { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600", link: "/referrals" },
-    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600", link: "/referrals?status=under_review" },
+    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600", link: "/referrals?status=submitted,under_review" },
     { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600", link: "/referrals?status=hired" },
-    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600", link: "/referrals?status=bonus_eligible" },
+    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600", link: "/referrals?status=bonus_eligible,bonus_paid" },
   ];
 
   return (
