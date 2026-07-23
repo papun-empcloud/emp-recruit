@@ -276,7 +276,9 @@
       "experienceLabel": "Años de experiencia",
       "salaryLabel": "Salario esperado (anual)",
       "submitting": "Enviando...",
-      "submit": "Enviar candidatura"
+      "submit": "Enviar candidatura",
+      "monthsLabel": "Meses",
+      "errorMonthsRange": "Los meses deben estar entre 0 y 11"
     },
     "success": {
       "title": "¡Gracias por postularte!",

@@ -268,7 +268,9 @@
       "experienceLabel": "Tahun Pengalaman",
       "salaryLabel": "Ekspektasi Gaji (tahunan)",
       "submitting": "Mengirim...",
-      "submit": "Kirim Lamaran"
+      "submit": "Kirim Lamaran",
+      "monthsLabel": "Bulan",
+      "errorMonthsRange": "Bulan harus antara 0 dan 11"
     },
     "success": {
       "title": "Terima Kasih Telah Melamar!",

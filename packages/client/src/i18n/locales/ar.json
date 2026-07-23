@@ -297,7 +297,9 @@
       "experienceLabel": "سنوات الخبرة",
       "salaryLabel": "الراتب المتوقع (سنوي)",
       "submitting": "جارٍ الإرسال...",
-      "submit": "إرسال الطلب"
+      "submit": "إرسال الطلب",
+      "monthsLabel": "الأشهر",
+      "errorMonthsRange": "يجب أن تكون الأشهر بين 0 و11"
     },
     "success": {
       "title": "شكرًا لتقديمك!",
