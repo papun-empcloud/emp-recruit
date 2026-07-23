@@ -59,6 +59,14 @@ const STATUS_COLORS: Record<string, string> = {
   bonus_paid: "bg-emerald-100 text-emerald-700",
 };
 
+function formatStatusFilter(value: string): string {
+  return value
+    .split(",")
+    .map((v) => v.trim().replace(/_/g, " "))
+    .filter(Boolean)
+    .join(" + ");
+}
+
 export function ReferralListPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -228,7 +236,7 @@ export function ReferralListPage() {
           <ExportButtons
             baseName="referrals"
             title="Referrals"
-            subtitle={`${refTotal} referral${refTotal !== 1 ? "s" : ""}${statusFilter ? ` (${statusFilter.replace("_", " ")})` : ""}`}
+            subtitle={`${refTotal} referral${refTotal !== 1 ? "s" : ""}${statusFilter ? ` (${formatStatusFilter(statusFilter)})` : ""}`}
             columns={REFERRAL_COLUMNS}
             fetchRows={() => fetchAllRows<ReferralRow>("/referrals", { status: statusFilter, search: listSearch })}
           />
@@ -413,6 +421,13 @@ export function ReferralListPage() {
             className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">{t("referrals.allStatuses")}</option>
+            {/* A dashboard card can deep-link a combined filter (e.g.
+                submitted,under_review). Surface it as its own option so the
+                dropdown reflects what's actually applied instead of falsely
+                showing "All statuses". */}
+            {statusFilter.includes(",") && (
+              <option value={statusFilter}>{formatStatusFilter(statusFilter)}</option>
+            )}
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {t(opt.labelKey)}
