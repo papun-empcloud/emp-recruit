@@ -290,6 +290,42 @@ export async function listOffers(orgId: number, params: ListOffersParams) {
   };
 }
 
+/**
+ * Offers awaiting the caller's approval (BUG-011/012). Approvers are often
+ * regular employees with no offer read access, so this is their dedicated,
+ * self-scoped read path: only offers where THEY hold a pending approver row.
+ */
+export async function listMyApprovals(orgId: number, userId: number) {
+  const db = getDB();
+
+  const raw = await db.raw<any[][]>(
+    `SELECT o.*, a.\`order\` AS approver_order
+       FROM offer_approvers a
+       JOIN offers o ON o.id = a.offer_id
+      WHERE a.user_id = ?
+        AND a.status = 'pending'
+        AND o.organization_id = ?
+        AND o.status = 'pending_approval'
+      ORDER BY o.created_at DESC`,
+    [userId, orgId],
+  );
+  const rows = (raw[0] as any[]) ?? [];
+
+  // Enrich with candidate and job info, same shape as listOffers rows so the
+  // client can render them with the existing offer components.
+  return Promise.all(
+    rows.map(async (offer: any) => {
+      const candidate = await db.findById<any>("candidates", offer.candidate_id);
+      const job = offer.job_id ? await db.findById<any>("job_postings", offer.job_id) : null;
+      return {
+        ...offer,
+        candidate_name: candidate ? `${candidate.first_name} ${candidate.last_name}` : "Unknown",
+        job_title_display: job?.title || offer.job_title,
+      };
+    }),
+  );
+}
+
 export async function submitForApproval(
   orgId: number,
   id: string,
