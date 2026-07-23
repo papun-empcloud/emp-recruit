@@ -87,16 +87,28 @@ export function OnboardingListPage() {
       }),
   });
 
-  // Candidates eligible to onboard: applications at the offer or hired stage.
-  // Fetched only while the Start modal is open.
+  // Candidates eligible to onboard: applications at the offer or hired stage
+  // that don't already have an active checklist — the server rejects those with
+  // "An active onboarding checklist already exists", so offering them in the
+  // picker only produced a 400 (BUG-009). Fetched while the Start modal is open.
   const { data: eligibleRes } = useQuery({
     queryKey: ["onboarding-eligible-applications"],
     queryFn: async () => {
-      const [offer, hired] = await Promise.all([
+      const [offer, hired, existing] = await Promise.all([
         apiGet<PaginatedResponse<EligibleApplication>>("/applications", { stage: "offer", perPage: 100 }),
         apiGet<PaginatedResponse<EligibleApplication>>("/applications", { stage: "hired", perPage: 100 }),
+        apiGet<PaginatedResponse<{ application_id: string; status: OnboardingStatus }>>(
+          "/onboarding/checklists",
+          { perPage: 200 },
+        ),
       ]);
-      return [...(offer.data?.data ?? []), ...(hired.data?.data ?? [])];
+      // Only a completed checklist frees the application up again.
+      const taken = new Set(
+        (existing.data?.data ?? [])
+          .filter((c) => c.status !== "completed")
+          .map((c) => c.application_id),
+      );
+      return [...(offer.data?.data ?? []), ...(hired.data?.data ?? [])].filter((a) => !taken.has(a.id));
     },
     enabled: showStartModal,
   });
@@ -117,7 +129,7 @@ export function OnboardingListPage() {
       setShowStartModal(false);
       setStartForm({ application_id: "", template_id: "", joining_date: "" });
     },
-    onError: (err: any) => toast.error(err?.message || t("onboarding.list.toastStartFailed")),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("onboarding.list.toastStartFailed")),
   });
 
   const checklists = data?.data;
