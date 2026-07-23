@@ -210,7 +210,7 @@ export function JobDetailPage() {
 
   const { data: rankingsData, isLoading: loadingRankings, refetch: refetchRankings } = useQuery({
     queryKey: ["job-rankings", id],
-    queryFn: () => apiGet<RankedCandidate[]>(`/scoring/jobs/${id}/rankings`),
+    queryFn: () => apiGet<PaginatedResponse<RankedCandidate>>(`/scoring/jobs/${id}/rankings`),
     enabled: Boolean(id) && showRankings,
   });
 
@@ -283,7 +283,11 @@ export function JobDetailPage() {
 
   const job = jobData?.data;
   const applications = appsData?.data?.data ?? [];
-  const rankings = rankingsData?.data ?? [];
+  // The rankings endpoint returns a pagination envelope ({ data, total, ... });
+  // unwrap it (defensively, in case the API ever returns a bare array again).
+  const rankings = Array.isArray(rankingsData?.data)
+    ? rankingsData.data
+    : rankingsData?.data?.data ?? [];
   const customStages = stagesData?.data ?? [];
 
   // Use custom pipeline stages if available, otherwise fall back to hardcoded.

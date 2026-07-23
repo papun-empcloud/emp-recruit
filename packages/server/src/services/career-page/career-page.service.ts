@@ -266,6 +266,7 @@ export async function submitPublicApplication(
     current_company?: string;
     experience_years?: number;
     expected_salary?: number;
+    skills?: string[];
   },
   resumePath?: string,
 ): Promise<{ candidate: Candidate; application: Application }> {
@@ -332,6 +333,7 @@ export async function submitPublicApplication(
       resume_path: resumePath || null,
       current_company: data.current_company || null,
       experience_years: data.experience_years ?? null,
+      skills: data.skills?.length ? JSON.stringify(data.skills) : null,
     } as Partial<Candidate>);
   }
 

@@ -280,7 +280,11 @@
       "experienceLabel": "Years of Experience",
       "salaryLabel": "Expected Salary (annual)",
       "submitting": "Submitting...",
-      "submit": "Submit Application"
+      "submit": "Submit Application",
+      "monthsLabel": "Months",
+      "errorMonthsRange": "Months must be between 0 and 11",
+      "skillsLabel": "Skills (comma separated)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "Thank You for Applying!",
@@ -698,6 +702,14 @@
       "rejected": "Rejected",
       "bonus_eligible": "Bonus Eligible",
       "bonus_paid": "Bonus Paid"
+    },
+    "approvals": {
+      "title": "Offers awaiting your approval",
+      "approve": "Approve",
+      "reject": "Reject",
+      "toastApproved": "Offer approved",
+      "toastRejected": "Offer rejected",
+      "toastActionFailed": "Action failed"
     }
   },
   "interviews": {
@@ -1343,7 +1355,18 @@
       "joining": "Joining: {{date}}",
       "pageInfo": "Page {{page}} of {{totalPages}} ({{total}} total)",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "startOnboarding": "Start Onboarding",
+      "startModalSubtitle": "Assign an onboarding template to a candidate",
+      "applicationLabel": "Candidate (application)",
+      "applicationPlaceholder": "Select a candidate…",
+      "noEligible": "No offer or hired applications available",
+      "templateLabel": "Template",
+      "templatePlaceholder": "Select a template…",
+      "joiningDateLabel": "Joining date",
+      "startButton": "Start",
+      "toastStarted": "Onboarding started",
+      "toastStartFailed": "Failed to start onboarding"
     },
     "detail": {
       "notFound": "Checklist not found",

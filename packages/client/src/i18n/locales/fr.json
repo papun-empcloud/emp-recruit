@@ -276,7 +276,11 @@
       "experienceLabel": "Années d'expérience",
       "salaryLabel": "Salaire souhaité (annuel)",
       "submitting": "Envoi en cours...",
-      "submit": "Envoyer ma candidature"
+      "submit": "Envoyer ma candidature",
+      "monthsLabel": "Mois",
+      "errorMonthsRange": "Les mois doivent être compris entre 0 et 11",
+      "skillsLabel": "Compétences (séparées par des virgules)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "Merci pour votre candidature !",
@@ -623,6 +627,14 @@
       "rejected": "Rejetée",
       "bonus_eligible": "Éligible à la prime",
       "bonus_paid": "Prime versée"
+    },
+    "approvals": {
+      "title": "Offres en attente de votre approbation",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "toastApproved": "Offre approuvée",
+      "toastRejected": "Offre rejetée",
+      "toastActionFailed": "Échec de l'action"
     }
   },
   "interviews": {
@@ -1266,7 +1278,18 @@
       "joining": "Arrivée : {{date}}",
       "pageInfo": "Page {{page}} sur {{totalPages}} ({{total}} au total)",
       "previous": "Précédent",
-      "next": "Suivant"
+      "next": "Suivant",
+      "startOnboarding": "Démarrer l'intégration",
+      "startModalSubtitle": "Attribuer un modèle d'intégration à un candidat",
+      "applicationLabel": "Candidat (candidature)",
+      "applicationPlaceholder": "Sélectionnez un candidat…",
+      "noEligible": "Aucune candidature avec offre ou embauchée disponible",
+      "templateLabel": "Modèle",
+      "templatePlaceholder": "Sélectionnez un modèle…",
+      "joiningDateLabel": "Date d'entrée",
+      "startButton": "Démarrer",
+      "toastStarted": "Intégration démarrée",
+      "toastStartFailed": "Échec du démarrage de l'intégration"
     },
     "detail": {
       "notFound": "Checklist introuvable",

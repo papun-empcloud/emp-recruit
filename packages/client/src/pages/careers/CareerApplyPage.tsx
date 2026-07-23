@@ -33,7 +33,9 @@ export function CareerApplyPage() {
     cover_letter: "",
     current_company: "",
     experience_years: "",
+    experience_months: "",
     expected_salary: "",
+    skills: "",
   });
   const [resume, setResume] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -57,8 +59,15 @@ export function CareerApplyPage() {
       if (form.phone) formData.append("phone", form.phone);
       if (form.cover_letter) formData.append("cover_letter", form.cover_letter);
       if (form.current_company) formData.append("current_company", form.current_company);
-      if (form.experience_years) formData.append("experience_years", form.experience_years);
+      // Fold months into the decimal years the API already accepts (same
+      // pattern as the internal candidate forms: 2y 6m -> 2.5).
+      if (form.experience_years || form.experience_months) {
+        const yrs = Number(form.experience_years || 0);
+        const mos = Number(form.experience_months || 0);
+        formData.append("experience_years", String(Math.round((yrs + mos / 12) * 10) / 10));
+      }
       if (form.expected_salary) formData.append("expected_salary", form.expected_salary);
+      if (form.skills.trim()) formData.append("skills", form.skills.trim());
       if (resume) formData.append("resume", resume);
 
       const { data } = await axios.post(`${PUBLIC_API}/careers/${slug}/apply`, formData, {
@@ -145,6 +154,9 @@ export function CareerApplyPage() {
     const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
     const yearsTooHigh =
       form.experience_years !== "" && Number(form.experience_years) > MAX_EXPERIENCE_YEARS;
+    const monthsOutOfRange =
+      form.experience_months !== "" &&
+      (Number(form.experience_months) < 0 || Number(form.experience_months) > 11);
     const salaryNegative = form.expected_salary !== "" && Number(form.expected_salary) < 0;
     const salaryTooHigh =
       form.expected_salary !== "" && Number(form.expected_salary) > MAX_EXPECTED_SALARY;
@@ -157,6 +169,7 @@ export function CareerApplyPage() {
     if (yearsNegative) next.experience_years = t("careers.apply.errorYearsNegative");
     else if (yearsTooHigh)
       next.experience_years = t("careers.apply.errorYearsMax", { max: MAX_EXPERIENCE_YEARS });
+    if (monthsOutOfRange) next.experience_months = t("careers.apply.errorMonthsRange");
     if (salaryNegative) next.expected_salary = t("careers.apply.errorSalaryNegative");
     else if (salaryTooHigh) next.expected_salary = t("careers.apply.errorSalaryMax");
     setErrors(next);
@@ -180,6 +193,10 @@ export function CareerApplyPage() {
     }
     if (yearsTooHigh) {
       toast.error(t("careers.apply.errorYearsMax", { max: MAX_EXPERIENCE_YEARS }));
+      return;
+    }
+    if (monthsOutOfRange) {
+      toast.error(t("careers.apply.errorMonthsRange"));
       return;
     }
     if (salaryNegative) {
@@ -358,18 +375,41 @@ export function CareerApplyPage() {
               <label htmlFor="experience_years" className="block text-sm font-medium text-gray-700">
                 {t("careers.apply.experienceLabel")}
               </label>
-              <input
-                id="experience_years"
-                name="experience_years"
-                type="number"
-                min="0"
-                max="50"
-                value={form.experience_years}
-                onChange={handleChange}
-                className={fieldClass("experience_years")}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <input
+                    id="experience_years"
+                    name="experience_years"
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={form.experience_years}
+                    onChange={handleChange}
+                    className={fieldClass("experience_years")}
+                    aria-label={t("careers.apply.experienceLabel")}
+                  />
+                </div>
+                <div>
+                  <input
+                    id="experience_months"
+                    name="experience_months"
+                    type="number"
+                    min="0"
+                    max="11"
+                    step="1"
+                    value={form.experience_months}
+                    onChange={handleChange}
+                    placeholder={t("careers.apply.monthsLabel")}
+                    className={fieldClass("experience_months")}
+                    aria-label={t("careers.apply.monthsLabel")}
+                  />
+                </div>
+              </div>
               {errors.experience_years && (
                 <p className="mt-1 text-xs text-red-600">{errors.experience_years}</p>
+              )}
+              {errors.experience_months && (
+                <p className="mt-1 text-xs text-red-600">{errors.experience_months}</p>
               )}
             </div>
             <div>
@@ -389,6 +429,23 @@ export function CareerApplyPage() {
                 <p className="mt-1 text-xs text-red-600">{errors.expected_salary}</p>
               )}
             </div>
+          </div>
+
+          {/* Skills — feed the ATS skills match (BUG-004) */}
+          <div>
+            <label htmlFor="skills" className="block text-sm font-medium text-gray-700">
+              {t("careers.apply.skillsLabel")}
+            </label>
+            <input
+              id="skills"
+              name="skills"
+              type="text"
+              maxLength={2000}
+              value={form.skills}
+              onChange={handleChange}
+              placeholder={t("careers.apply.skillsPlaceholder")}
+              className={fieldClass("skills")}
+            />
           </div>
 
           {submitError && (

@@ -66,6 +66,26 @@ router.get(
   },
 );
 
+// GET /my-approvals — offers awaiting the current user's approval.
+// Auth-only, NO role gate: assigned approvers are often regular employees who
+// have no other offer read access (BUG-011). Self-scoped by design — the
+// service only returns offers where the caller holds a pending approver row,
+// so this does not widen access to the wider offer list. Must be registered
+// BEFORE /:id or the param route swallows the literal path.
+router.get(
+  "/my-approvals",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const orgId = req.user!.empcloudOrgId;
+      const userId = req.user!.empcloudUserId;
+      const offers = await offerService.listMyApprovals(orgId, userId);
+      sendSuccess(res, offers);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // GET /:id — Get offer with approvers (HR roles only — exposes comp data).
 router.get(
   "/:id",

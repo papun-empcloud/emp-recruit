@@ -297,7 +297,11 @@
       "experienceLabel": "سنوات الخبرة",
       "salaryLabel": "الراتب المتوقع (سنوي)",
       "submitting": "جارٍ الإرسال...",
-      "submit": "إرسال الطلب"
+      "submit": "إرسال الطلب",
+      "monthsLabel": "الأشهر",
+      "errorMonthsRange": "يجب أن تكون الأشهر بين 0 و11",
+      "skillsLabel": "المهارات (مفصولة بفواصل)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "شكرًا لتقديمك!",
@@ -674,6 +678,14 @@
       "rejected": "مرفوض",
       "bonus_eligible": "مؤهل للمكافأة",
       "bonus_paid": "تم دفع المكافأة"
+    },
+    "approvals": {
+      "title": "عروض بانتظار موافقتك",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "toastApproved": "تمت الموافقة على العرض",
+      "toastRejected": "تم رفض العرض",
+      "toastActionFailed": "فشل الإجراء"
     }
   },
   "interviews": {
@@ -1326,7 +1338,18 @@
       "joining": "الالتحاق: {{date}}",
       "pageInfo": "الصفحة {{page}} من {{totalPages}} ({{total}} إجمالاً)",
       "previous": "السابق",
-      "next": "التالي"
+      "next": "التالي",
+      "startOnboarding": "بدء الإعداد الوظيفي",
+      "startModalSubtitle": "إسناد قالب إعداد وظيفي إلى مرشح",
+      "applicationLabel": "المرشح (طلب التوظيف)",
+      "applicationPlaceholder": "اختر مرشحًا…",
+      "noEligible": "لا توجد طلبات بعرض عمل أو معيّنة متاحة",
+      "templateLabel": "القالب",
+      "templatePlaceholder": "اختر قالبًا…",
+      "joiningDateLabel": "تاريخ الالتحاق",
+      "startButton": "بدء",
+      "toastStarted": "تم بدء الإعداد الوظيفي",
+      "toastStartFailed": "فشل بدء الإعداد الوظيفي"
     },
     "detail": {
       "notFound": "لم يتم العثور على قائمة المراجعة",

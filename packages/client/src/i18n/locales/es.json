@@ -276,7 +276,11 @@
       "experienceLabel": "Años de experiencia",
       "salaryLabel": "Salario esperado (anual)",
       "submitting": "Enviando...",
-      "submit": "Enviar candidatura"
+      "submit": "Enviar candidatura",
+      "monthsLabel": "Meses",
+      "errorMonthsRange": "Los meses deben estar entre 0 y 11",
+      "skillsLabel": "Competencias (separadas por comas)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "¡Gracias por postularte!",
@@ -623,6 +627,14 @@
       "rejected": "Rechazado",
       "bonus_eligible": "Elegible para bono",
       "bonus_paid": "Bono pagado"
+    },
+    "approvals": {
+      "title": "Ofertas pendientes de tu aprobación",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "toastApproved": "Oferta aprobada",
+      "toastRejected": "Oferta rechazada",
+      "toastActionFailed": "La acción falló"
     }
   },
   "interviews": {
@@ -1266,7 +1278,18 @@
       "joining": "Incorporación: {{date}}",
       "pageInfo": "Página {{page}} de {{totalPages}} ({{total}} en total)",
       "previous": "Anterior",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "startOnboarding": "Iniciar incorporación",
+      "startModalSubtitle": "Asignar una plantilla de incorporación a un candidato",
+      "applicationLabel": "Candidato (postulación)",
+      "applicationPlaceholder": "Selecciona un candidato…",
+      "noEligible": "No hay postulaciones con oferta o contratadas disponibles",
+      "templateLabel": "Plantilla",
+      "templatePlaceholder": "Selecciona una plantilla…",
+      "joiningDateLabel": "Fecha de incorporación",
+      "startButton": "Iniciar",
+      "toastStarted": "Incorporación iniciada",
+      "toastStartFailed": "No se pudo iniciar la incorporación"
     },
     "detail": {
       "notFound": "Lista de tareas no encontrada",

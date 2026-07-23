@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
@@ -13,8 +13,10 @@ import {
   CheckCircle2,
   Clock,
   Award,
+  XCircle,
 } from "lucide-react";
-import { apiGet } from "@/api/client";
+import toast from "react-hot-toast";
+import { apiGet, apiPost } from "@/api/client";
 import { getUser } from "@/lib/auth-store";
 import { canAccessRecruit } from "@/lib/roles";
 import type { JobPosting, Candidate, PaginatedResponse } from "@emp-recruit/shared";
@@ -296,10 +298,21 @@ const REF_STATUS_BADGE: Record<string, string> = {
   bonus_paid: "bg-emerald-100 text-emerald-700",
 };
 
+interface PendingApprovalOffer {
+  id: string;
+  candidate_name: string;
+  job_title_display: string;
+  salary_amount: string | number | null;
+  salary_currency: string | null;
+  created_at: string;
+}
+
 function EmployeeDashboard() {
   const { t } = useTranslation();
   const user = getUser();
   const firstName = user?.firstName || t("dashboard.defaultName");
+
+  const queryClient = useQueryClient();
 
   const { data: refData, isLoading } = useQuery({
     queryKey: ["my-referrals"],
@@ -309,17 +322,39 @@ function EmployeeDashboard() {
     },
   });
 
+  // Offers waiting on MY approval (BUG-012). Self-scoped endpoint — regular
+  // employees only ever see offers where they hold a pending approver row.
+  const { data: approvalsRes } = useQuery({
+    queryKey: ["my-offer-approvals"],
+    queryFn: () => apiGet<PendingApprovalOffer[]>("/offers/my-approvals"),
+  });
+  const pendingApprovals = approvalsRes?.data ?? [];
+
+  const actOnOffer = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" }) =>
+      apiPost(`/offers/${id}/${action}`, {}),
+    onSuccess: (_res, vars) => {
+      toast.success(
+        vars.action === "approve" ? t("dashboard.approvals.toastApproved") : t("dashboard.approvals.toastRejected"),
+      );
+      queryClient.invalidateQueries({ queryKey: ["my-offer-approvals"] });
+    },
+    onError: (err: any) => toast.error(err?.message || t("dashboard.approvals.toastActionFailed")),
+  });
+
   const referrals: ReferralRow[] = refData?.data ?? [];
   const total = referrals.length;
   const inReview = referrals.filter((r) => ["submitted", "under_review"].includes(r.status)).length;
   const hired = referrals.filter((r) => r.status === "hired").length;
   const rewarded = referrals.filter((r) => ["bonus_eligible", "bonus_paid"].includes(r.status)).length;
 
+  // Each card deep-links to the referral list pre-filtered to the status it
+  // counts (mirrors the AdminDashboard card pattern above).
   const stats = [
-    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600" },
-    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600" },
-    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600" },
-    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600" },
+    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600", link: "/referrals" },
+    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600", link: "/referrals?status=under_review" },
+    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600", link: "/referrals?status=hired" },
+    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600", link: "/referrals?status=bonus_eligible" },
   ];
 
   return (
@@ -331,21 +366,75 @@ function EmployeeDashboard() {
         </p>
       </div>
 
-      {/* Referral stat cards */}
+      {/* Referral stat cards — clickable, deep-link to the filtered list */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div
+          <Link
             key={stat.label}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            to={stat.link}
+            className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <div className={cn("inline-flex rounded-xl p-3", stat.color)}>
               <stat.icon className="h-5 w-5" />
             </div>
             <p className="mt-4 text-3xl font-bold tracking-tight text-gray-900">{stat.value}</p>
             <p className="mt-0.5 text-sm font-medium text-gray-500">{stat.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
+
+      {/* Offers awaiting my approval (BUG-012) — only rendered when the
+          current user has pending approver rows. */}
+      {pendingApprovals.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t("dashboard.approvals.title")}
+              </h2>
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                {pendingApprovals.length}
+              </span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {pendingApprovals.map((offer) => (
+              <div
+                key={offer.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-100 p-4"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900">{offer.candidate_name}</p>
+                  <p className="truncate text-xs text-gray-500">
+                    {offer.job_title_display}
+                    {offer.salary_amount
+                      ? ` · ${offer.salary_currency || ""} ${Number(offer.salary_amount).toLocaleString()}`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={() => actOnOffer.mutate({ id: offer.id, action: "approve" })}
+                    disabled={actOnOffer.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {t("dashboard.approvals.approve")}
+                  </button>
+                  <button
+                    onClick={() => actOnOffer.mutate({ id: offer.id, action: "reject" })}
+                    disabled={actOnOffer.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    {t("dashboard.approvals.reject")}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

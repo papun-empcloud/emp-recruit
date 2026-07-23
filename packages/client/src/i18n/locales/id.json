@@ -268,7 +268,11 @@
       "experienceLabel": "Tahun Pengalaman",
       "salaryLabel": "Ekspektasi Gaji (tahunan)",
       "submitting": "Mengirim...",
-      "submit": "Kirim Lamaran"
+      "submit": "Kirim Lamaran",
+      "monthsLabel": "Bulan",
+      "errorMonthsRange": "Bulan harus antara 0 dan 11",
+      "skillsLabel": "Keterampilan (dipisahkan koma)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "Terima Kasih Telah Melamar!",
@@ -605,6 +609,14 @@
       "rejected": "Ditolak",
       "bonus_eligible": "Berhak Bonus",
       "bonus_paid": "Bonus Dibayarkan"
+    },
+    "approvals": {
+      "title": "Penawaran menunggu persetujuan Anda",
+      "approve": "Setujui",
+      "reject": "Tolak",
+      "toastApproved": "Penawaran disetujui",
+      "toastRejected": "Penawaran ditolak",
+      "toastActionFailed": "Tindakan gagal"
     }
   },
   "interviews": {
@@ -1245,7 +1257,18 @@
       "joining": "Bergabung: {{date}}",
       "pageInfo": "Halaman {{page}} dari {{totalPages}} ({{total}} total)",
       "previous": "Sebelumnya",
-      "next": "Berikutnya"
+      "next": "Berikutnya",
+      "startOnboarding": "Mulai Onboarding",
+      "startModalSubtitle": "Tetapkan templat onboarding ke kandidat",
+      "applicationLabel": "Kandidat (lamaran)",
+      "applicationPlaceholder": "Pilih kandidat…",
+      "noEligible": "Tidak ada lamaran dengan penawaran atau yang diterima",
+      "templateLabel": "Templat",
+      "templatePlaceholder": "Pilih templat…",
+      "joiningDateLabel": "Tanggal bergabung",
+      "startButton": "Mulai",
+      "toastStarted": "Onboarding dimulai",
+      "toastStartFailed": "Gagal memulai onboarding"
     },
     "detail": {
       "notFound": "Daftar periksa tidak ditemukan",
