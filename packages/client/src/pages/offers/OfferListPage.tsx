@@ -118,6 +118,13 @@ export function OfferListPage() {
             }
           />
           <Link
+            to="/offers/letter-templates"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <FileText className="h-4 w-4" />
+            {t("offers.template.title")}
+          </Link>
+          <Link
             to="/offers/new"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
           >
