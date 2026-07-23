@@ -627,6 +627,14 @@
       "rejected": "Rejetée",
       "bonus_eligible": "Éligible à la prime",
       "bonus_paid": "Prime versée"
+    },
+    "approvals": {
+      "title": "Offres en attente de votre approbation",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "toastApproved": "Offre approuvée",
+      "toastRejected": "Offre rejetée",
+      "toastActionFailed": "Échec de l'action"
     }
   },
   "interviews": {

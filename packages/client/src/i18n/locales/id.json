@@ -609,6 +609,14 @@
       "rejected": "Ditolak",
       "bonus_eligible": "Berhak Bonus",
       "bonus_paid": "Bonus Dibayarkan"
+    },
+    "approvals": {
+      "title": "Penawaran menunggu persetujuan Anda",
+      "approve": "Setujui",
+      "reject": "Tolak",
+      "toastApproved": "Penawaran disetujui",
+      "toastRejected": "Penawaran ditolak",
+      "toastActionFailed": "Tindakan gagal"
     }
   },
   "interviews": {

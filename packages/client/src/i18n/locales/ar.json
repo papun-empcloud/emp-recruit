@@ -678,6 +678,14 @@
       "rejected": "مرفوض",
       "bonus_eligible": "مؤهل للمكافأة",
       "bonus_paid": "تم دفع المكافأة"
+    },
+    "approvals": {
+      "title": "عروض بانتظار موافقتك",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "toastApproved": "تمت الموافقة على العرض",
+      "toastRejected": "تم رفض العرض",
+      "toastActionFailed": "فشل الإجراء"
     }
   },
   "interviews": {

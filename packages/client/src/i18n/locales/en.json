@@ -702,6 +702,14 @@
       "rejected": "Rejected",
       "bonus_eligible": "Bonus Eligible",
       "bonus_paid": "Bonus Paid"
+    },
+    "approvals": {
+      "title": "Offers awaiting your approval",
+      "approve": "Approve",
+      "reject": "Reject",
+      "toastApproved": "Offer approved",
+      "toastRejected": "Offer rejected",
+      "toastActionFailed": "Action failed"
     }
   },
   "interviews": {

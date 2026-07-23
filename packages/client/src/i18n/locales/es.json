@@ -627,6 +627,14 @@
       "rejected": "Rechazado",
       "bonus_eligible": "Elegible para bono",
       "bonus_paid": "Bono pagado"
+    },
+    "approvals": {
+      "title": "Ofertas pendientes de tu aprobación",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "toastApproved": "Oferta aprobada",
+      "toastRejected": "Oferta rechazada",
+      "toastActionFailed": "La acción falló"
     }
   },
   "interviews": {
