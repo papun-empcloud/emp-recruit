@@ -12,6 +12,7 @@ import {
   Save,
   X,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/api/client";
 import type { OnboardingTemplate, OnboardingTemplateTask } from "@emp-recruit/shared";
 
@@ -47,6 +48,7 @@ export function OnboardingTemplatesPage() {
   const [formData, setFormData] = useState<TemplateFormData>(EMPTY_TEMPLATE);
   const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
   const [showTaskForm, setShowTaskForm] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<string | null>(null);
   const [taskFormData, setTaskFormData] = useState<TaskFormData>(EMPTY_TASK);
 
   // Fetch templates
@@ -88,6 +90,7 @@ export function OnboardingTemplatesPage() {
       setShowForm(false);
       setFormData(EMPTY_TEMPLATE);
     },
+    onError: (err: any) => toast.error(err?.message || "Failed to create template"),
   });
 
   const updateTemplate = useMutation({
@@ -95,9 +98,11 @@ export function OnboardingTemplatesPage() {
       apiPut(`/onboarding/templates/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
+      setShowForm(false);
       setEditingTemplate(null);
       setFormData(EMPTY_TEMPLATE);
     },
+    onError: (err: any) => toast.error(err?.message || "Failed to update template"),
   });
 
   const addTask = useMutation({
@@ -109,6 +114,20 @@ export function OnboardingTemplatesPage() {
       setShowTaskForm(null);
       setTaskFormData(EMPTY_TASK);
     },
+    onError: (err: any) => toast.error(err?.message || "Failed to add task"),
+  });
+
+  const updateTask = useMutation({
+    mutationFn: ({ templateId, taskId, data }: { templateId: string; taskId: string; data: TaskFormData }) =>
+      apiPut(`/onboarding/templates/${templateId}/tasks/${taskId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["onboarding-template-tasks", expandedTemplate] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-templates"] });
+      setShowTaskForm(null);
+      setEditingTask(null);
+      setTaskFormData(EMPTY_TASK);
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update task"),
   });
 
   const removeTask = useMutation({
@@ -126,9 +145,28 @@ export function OnboardingTemplatesPage() {
       name: template.name,
       description: template.description || "",
       department: template.department || "",
-      is_default: template.is_default,
+      // MySQL serialises the tinyint flag as 0/1; the update schema requires a
+      // real boolean, so coerce here or the PUT is rejected with a 400.
+      is_default: !!template.is_default,
     });
     setShowForm(true);
+    // The form lives at the top of the page — bring it into view so the edit
+    // doesn't appear to do nothing when a template further down is edited.
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function startTaskEdit(templateId: string, task: OnboardingTemplateTask) {
+    setShowTaskForm(templateId);
+    setEditingTask(task.id);
+    setTaskFormData({
+      title: task.title,
+      description: task.description || "",
+      category: task.category || "general",
+      assignee_role: task.assignee_role || "",
+      due_days: task.due_days ?? 0,
+      order: task.order ?? 1,
+      is_required: !!task.is_required,
+    });
   }
 
   function cancelForm() {
@@ -148,7 +186,11 @@ export function OnboardingTemplatesPage() {
 
   function handleTaskSubmit(e: React.FormEvent, templateId: string) {
     e.preventDefault();
-    addTask.mutate({ templateId, data: taskFormData });
+    if (editingTask) {
+      updateTask.mutate({ templateId, taskId: editingTask, data: taskFormData });
+    } else {
+      addTask.mutate({ templateId, data: taskFormData });
+    }
   }
 
   return (
@@ -352,6 +394,12 @@ export function OnboardingTemplatesPage() {
                               </div>
                             </div>
                             <button
+                              onClick={() => startTaskEdit(template.id, task)}
+                              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => removeTask.mutate({ templateId: template.id, taskId: task.id })}
                               disabled={removeTask.isPending}
                               className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
@@ -451,15 +499,15 @@ export function OnboardingTemplatesPage() {
                         <div className="flex gap-2">
                           <button
                             type="submit"
-                            disabled={addTask.isPending}
+                            disabled={addTask.isPending || updateTask.isPending}
                             className="inline-flex items-center gap-1 rounded bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
                           >
                             <Save className="h-3 w-3" />
-                            {t("onboarding.templates.addTask")}
+                            {editingTask ? t("onboarding.templates.update") : t("onboarding.templates.addTask")}
                           </button>
                           <button
                             type="button"
-                            onClick={() => { setShowTaskForm(null); setTaskFormData(EMPTY_TASK); }}
+                            onClick={() => { setShowTaskForm(null); setEditingTask(null); setTaskFormData(EMPTY_TASK); }}
                             className="rounded border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             {t("onboarding.templates.cancel")}
@@ -468,7 +516,7 @@ export function OnboardingTemplatesPage() {
                       </form>
                     ) : (
                       <button
-                        onClick={() => { setShowTaskForm(template.id); setTaskFormData({ ...EMPTY_TASK, order: tasks.length + 1 }); }}
+                        onClick={() => { setShowTaskForm(template.id); setEditingTask(null); setTaskFormData({ ...EMPTY_TASK, order: tasks.length + 1 }); }}
                         className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                       >
                         <Plus className="h-4 w-4" />
