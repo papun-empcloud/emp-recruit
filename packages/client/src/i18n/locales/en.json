@@ -282,7 +282,9 @@
       "submitting": "Submitting...",
       "submit": "Submit Application",
       "monthsLabel": "Months",
-      "errorMonthsRange": "Months must be between 0 and 11"
+      "errorMonthsRange": "Months must be between 0 and 11",
+      "skillsLabel": "Skills (comma separated)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "Thank You for Applying!",

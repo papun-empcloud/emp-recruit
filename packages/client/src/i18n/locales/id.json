@@ -270,7 +270,9 @@
       "submitting": "Mengirim...",
       "submit": "Kirim Lamaran",
       "monthsLabel": "Bulan",
-      "errorMonthsRange": "Bulan harus antara 0 dan 11"
+      "errorMonthsRange": "Bulan harus antara 0 dan 11",
+      "skillsLabel": "Keterampilan (dipisahkan koma)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "Terima Kasih Telah Melamar!",

@@ -35,6 +35,7 @@ export function CareerApplyPage() {
     experience_years: "",
     experience_months: "",
     expected_salary: "",
+    skills: "",
   });
   const [resume, setResume] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export function CareerApplyPage() {
         formData.append("experience_years", String(Math.round((yrs + mos / 12) * 10) / 10));
       }
       if (form.expected_salary) formData.append("expected_salary", form.expected_salary);
+      if (form.skills.trim()) formData.append("skills", form.skills.trim());
       if (resume) formData.append("resume", resume);
 
       const { data } = await axios.post(`${PUBLIC_API}/careers/${slug}/apply`, formData, {
@@ -427,6 +429,23 @@ export function CareerApplyPage() {
                 <p className="mt-1 text-xs text-red-600">{errors.expected_salary}</p>
               )}
             </div>
+          </div>
+
+          {/* Skills — feed the ATS skills match (BUG-004) */}
+          <div>
+            <label htmlFor="skills" className="block text-sm font-medium text-gray-700">
+              {t("careers.apply.skillsLabel")}
+            </label>
+            <input
+              id="skills"
+              name="skills"
+              type="text"
+              maxLength={2000}
+              value={form.skills}
+              onChange={handleChange}
+              placeholder={t("careers.apply.skillsPlaceholder")}
+              className={fieldClass("skills")}
+            />
           </div>
 
           {submitError && (

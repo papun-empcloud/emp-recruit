@@ -299,7 +299,9 @@
       "submitting": "جارٍ الإرسال...",
       "submit": "إرسال الطلب",
       "monthsLabel": "الأشهر",
-      "errorMonthsRange": "يجب أن تكون الأشهر بين 0 و11"
+      "errorMonthsRange": "يجب أن تكون الأشهر بين 0 و11",
+      "skillsLabel": "المهارات (مفصولة بفواصل)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "شكرًا لتقديمك!",

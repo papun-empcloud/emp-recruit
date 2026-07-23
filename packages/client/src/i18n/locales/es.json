@@ -278,7 +278,9 @@
       "submitting": "Enviando...",
       "submit": "Enviar candidatura",
       "monthsLabel": "Meses",
-      "errorMonthsRange": "Los meses deben estar entre 0 y 11"
+      "errorMonthsRange": "Los meses deben estar entre 0 y 11",
+      "skillsLabel": "Competencias (separadas por comas)",
+      "skillsPlaceholder": "React, Python, SQL"
     },
     "success": {
       "title": "¡Gracias por postularte!",

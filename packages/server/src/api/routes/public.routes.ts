@@ -110,6 +110,22 @@ const applySchema = z.object({
     .min(0, "Expected salary cannot be negative")
     .max(100000000, "Please enter a realistic expected salary")
     .optional(),
+  // Skills arrive as a comma-separated string (multipart form field) and are
+  // normalised to a bounded string[] — they feed the ATS skills match, which
+  // otherwise only has resume text extraction to go on (BUG-004).
+  skills: z
+    .string()
+    .max(2000, "Skills list is too long")
+    .optional()
+    .transform((v) => {
+      if (!v) return undefined;
+      const arr = v
+        .split(",")
+        .map((s) => s.trim().slice(0, 100))
+        .filter(Boolean)
+        .slice(0, 50);
+      return arr.length ? arr : undefined;
+    }),
 });
 
 // ---------------------------------------------------------------------------
