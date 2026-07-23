@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -50,6 +50,8 @@ export function OnboardingTemplatesPage() {
   const [showTaskForm, setShowTaskForm] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [taskFormData, setTaskFormData] = useState<TaskFormData>(EMPTY_TASK);
+  const formRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch templates
   const { data: templatesRes, isLoading } = useQuery({
@@ -90,7 +92,7 @@ export function OnboardingTemplatesPage() {
       setShowForm(false);
       setFormData(EMPTY_TEMPLATE);
     },
-    onError: (err: any) => toast.error(err?.message || "Failed to create template"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create template"),
   });
 
   const updateTemplate = useMutation({
@@ -102,7 +104,7 @@ export function OnboardingTemplatesPage() {
       setEditingTemplate(null);
       setFormData(EMPTY_TEMPLATE);
     },
-    onError: (err: any) => toast.error(err?.message || "Failed to update template"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to update template"),
   });
 
   const addTask = useMutation({
@@ -114,7 +116,7 @@ export function OnboardingTemplatesPage() {
       setShowTaskForm(null);
       setTaskFormData(EMPTY_TASK);
     },
-    onError: (err: any) => toast.error(err?.message || "Failed to add task"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to add task"),
   });
 
   const updateTask = useMutation({
@@ -127,7 +129,7 @@ export function OnboardingTemplatesPage() {
       setEditingTask(null);
       setTaskFormData(EMPTY_TASK);
     },
-    onError: (err: any) => toast.error(err?.message || "Failed to update task"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to update task"),
   });
 
   const removeTask = useMutation({
@@ -150,9 +152,14 @@ export function OnboardingTemplatesPage() {
       is_default: !!template.is_default,
     });
     setShowForm(true);
-    // The form lives at the top of the page — bring it into view so the edit
-    // doesn't appear to do nothing when a template further down is edited.
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Bring the (top-of-page) form into view so editing a template further down
+    // doesn't look like nothing happened. window.scrollTo is a no-op here: the
+    // layout scrolls an inner <main> container, not the window — so scroll the
+    // form itself into view, which works whichever ancestor is the scroller.
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      nameInputRef.current?.focus({ preventScroll: true });
+    });
   }
 
   function startTaskEdit(templateId: string, task: OnboardingTemplateTask) {
@@ -214,7 +221,7 @@ export function OnboardingTemplatesPage() {
 
       {/* Template Form */}
       {showForm && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div ref={formRef} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm scroll-mt-4">
           <h2 className="text-lg font-semibold text-gray-900">
             {editingTemplate ? t("onboarding.templates.editTemplate") : t("onboarding.templates.createTemplate")}
           </h2>
@@ -223,6 +230,7 @@ export function OnboardingTemplatesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700">{t("onboarding.templates.nameLabel")}</label>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   required
                   value={formData.name}
