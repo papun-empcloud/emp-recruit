@@ -870,6 +870,7 @@
       "sending": "Sending...",
       "sendInvitation": "Send Invitation",
       "invitationSent": "Invitation sent successfully to candidate and panelists.",
+      "invitationPartial": "Couldn't email {{count}} recipient(s): {{recipients}}. Check the mail server settings.",
       "sendInvitationError": "Failed to send invitation.",
       "addToCalendar": "Add to Calendar",
       "googleCalendar": "Google Calendar",

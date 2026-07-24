@@ -844,6 +844,7 @@
       "sending": "جارٍ الإرسال...",
       "sendInvitation": "إرسال دعوة",
       "invitationSent": "تم إرسال الدعوة بنجاح إلى المرشح وأعضاء اللجنة.",
+      "invitationPartial": "تعذّر إرسال البريد إلى {{count}} مستلم: {{recipients}}. تحقق من إعدادات خادم البريد.",
       "sendInvitationError": "فشل في إرسال الدعوة.",
       "addToCalendar": "إضافة إلى التقويم",
       "googleCalendar": "Google Calendar",

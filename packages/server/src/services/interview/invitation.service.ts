@@ -6,7 +6,7 @@
 import { getDB } from "../../db/adapters";
 import { findUserById, findOrgById } from "../../db/empcloud";
 import { sendEmail } from "../email/email.service";
-import { NotFoundError } from "../../utils/errors";
+import { AppError, NotFoundError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { generateCalendarLinks } from "./calendar.service";
 import type { Interview, InterviewPanelist } from "@emp-recruit/shared";
@@ -18,7 +18,7 @@ import type { Interview, InterviewPanelist } from "@emp-recruit/shared";
 export async function sendInterviewInvitation(
   orgId: number,
   interviewId: string,
-): Promise<{ sent_to: string[] }> {
+): Promise<{ sent_to: string[]; failed_to: string[] }> {
   const db = getDB();
 
   // Get interview details
@@ -128,13 +128,22 @@ export async function sendInterviewInvitation(
   `;
 
   const sentTo: string[] = [];
+  const failedTo: string[] = [];
 
   // Send to candidate
-  try {
-    await sendEmail(candidate.email, candidateSubject, candidateBody);
-    sentTo.push(candidate.email);
-  } catch (err) {
-    logger.error(`Failed to send invitation to candidate ${candidate.email}`, err);
+  if (!candidate.email || !String(candidate.email).trim()) {
+    // No address to send to — report it as a named failure rather than handing
+    // nodemailer an empty recipient (and an empty string to the UI).
+    logger.error(`Interview ${interviewId}: candidate has no email address on file`);
+    failedTo.push(`${candidate.first_name} ${candidate.last_name} (no email on file)`);
+  } else {
+    try {
+      await sendEmail(candidate.email, candidateSubject, candidateBody);
+      sentTo.push(candidate.email);
+    } catch (err) {
+      logger.error(`Failed to send invitation to candidate ${candidate.email}`, err);
+      failedTo.push(candidate.email);
+    }
   }
 
   // Get panelists and send to each
@@ -144,9 +153,11 @@ export async function sendInterviewInvitation(
   });
 
   for (const panelist of panelistResult.data) {
+    let panelistEmail: string | null = null;
     try {
       const user = await findUserById(panelist.user_id);
       if (!user) continue;
+      panelistEmail = user.email;
 
       const panelistSubject = `Interview Panel — ${jobTitle} with ${candidate.first_name} ${candidate.last_name}`;
       const panelistBody = `
@@ -174,10 +185,26 @@ export async function sendInterviewInvitation(
       sentTo.push(user.email);
     } catch (err) {
       logger.error(`Failed to send invitation to panelist ${panelist.user_id}`, err);
+      failedTo.push(panelistEmail ?? `panelist #${panelist.user_id}`);
     }
   }
 
-  logger.info(`Interview invitation sent for ${interviewId} to ${sentTo.length} recipients`);
+  // If nothing reached anyone, fail loudly. Returning 200 here made the UI
+  // report "Invitation sent" off the status code alone, so a dead mail server
+  // looked identical to a delivered invitation and the candidate silently
+  // never heard about their interview.
+  if (sentTo.length === 0 && failedTo.length > 0) {
+    throw new AppError(
+      502,
+      "EMAIL_SEND_FAILED",
+      "The invitation couldn't be emailed to anyone. Check the mail server settings and try again.",
+    );
+  }
 
-  return { sent_to: sentTo };
+  logger.info(
+    `Interview invitation sent for ${interviewId} to ${sentTo.length} recipients` +
+      (failedTo.length ? ` (${failedTo.length} failed)` : ""),
+  );
+
+  return { sent_to: sentTo, failed_to: failedTo };
 }

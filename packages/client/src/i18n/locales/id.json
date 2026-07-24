@@ -775,6 +775,7 @@
       "sending": "Mengirim...",
       "sendInvitation": "Kirim Undangan",
       "invitationSent": "Undangan berhasil dikirim ke kandidat dan panelis.",
+      "invitationPartial": "Tidak dapat mengirim email ke {{count}} penerima: {{recipients}}. Periksa pengaturan server email.",
       "sendInvitationError": "Gagal mengirim undangan.",
       "addToCalendar": "Tambah ke Kalender",
       "googleCalendar": "Google Calendar",

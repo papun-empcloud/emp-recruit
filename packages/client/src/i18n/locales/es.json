@@ -793,6 +793,7 @@
       "sending": "Enviando...",
       "sendInvitation": "Enviar invitación",
       "invitationSent": "Invitación enviada correctamente al candidato y a los panelistas.",
+      "invitationPartial": "No se pudo enviar el correo a {{count}} destinatario(s): {{recipients}}. Comprueba la configuración del servidor de correo.",
       "sendInvitationError": "No se pudo enviar la invitación.",
       "addToCalendar": "Añadir al calendario",
       "googleCalendar": "Google Calendar",

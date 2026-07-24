@@ -793,6 +793,7 @@
       "sending": "Envoi en cours...",
       "sendInvitation": "Envoyer l'invitation",
       "invitationSent": "Invitation envoyée avec succès au candidat et aux membres du jury.",
+      "invitationPartial": "Impossible d'envoyer l'e-mail à {{count}} destinataire(s) : {{recipients}}. Vérifiez les paramètres du serveur de messagerie.",
       "sendInvitationError": "Échec de l'envoi de l'invitation.",
       "addToCalendar": "Ajouter au calendrier",
       "googleCalendar": "Google Calendar",
