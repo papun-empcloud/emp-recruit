@@ -793,6 +793,7 @@
       "sending": "Enviando...",
       "sendInvitation": "Enviar Convite",
       "invitationSent": "Convite enviado com sucesso ao candidato e aos avaliadores.",
+      "invitationPartial": "Não foi possível enviar o e-mail para {{count}} destinatário(s): {{recipients}}. Verifique as configurações do servidor de e-mail.",
       "sendInvitationError": "Falha ao enviar o convite.",
       "addToCalendar": "Adicionar ao Calendário",
       "googleCalendar": "Google Calendar",

@@ -107,7 +107,21 @@ export async function sendPortalLink(candidateId: string, orgId: number): Promis
     </div>
   `;
 
-  await sendEmail(candidate.email, "Your Candidate Portal Access Link", html);
+  // Staff-initiated send, so a transport failure should be reported rather than
+  // swallowed. (requestAccess below deliberately does the opposite — it must
+  // stay silent to avoid leaking which emails exist.)
+  try {
+    await sendEmail(candidate.email, "Your Candidate Portal Access Link", html);
+  } catch (err) {
+    logger.error(
+      `Failed to send portal link to candidate ${candidateId} (${candidate.email}): ${String(err)}`,
+    );
+    throw new AppError(
+      502,
+      "EMAIL_SEND_FAILED",
+      "Couldn't email the portal link. Check the mail server settings and try again.",
+    );
+  }
   logger.info(`Portal link sent to candidate ${candidateId} (${candidate.email})`);
 }
 

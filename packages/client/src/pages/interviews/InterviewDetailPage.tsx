@@ -330,12 +330,29 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
 
   const sendInvitationMutation = useMutation({
     mutationFn: async () => {
-      return apiPost(`/interviews/${interview.id}/send-invitation`);
+      return apiPost<{ sent_to: string[]; failed_to: string[] }>(
+        `/interviews/${interview.id}/send-invitation`,
+      );
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
+      // Some recipients can fail while others go through — don't show a plain
+      // success banner when part of the invitation never left the building.
+      const failed = res?.data?.failed_to ?? [];
+      if (failed.length > 0) {
+        toast.error(
+          t("interviews.detail.invitationPartial", {
+            count: failed.length,
+            recipients: failed.join(", "),
+          }),
+        );
+      }
       setInvitationSent(true);
       setTimeout(() => setInvitationSent(false), 5000);
     },
+    onError: (err: any) =>
+      toast.error(
+        err?.response?.data?.error?.message || t("interviews.detail.sendInvitationError"),
+      ),
   });
 
   const handleCopyLink = async () => {
