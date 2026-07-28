@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs/promises";
 import { getDB } from "../../db/adapters";
 import { findOrgById } from "../../db/empcloud";
-import { NotFoundError, ValidationError } from "../../utils/errors";
+import { AppError, NotFoundError, ValidationError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
 import { toMysqlDateTime } from "../../utils/date";
 import * as emailService from "../email/email.service";
@@ -305,6 +305,29 @@ export async function getOfferLetter(
 // Send letter to candidate via email
 // ---------------------------------------------------------------------------
 
+/**
+ * Turn a nodemailer/provider transport error into something the recruiter and
+ * whoever maintains the deployment can both act on. The underlying error object
+ * is logged in full; this is only the user-facing sentence.
+ */
+function describeEmailFailure(err: unknown): string {
+  const code = (err as { code?: string } | null)?.code ?? "";
+  switch (code) {
+    case "ECONNREFUSED":
+    case "ESOCKET":
+    case "ECONNECTION":
+      return "Couldn't reach the mail server, so the offer letter wasn't sent. Check the SMTP settings and try again.";
+    case "ETIMEDOUT":
+      return "The mail server didn't respond in time, so the offer letter wasn't sent. Check the SMTP settings and try again.";
+    case "EAUTH":
+      return "The mail server rejected our credentials, so the offer letter wasn't sent. Check the SMTP username and password.";
+    case "EENVELOPE":
+      return "The mail server rejected the recipient address, so the offer letter wasn't sent.";
+    default:
+      return "The offer letter couldn't be emailed. Check the mail server configuration and try again.";
+  }
+}
+
 export async function sendOfferLetter(
   orgId: number,
   offerId: string,
@@ -333,13 +356,29 @@ export async function sendOfferLetter(
   if (!candidate) {
     throw new NotFoundError("Candidate", offer.candidate_id);
   }
+  if (!candidate.email || !String(candidate.email).trim()) {
+    throw new ValidationError(
+      "This candidate has no email address on file, so the offer letter can't be sent.",
+    );
+  }
 
-  // Send email with the rendered letter content as HTML body
-  await emailService.sendEmail(
-    candidate.email,
-    `Offer Letter — ${offer.job_title}`,
-    letter.content,
-  );
+  // Send email with the rendered letter content as HTML body.
+  // A mail-transport failure is an infrastructure problem, not a broken
+  // request — surface it as an actionable 502 rather than letting it escape
+  // as a bare 500 ("An unexpected error occurred"), which tells the recruiter
+  // nothing and hides the real cause from whoever has to fix it.
+  try {
+    await emailService.sendEmail(
+      candidate.email,
+      `Offer Letter — ${offer.job_title}`,
+      letter.content,
+    );
+  } catch (err) {
+    logger.error(
+      `Offer letter email failed for offer ${offerId} to ${candidate.email}: ${String(err)}`,
+    );
+    throw new AppError(502, "EMAIL_SEND_FAILED", describeEmailFailure(err));
+  }
 
   // Update sent_at (MySQL datetime format, not ISO-with-Z which it rejects)
   const updated = await db.update<GeneratedOfferLetter>("generated_offer_letters", letter.id, {

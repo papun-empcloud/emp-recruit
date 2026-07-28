@@ -32,6 +32,17 @@ export function validateConfig(): void {
   if (!["smtp", "sendgrid"].includes(config.email.provider)) {
     warnings.push(`Unknown EMAIL_PROVIDER "${config.email.provider}" — falling back to SMTP`);
   }
+  // SMTP_HOST defaults to localhost:1025 (the dev Mailhog address). Outside
+  // development that default silently makes every send fail at connect time,
+  // so say so at boot instead of only when a recruiter clicks "Email Offer
+  // Letter". A warning, not an error: email being down shouldn't stop the
+  // whole ATS from serving.
+  if (!devEnv && config.email.provider === "smtp" && (!process.env.SMTP_HOST || config.email.host === "localhost")) {
+    warnings.push(
+      "SMTP_HOST is not set — falling back to localhost:1025 (dev Mailhog). " +
+        "Offer letters, interview invites and notifications will fail to send.",
+    );
+  }
 
   // CORS
   if (config.env === "production" && config.cors.origin === "*") {
