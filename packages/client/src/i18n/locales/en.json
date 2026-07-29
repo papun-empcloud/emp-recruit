@@ -1647,6 +1647,8 @@
       "concerns": "Concerns",
       "heuristicNote": "Automated completion score (no AI provider configured).",
       "evaluatedBy": "Evaluated by {{provider}}.",
+      "methodAi": "AI evaluation · {{model}}",
+      "methodCompletion": "Completion score only — this reflects how fully the questions were answered, not answer correctness or quality. It is not an AI content assessment; configure an AI provider for a real evaluation.",
       "completedAt": " Completed {{date}}.",
       "voiceTranscript": "Voice transcript",
       "questions": "Questions",

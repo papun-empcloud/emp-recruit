@@ -51,6 +51,15 @@ export function AiInterviewPage() {
   const [soundChecked, setSoundChecked] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const recognitionRef = useRef<any>(null);
+  // Text finalized before the CURRENT recognition run started (preserved across
+  // mute/unmute and Chrome's auto-restarts) so we can rebuild the answer from the
+  // current run's results without double-appending. (#3)
+  const committedRef = useRef("");
+  // Always-current answer, so startListening() can read it without stale closures.
+  const answerRef = useRef("");
+  // True when WE stopped recognition (mute / next question) — tells onend not to
+  // auto-restart. (#4/#5)
+  const manualStopRef = useRef(false);
   const soundCheckStopRef = useRef(false);
   const soundCheckTimerRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -359,15 +368,24 @@ export function AiInterviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
+  // Keep answerRef in sync so startListening() always sees the latest answer.
+  useEffect(() => {
+    answerRef.current = answer;
+  }, [answer]);
+
   // Confirm the sound check and move on to the first question.
   function proceedToQuestions() {
     stopSoundCheck();
     stopListening();
     setAnswer("");
+    answerRef.current = "";
+    committedRef.current = "";
     setSoundChecked(true);
   }
 
   function stopListening() {
+    // We are intentionally stopping — don't let onend auto-restart. (#4/#5)
+    manualStopRef.current = true;
     try {
       recognitionRef.current?.stop();
     } catch {
@@ -380,6 +398,7 @@ export function AiInterviewPage() {
   function startListening() {
     if (!SpeechRecognitionCtor) return;
     // Tear down any previous recognition so start() doesn't throw "already started".
+    manualStopRef.current = true; // suppress the old rec's onend restart
     try {
       recognitionRef.current?.abort?.();
     } catch {
@@ -390,27 +409,54 @@ export function AiInterviewPage() {
       rec.lang = "en-US";
       rec.continuous = true;
       rec.interimResults = true;
+      // Everything already captured becomes this run's committed base; the run's
+      // own results are rebuilt from scratch each event so a repeated final
+      // segment is never appended twice. (#3)
+      committedRef.current = answerRef.current;
+      manualStopRef.current = false;
       rec.onresult = (e: any) => {
-        let finalChunk = "";
+        // Rebuild from ALL results of THIS run (idempotent), not by appending the
+        // latest chunk — browsers can re-fire the same final result. (#3)
+        let runFinal = "";
         let interimText = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
+        for (let i = 0; i < e.results.length; i++) {
           const r = e.results[i];
-          if (r.isFinal) finalChunk += r[0].transcript + " ";
+          if (r.isFinal) runFinal += r[0].transcript + " ";
           else interimText += r[0].transcript;
         }
-        if (finalChunk) {
-          setAnswer((prev) => `${prev} ${finalChunk}`.replace(/\s+/g, " ").trimStart());
-        }
+        const combined = `${committedRef.current} ${runFinal}`.replace(/\s+/g, " ").trim();
+        answerRef.current = combined;
+        setAnswer(combined);
         setInterim(interimText);
       };
-      rec.onend = () => setListening(false);
-      rec.onerror = (e: any) => {
+      rec.onend = () => {
+        // Only act for the recognition that's still current.
+        if (recognitionRef.current !== rec) return;
+        // Chrome ends recognition after a pause even in continuous mode. Unless
+        // we stopped on purpose, commit what we have and restart so the mic keeps
+        // listening and the "Listening" badge stays accurate. (#4/#5)
+        if (!manualStopRef.current) {
+          committedRef.current = answerRef.current;
+          try {
+            rec.start();
+            return;
+          } catch {
+            /* fall through to stop */
+          }
+        }
         setListening(false);
+      };
+      rec.onerror = (e: any) => {
         if (e?.error === "not-allowed" || e?.error === "audio-capture" || e?.error === "service-not-allowed") {
+          // A permission/hardware error — don't auto-restart into a loop.
+          manualStopRef.current = true;
+          setListening(false);
           setMicError(
             "We couldn't access your microphone. Please allow mic access in your browser and reload the page.",
           );
         }
+        // Transient errors (no-speech, aborted) fall through to onend, which
+        // restarts recognition so the candidate isn't cut off.
       };
       recognitionRef.current = rec;
       rec.start();
@@ -428,7 +474,10 @@ export function AiInterviewPage() {
     try {
       const { data } = await axios.post(`${PUBLIC_API}/${token}/answer`, { answer });
       const next = data.data;
+      // Reset the transcript AND its refs so the next question starts clean.
       setAnswer("");
+      answerRef.current = "";
+      committedRef.current = "";
       if (next.done) {
         await axios.post(`${PUBLIC_API}/${token}/complete`);
         // Upload the recorded audio so it appears on the recruiter's view.
