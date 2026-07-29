@@ -414,6 +414,11 @@ export interface CandidateScore {
   matched_skills: string; // JSON array
   missing_skills: string; // JSON array
   recommendation: ScoringRecommendation;
+  // How the score was produced: "ai" = a configured LLM evaluated it,
+  // "heuristic" = the deterministic rule-based fallback. (028)
+  scoring_method: "ai" | "heuristic";
+  // Model used for an AI score (e.g. "claude-opus-4-8"); null for heuristic.
+  scoring_model: string | null;
   scored_at: string;
   created_at: string;
   updated_at: string;

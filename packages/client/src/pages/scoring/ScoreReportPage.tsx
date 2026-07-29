@@ -1,14 +1,17 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import {
   ArrowLeft,
   Brain,
   Target,
   BarChart,
   Loader2,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
-import { apiGet } from "@/api/client";
+import { apiGet, apiPost } from "@/api/client";
 import type { CandidateScore } from "@emp-recruit/shared";
 import { cn } from "@/lib/utils";
 
@@ -140,10 +143,23 @@ export function ScoreReportPage() {
   const { appId } = useParams<{ appId: string }>();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
+
   const { data: scoreData, isLoading } = useQuery({
     queryKey: ["score-report", appId],
     queryFn: () => apiGet<CandidateScore>(`/scoring/applications/${appId}`),
     enabled: Boolean(appId),
+  });
+
+  // Retry AI scoring — re-evaluates the application and refreshes the report.
+  const retryMutation = useMutation({
+    mutationFn: () => apiPost(`/scoring/applications/${appId}/rescore`, {}),
+    onSuccess: () => {
+      toast.success(t("scoring.report.retrySuccess"));
+      queryClient.invalidateQueries({ queryKey: ["score-report", appId] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || t("scoring.report.retryFailed")),
   });
 
   const score = scoreData?.data;
@@ -208,10 +224,24 @@ export function ScoreReportPage() {
         {t("scoring.report.back")}
       </button>
 
-      {/* Page title */}
-      <div className="flex items-center gap-3">
-        <Brain className="h-7 w-7 text-purple-600" />
-        <h1 className="text-2xl font-bold text-gray-900">{t("scoring.report.title")}</h1>
+      {/* Page title + retry */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Brain className="h-7 w-7 text-purple-600" />
+          <h1 className="text-2xl font-bold text-gray-900">{t("scoring.report.title")}</h1>
+        </div>
+        <button
+          onClick={() => retryMutation.mutate()}
+          disabled={retryMutation.isPending}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {retryMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          {t("scoring.report.retryAiScoring")}
+        </button>
       </div>
 
       {/* Overall Score */}
@@ -235,6 +265,20 @@ export function ScoreReportPage() {
             <p className="mt-2 text-sm text-gray-500">{t(rec.description)}</p>
           </div>
         )}
+
+        {/* How the score was produced — genuine AI vs rule-based fallback */}
+        <div className="mt-4 flex items-center justify-center">
+          {score.scoring_method === "ai" ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t("scoring.report.methodAi", { model: score.scoring_model || "AI" })}
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+              {t("scoring.report.methodHeuristic")}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Score Breakdown */}
@@ -306,8 +350,9 @@ export function ScoreReportPage() {
       )}
 
       {/* Meta info */}
-      <div className="text-xs text-gray-400 text-center pb-4">
-        {t("scoring.report.scoredAt", { date: new Date(score.scored_at).toLocaleString() })}
+      <div className="space-y-1 pb-4 text-center text-xs text-gray-400">
+        <p>{t("scoring.report.reviewDisclaimer")}</p>
+        <p>{t("scoring.report.scoredAt", { date: new Date(score.scored_at).toLocaleString() })}</p>
       </div>
     </div>
   );

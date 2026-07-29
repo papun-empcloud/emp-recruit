@@ -309,7 +309,7 @@ export async function scoreCandidate(
   candidateId: string,
   jobId: string,
   applicationId: string,
-): Promise<ScoreResult & { id: string }> {
+): Promise<ScoreResult & { id: string; scoringMethod: "ai" | "heuristic"; scoringModel: string | null }> {
   const db = getDB();
 
   // Fetch candidate
@@ -403,46 +403,62 @@ export async function scoreCandidate(
   // Deterministic heuristic by default so the individual "AI Score" and "Batch
   // Score All" always agree for the same candidate and are reproducible. Only
   // reach for the (non-deterministic, rate-limited) LLM when explicitly enabled.
-  const result =
-    (config.ai.resumeScoringLlm
-      ? await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)
-      : null) ?? heuristicScore();
+  // Record which path actually produced the score so the UI can distinguish a
+  // genuine AI evaluation from the rule-based fallback. (028)
+  const llmResult = config.ai.resumeScoringLlm
+    ? await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)
+    : null;
+  const result = llmResult ?? heuristicScore();
+  const scoringMethod: "ai" | "heuristic" = llmResult ? "ai" : "heuristic";
+  const scoringModel = llmResult ? getLLM()?.model() ?? null : null;
   const { overallScore, skillsScore, experienceScore, matchedSkills, missingSkills, recommendation } =
     result;
 
-  // Upsert score record (delete existing if any, then create new)
+  const row = {
+    overall_score: overallScore,
+    skills_score: skillsScore,
+    experience_score: experienceScore,
+    matched_skills: JSON.stringify(matchedSkills),
+    missing_skills: JSON.stringify(missingSkills),
+    recommendation,
+    scoring_method: scoringMethod,
+    scoring_model: scoringModel,
+    scored_at: new Date(),
+  };
+
+  // Upsert by application_id. The UNIQUE(application_id) constraint (028) makes
+  // this safe under concurrency: if a racing re-score inserted first, our insert
+  // fails and we update the row that won instead of creating a duplicate.
   const existingScore = await db.findOne<CandidateScore>("candidate_scores", {
     application_id: applicationId,
     organization_id: orgId,
   });
 
-  const scoreId = existingScore ? existingScore.id : uuidv4();
-
+  let scoreId: string;
   if (existingScore) {
-    await db.update<CandidateScore>("candidate_scores", existingScore.id, {
-      overall_score: overallScore,
-      skills_score: skillsScore,
-      experience_score: experienceScore,
-      matched_skills: JSON.stringify(matchedSkills),
-      missing_skills: JSON.stringify(missingSkills),
-      recommendation,
-      scored_at: new Date(),
-    } as any);
+    scoreId = existingScore.id;
+    await db.update<CandidateScore>("candidate_scores", existingScore.id, row as any);
   } else {
-    await db.create<CandidateScore>("candidate_scores", {
-      id: scoreId,
-      organization_id: orgId,
-      application_id: applicationId,
-      candidate_id: candidateId,
-      job_id: jobId,
-      overall_score: overallScore,
-      skills_score: skillsScore,
-      experience_score: experienceScore,
-      matched_skills: JSON.stringify(matchedSkills),
-      missing_skills: JSON.stringify(missingSkills),
-      recommendation,
-      scored_at: new Date(),
-    } as any);
+    scoreId = uuidv4();
+    try {
+      await db.create<CandidateScore>("candidate_scores", {
+        id: scoreId,
+        organization_id: orgId,
+        application_id: applicationId,
+        candidate_id: candidateId,
+        job_id: jobId,
+        ...row,
+      } as any);
+    } catch (err) {
+      // Lost a concurrent insert race — update the row that won instead.
+      const winner = await db.findOne<CandidateScore>("candidate_scores", {
+        application_id: applicationId,
+        organization_id: orgId,
+      });
+      if (!winner) throw err;
+      scoreId = winner.id;
+      await db.update<CandidateScore>("candidate_scores", winner.id, row as any);
+    }
   }
 
   return {
@@ -453,6 +469,8 @@ export async function scoreCandidate(
     matchedSkills,
     missingSkills,
     recommendation,
+    scoringMethod,
+    scoringModel,
   };
 }
 
@@ -555,7 +573,15 @@ export async function batchScoreCandidates(
   scored: number;
   total: number;
   skipped: number;
-  results: Array<ScoreResult & { id: string; applicationId: string; candidateId: string }>;
+  results: Array<
+    ScoreResult & {
+      id: string;
+      applicationId: string;
+      candidateId: string;
+      scoringMethod: "ai" | "heuristic";
+      scoringModel: string | null;
+    }
+  >;
 }> {
   const db = getDB();
 
@@ -572,7 +598,15 @@ export async function batchScoreCandidates(
     limit: 1000,
   });
 
-  const results: Array<ScoreResult & { id: string; applicationId: string; candidateId: string }> = [];
+  const results: Array<
+    ScoreResult & {
+      id: string;
+      applicationId: string;
+      candidateId: string;
+      scoringMethod: "ai" | "heuristic";
+      scoringModel: string | null;
+    }
+  > = [];
 
   for (const app of applicationsResult.data) {
     try {
