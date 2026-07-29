@@ -10,6 +10,7 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import type { CandidateScore } from "@emp-recruit/shared";
@@ -147,7 +148,8 @@ export function ScoreReportPage() {
 
   const { data: scoreData, isLoading } = useQuery({
     queryKey: ["score-report", appId],
-    queryFn: () => apiGet<CandidateScore>(`/scoring/applications/${appId}`),
+    queryFn: () =>
+      apiGet<CandidateScore & { no_required_skills?: boolean }>(`/scoring/applications/${appId}`),
     enabled: Boolean(appId),
   });
 
@@ -243,6 +245,15 @@ export function ScoreReportPage() {
           {t("scoring.report.retryAiScoring")}
         </button>
       </div>
+
+      {/* When the job has no required skills, skills can't be assessed — say so
+          prominently so an inflated overall score isn't read as a real match. */}
+      {score.no_required_skills && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <span>{t("scoring.report.noRequiredSkills")}</span>
+        </div>
+      )}
 
       {/* Overall Score */}
       <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">

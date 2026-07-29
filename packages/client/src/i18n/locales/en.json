@@ -1475,6 +1475,7 @@
       "skillsAnalysis": "Skills Analysis",
       "matchedSkills": "Matched Skills ({{num}})",
       "missingSkills": "Missing Skills ({{num}})",
+      "noRequiredSkills": "Skills not assessed — this job has no required skills configured, so the score can't measure skill fit. Add required skills to the job for a meaningful match, or configure an AI provider for content-based scoring.",
       "retryAiScoring": "Retry AI scoring",
       "retrySuccess": "Re-scored the candidate.",
       "retryFailed": "Could not re-score. Please try again.",

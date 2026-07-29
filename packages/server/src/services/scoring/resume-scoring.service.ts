@@ -480,12 +480,13 @@ function calculateSkillsScore(
   jobSkillsOriginal: string[],
 ): { skillsScore: number; matchedSkills: string[]; missingSkills: string[] } {
   if (jobSkillsLower.length === 0) {
-    // No required skills to match against. Awarding a flat 100 gave every
-    // candidate an identical perfect score (BUG-010). With nothing to match,
-    // score by the candidate's own skill breadth instead, so distinct
-    // candidates are differentiated (≈8 recognised skills reaches 100).
-    const score = Math.min(100, candidateSkills.length * 12);
-    return { skillsScore: score, matchedSkills: candidateSkills.slice(0, 12), missingSkills: [] };
+    // The job lists NO required skills, so there is nothing to assess skill fit
+    // against. Award zero skill points and match nothing. Scoring by the
+    // candidate's own skill breadth (the previous behaviour) handed unrelated
+    // candidates a positive "match" and even surfaced the candidate's own skills
+    // as "matched" — e.g. a graphic designer ranking as a Good Match for a QA
+    // Automation role. The UI flags this as "skills not assessed". (BLOCKER)
+    return { skillsScore: 0, matchedSkills: [], missingSkills: [] };
   }
 
   const matchedSkills: string[] = [];
@@ -635,15 +636,30 @@ export async function batchScoreCandidates(
 export async function getScoreReport(
   orgId: number,
   applicationId: string,
-): Promise<CandidateScore | null> {
+): Promise<(CandidateScore & { no_required_skills: boolean }) | null> {
   const db = getDB();
 
   const score = await db.findOne<CandidateScore>("candidate_scores", {
     application_id: applicationId,
     organization_id: orgId,
   });
+  if (!score) return null;
 
-  return score;
+  // Tell the UI when the job had no required skills configured, so it can show
+  // that skills weren't assessed rather than implying a real skill match. (BLOCKER)
+  const job = await db.findOne<JobPosting>("job_postings", {
+    id: score.job_id,
+    organization_id: orgId,
+  });
+  let jobSkills: string[] = [];
+  try {
+    const js = typeof job?.skills === "string" ? JSON.parse(job.skills) : job?.skills;
+    if (Array.isArray(js)) jobSkills = js.filter((s) => typeof s === "string");
+  } catch {
+    /* malformed skills JSON — treat as none */
+  }
+
+  return { ...score, no_required_skills: jobSkills.length === 0 };
 }
 
 // Shared SELECT/FROM/WHERE for a job's ranked candidates. Callers append the
