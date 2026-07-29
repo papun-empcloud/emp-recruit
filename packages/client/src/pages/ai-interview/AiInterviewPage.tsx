@@ -60,6 +60,9 @@ export function AiInterviewPage() {
   // True when WE stopped recognition (mute / next question) — tells onend not to
   // auto-restart. (#4/#5)
   const manualStopRef = useRef(false);
+  // Force-finish the current TTS utterance (used when the candidate taps the mic
+  // while the AI is still speaking, and as a safety net if onend never fires).
+  const ttsFinishRef = useRef<(() => void) | null>(null);
   const soundCheckStopRef = useRef(false);
   const soundCheckTimerRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -133,24 +136,60 @@ export function AiInterviewPage() {
   // the countdown only after the question has been spoken (so the mic doesn't
   // capture the AI's own voice).
   function say(text: string, onDone?: () => void) {
+    if (!("speechSynthesis" in window)) {
+      onDone?.();
+      return;
+    }
     try {
-      if (!("speechSynthesis" in window)) {
-        onDone?.();
-        return;
-      }
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
+
+      // Chrome's speechSynthesis fires onend unreliably and stops speaking after
+      // ~15s, which used to leave the AI "Speaking" forever and the mic never
+      // auto-started for the answer. Guard with a single idempotent finish() that
+      // runs on onend/onerror, on a keep-alive poke, and on an estimated-duration
+      // fallback — so the answer phase (which starts the mic) ALWAYS begins.
+      let done = false;
+      let keepAlive: number | undefined;
+      let fallback: number | undefined;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (keepAlive != null) window.clearInterval(keepAlive);
+        if (fallback != null) window.clearTimeout(fallback);
+        ttsFinishRef.current = null;
+        try {
+          window.speechSynthesis.cancel();
+        } catch {
+          /* ignore */
+        }
+        setAiSpeaking(false);
+        onDone?.();
+      };
+      ttsFinishRef.current = finish;
+
       u.onstart = () => setAiSpeaking(true);
-      u.onend = () => {
-        setAiSpeaking(false);
-        onDone?.();
-      };
-      u.onerror = () => {
-        setAiSpeaking(false);
-        onDone?.();
-      };
+      u.onend = finish;
+      u.onerror = finish;
+
+      // Keep Chrome speaking past its ~15s cap.
+      keepAlive = window.setInterval(() => {
+        if (!window.speechSynthesis.speaking) return;
+        try {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        } catch {
+          /* ignore */
+        }
+      }, 8000);
+      // Hard safety net: ~11 chars/sec + a buffer, clamped to a sane range.
+      const estMs = Math.min(60000, Math.max(4000, text.length * 90)) + 3000;
+      fallback = window.setTimeout(finish, estMs);
+
+      setAiSpeaking(true);
       window.speechSynthesis.speak(u);
     } catch {
+      ttsFinishRef.current = null;
       setAiSpeaking(false);
       onDone?.();
     }
@@ -466,6 +505,22 @@ export function AiInterviewPage() {
     }
   }
 
+  // Mic button. If the AI is still reading the question, don't no-op — skip the
+  // rest of the read and jump straight to the answer phase (which starts the
+  // mic). Otherwise toggle listening.
+  function toggleMic() {
+    if (aiSpeaking) {
+      if (ttsFinishRef.current) ttsFinishRef.current();
+      else {
+        setAiSpeaking(false);
+        beginAnswerPhase();
+      }
+      return;
+    }
+    if (listening) stopListening();
+    else startListening();
+  }
+
   async function submitAnswer() {
     if (!state || submitting) return;
     clearTimer();
@@ -737,8 +792,21 @@ export function AiInterviewPage() {
           <>
             {SpeechRecognitionCtor && (
               <button
-                onClick={() => (listening ? stopListening() : startListening())}
-                title={listening ? t("aiInterview.session.mute") : t("aiInterview.session.unmute")}
+                onClick={toggleMic}
+                title={
+                  aiSpeaking
+                    ? t("aiInterview.session.tapToAnswer")
+                    : listening
+                      ? t("aiInterview.session.mute")
+                      : t("aiInterview.session.unmute")
+                }
+                aria-label={
+                  aiSpeaking
+                    ? t("aiInterview.session.tapToAnswer")
+                    : listening
+                      ? t("aiInterview.session.mute")
+                      : t("aiInterview.session.unmute")
+                }
                 className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
                   listening ? "bg-white text-gray-900" : "bg-white/10 text-white hover:bg-white/20"
                 }`}
