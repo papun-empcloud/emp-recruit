@@ -551,3 +551,35 @@ export interface AssessmentResponse {
   time_taken_seconds: number | null;
   created_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Screening / Knockout Questions (029) — job-specific application questions.
+// ---------------------------------------------------------------------------
+
+export type ScreeningQuestionType = "text" | "number" | "yes_no" | "single_choice";
+
+export interface JobScreeningQuestion {
+  id: string;
+  organization_id: number;
+  job_id: string;
+  question: string;
+  type: ScreeningQuestionType;
+  options: string[] | null; // for single_choice
+  required: boolean;
+  is_knockout: boolean;
+  knockout_value: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicationScreeningAnswer {
+  id: string;
+  organization_id: number;
+  application_id: string;
+  question_id: string;
+  question_text: string;
+  answer: string | null;
+  knockout_failed: boolean;
+  created_at: string;
+}

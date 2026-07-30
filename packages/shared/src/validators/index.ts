@@ -544,3 +544,36 @@ export const submitAssessmentSchema = z.object({
     }),
   ).min(1).max(500),
 });
+
+// ---------------------------------------------------------------------------
+// Screening / Knockout Questions (029)
+// ---------------------------------------------------------------------------
+
+export const screeningQuestionTypeEnum = z.enum(["text", "number", "yes_no", "single_choice"]);
+
+export const screeningQuestionInputSchema = z
+  .object({
+    question: z.string().trim().min(2).max(500),
+    type: screeningQuestionTypeEnum.default("text"),
+    options: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+    required: z.boolean().default(true),
+    is_knockout: z.boolean().default(false),
+    knockout_value: z.string().max(255).optional(),
+    sort_order: z.number().int().min(0).default(0),
+  })
+  .refine((d) => d.type !== "single_choice" || (d.options != null && d.options.length >= 2), {
+    message: "Single-choice questions need at least two options",
+    path: ["options"],
+  });
+
+// Replace the full ordered set of screening questions on a job in one request.
+export const setScreeningQuestionsSchema = z.object({
+  questions: z.array(screeningQuestionInputSchema).max(30),
+});
+
+// A candidate's answers submitted with a public application.
+export const screeningAnswerSchema = z.object({
+  question_id: z.string().uuid(),
+  answer: z.string().max(2000).optional(),
+});
+export const screeningAnswersSchema = z.array(screeningAnswerSchema).max(30);

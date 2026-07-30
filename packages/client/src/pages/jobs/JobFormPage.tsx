@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ScreeningQuestionsEditor } from "@/components/ScreeningQuestionsEditor";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import type { JobPosting } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
@@ -552,6 +553,14 @@ export function JobFormPage() {
           </p>
         )}
       </form>
+
+      {/* Screening / knockout questions — managed separately, saved on their
+          own, and only available once the job exists (needs a job id). */}
+      {isEdit && id && (
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6">
+          <ScreeningQuestionsEditor jobId={id} />
+        </div>
+      )}
     </div>
   );
 }

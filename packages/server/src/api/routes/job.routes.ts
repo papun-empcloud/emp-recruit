@@ -8,11 +8,13 @@ import {
   changeJobStatusSchema,
   bulkImportJobsSchema,
   bulkUpdateJobsSchema,
+  setScreeningQuestionsSchema,
   idParamSchema,
   paginationSchema,
 } from "@emp-recruit/shared";
 import * as jobService from "../../services/job/job.service";
 import * as applicationService from "../../services/application/application.service";
+import * as screeningService from "../../services/screening/screening.service";
 
 const router = Router();
 
@@ -186,6 +188,34 @@ router.get("/:id/analytics", async (req: Request, res: Response, next: NextFunct
     const analytics = await jobService.getJobAnalytics(orgId, id);
     return sendSuccess(res, analytics);
   } catch (err) {
+    next(err);
+  }
+});
+
+// GET /:id/screening-questions — the job's screening/knockout questions
+router.get("/:id/screening-questions", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const orgId = req.user!.empcloudOrgId;
+    const questions = await screeningService.getJobQuestions(orgId, id);
+    return sendSuccess(res, questions);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /:id/screening-questions — replace the job's screening questions
+router.put("/:id/screening-questions", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const { questions } = setScreeningQuestionsSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+    const saved = await screeningService.setJobQuestions(orgId, id, questions);
+    return sendSuccess(res, saved);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid screening questions", err.flatten().fieldErrors));
+    }
     next(err);
   }
 });

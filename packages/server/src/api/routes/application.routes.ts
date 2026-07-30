@@ -10,6 +10,7 @@ import {
   paginationSchema,
 } from "@emp-recruit/shared";
 import * as applicationService from "../../services/application/application.service";
+import * as screeningService from "../../services/screening/screening.service";
 
 const router = Router();
 
@@ -124,6 +125,18 @@ router.get("/:id/timeline", async (req: Request, res: Response, next: NextFuncti
 
     const timeline = await applicationService.getTimeline(orgId, id);
     return sendSuccess(res, timeline);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /:id/screening-answers — a candidate's screening answers for this application
+router.get("/:id/screening-answers", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id);
+    const orgId = req.user!.empcloudOrgId;
+    const answers = await screeningService.getApplicationAnswers(orgId, id);
+    return sendSuccess(res, answers);
   } catch (err) {
     next(err);
   }

@@ -267,6 +267,10 @@
       "errorYearsMax": "Years of experience can't exceed {{max}}.",
       "errorSalaryNegative": "Expected salary cannot be negative.",
       "errorSalaryMax": "Please enter a realistic expected salary.",
+      "screeningTitle": "Screening questions",
+      "screeningSelect": "Select…",
+      "screeningRequired": "This question is required",
+      "screeningRequiredToast": "Please answer all required screening questions.",
       "errorNameEmailRequired": "Please fill in your name and email.",
       "backToJob": "Back to job details",
       "title": "Apply for {{title}}",
@@ -1428,6 +1432,30 @@
       "assigneeRolePlaceholder": "e.g., hr_admin",
       "requiredTask": "Required task",
       "addTask": "Add Task"
+    }
+  },
+  "screening": {
+    "type": {
+      "text": "Short text",
+      "number": "Number",
+      "yes_no": "Yes / No",
+      "single_choice": "Single choice"
+    },
+    "editor": {
+      "title": "Screening questions",
+      "subtitle": "Ask job-specific questions on the application. Mark a question as a knockout to auto-reject applicants who give the disqualifying answer.",
+      "empty": "No screening questions yet.",
+      "questionPlaceholder": "e.g., How many years of Selenium experience do you have?",
+      "remove": "Remove question",
+      "required": "Required",
+      "knockout": "Knockout",
+      "optionsPlaceholder": "Comma-separated choices, e.g. Yes, No, Maybe",
+      "knockoutValue": "Disqualifying answer",
+      "knockoutValuePlaceholder": "Answer that auto-rejects, e.g. No",
+      "addQuestion": "Add question",
+      "save": "Save questions",
+      "saved": "Screening questions saved.",
+      "saveFailed": "Could not save screening questions."
     }
   },
   "scoring": {
