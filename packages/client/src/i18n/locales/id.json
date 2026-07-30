@@ -1103,7 +1103,8 @@
         "indeed": "Aktif. Indeed merayapi umpan XML publik lowongan organisasi ini (daftar organik gratis). Kirim URL umpan ke Indeed sekali, lalu lowongan yang dipublikasikan muncul otomatis.",
         "naukri": "Memerlukan langganan pemberi kerja/RMS Naukri + kunci API pemberi kerja. Belum terhubung.",
         "apna": "Memerlukan akun perusahaan Apna + akses API pemberi kerja. Belum terhubung."
-      }
+      },
+      "workflowBoard": "Alur Kerja"
     },
     "form": {
       "employmentType": {
@@ -1187,11 +1188,41 @@
       "aiGenerated": "Dihasilkan dengan AI. Tinjau dan edit seperlunya.",
       "aiGeneratedTemplate": "Dihasilkan dari templat (tidak ada penyedia AI yang dikonfigurasi). Tinjau dan edit.",
       "aiGenerateFailed": "Gagal menghasilkan deskripsi. Silakan coba lagi.",
-      "aiNeedsTitleSkills": "Tambahkan judul pekerjaan dan setidaknya satu keterampilan terlebih dahulu."
+      "aiNeedsTitleSkills": "Tambahkan judul pekerjaan dan setidaknya satu keterampilan terlebih dahulu.",
+      "suggestedSkills": "Keterampilan yang disarankan — klik untuk menambahkan"
     },
     "pipeline": {
       "title": "Alur Perekrutan",
       "subtitle": "Tampilan papan Kanban pelamar berdasarkan tahap."
+    },
+    "workflow": {
+      "title": "Papan Alur Kerja",
+      "backToJob": "Kembali ke pekerjaan",
+      "pipeline": "Alur",
+      "hiringTeam": "Tim Perekrutan",
+      "addMember": "Tambah",
+      "selectUser": "Pilih pengguna…",
+      "noMembers": "Belum ada anggota tim perekrutan.",
+      "remove": "Hapus",
+      "memberAdded": "Anggota tim ditambahkan.",
+      "memberRemoved": "Anggota tim dihapus.",
+      "memberFailed": "Gagal memperbarui tim perekrutan.",
+      "tasks": "Tugas",
+      "addTask": "Tambah",
+      "taskTitlePlaceholder": "Tambah tugas…",
+      "noTasks": "Belum ada tugas.",
+      "unassigned": "Belum ditugaskan",
+      "delete": "Hapus",
+      "toggleDone": "Alihkan selesai",
+      "taskAdded": "Tugas ditambahkan.",
+      "taskDeleted": "Tugas dihapus.",
+      "taskFailed": "Gagal memperbarui tugas.",
+      "roles": {
+        "recruiter": "Perekrut",
+        "hiring_manager": "Manajer Perekrutan",
+        "interviewer": "Pewawancara",
+        "coordinator": "Koordinator"
+      }
     }
   },
   "offers": {
@@ -1779,7 +1810,11 @@
       "voiceIntroBody": "Hai {{name}}. Anda akan melakukan percakapan lisan singkat dengan pewawancara AI kami — ia mengajukan pertanyaan dan Anda menjawab dengan lantang, seperti wawancara sungguhan. Izinkan akses mikrofon saat diminta.",
       "connecting": "Menghubungkan…",
       "startVoiceInterview": "Mulai wawancara suara",
-      "tapToAnswer": "Ketuk untuk menjawab sekarang"
+      "tapToAnswer": "Ketuk untuk menjawab sekarang",
+      "noSpeechDetected": "Kami tidak menangkap jawaban. Bicaralah sekarang dan jawaban akan muncul di sini — atau ketuk Berikutnya lagi untuk melewati pertanyaan ini.",
+      "typeAnswer": "Ketik saja",
+      "useVoice": "Gunakan suara",
+      "typeAnswerPlaceholder": "Ketik jawaban Anda di sini…"
     }
   },
   "settings": {

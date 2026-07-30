@@ -1123,7 +1123,8 @@
         "indeed": "Ativo. O Indeed rastreia o feed XML público de vagas desta organização (anúncios orgânicos gratuitos). Envie a URL do feed ao Indeed uma vez e as vagas publicadas aparecerão automaticamente.",
         "naukri": "Requer uma assinatura de empregador/RMS da Naukri + chave de API de empregador. Ainda não conectado.",
         "apna": "Requer uma conta empresarial da Apna + acesso à API de empregador. Ainda não conectado."
-      }
+      },
+      "workflowBoard": "Fluxo de trabalho"
     },
     "form": {
       "employmentType": {
@@ -1207,11 +1208,41 @@
       "aiGenerated": "Gerado com IA. Revise e edite conforme necessário.",
       "aiGeneratedTemplate": "Gerado a partir de um modelo (nenhum provedor de IA configurado). Revise e edite.",
       "aiGenerateFailed": "Não foi possível gerar a descrição. Tente novamente.",
-      "aiNeedsTitleSkills": "Adicione primeiro um título de vaga e pelo menos uma competência."
+      "aiNeedsTitleSkills": "Adicione primeiro um título de vaga e pelo menos uma competência.",
+      "suggestedSkills": "Competências sugeridas — clique para adicionar"
     },
     "pipeline": {
       "title": "Funil de Contratação",
       "subtitle": "Visualização em quadro Kanban dos candidatos por etapa."
+    },
+    "workflow": {
+      "title": "Quadro de fluxo de trabalho",
+      "backToJob": "Voltar à vaga",
+      "pipeline": "Funil",
+      "hiringTeam": "Equipe de contratação",
+      "addMember": "Adicionar",
+      "selectUser": "Selecione um usuário…",
+      "noMembers": "Ainda não há ninguém na equipe de contratação.",
+      "remove": "Remover",
+      "memberAdded": "Membro da equipe adicionado.",
+      "memberRemoved": "Membro da equipe removido.",
+      "memberFailed": "Não foi possível atualizar a equipe de contratação.",
+      "tasks": "Tarefas",
+      "addTask": "Adicionar",
+      "taskTitlePlaceholder": "Adicionar uma tarefa…",
+      "noTasks": "Nenhuma tarefa ainda.",
+      "unassigned": "Não atribuído",
+      "delete": "Excluir",
+      "toggleDone": "Alternar concluída",
+      "taskAdded": "Tarefa adicionada.",
+      "taskDeleted": "Tarefa excluída.",
+      "taskFailed": "Não foi possível atualizar a tarefa.",
+      "roles": {
+        "recruiter": "Recrutador",
+        "hiring_manager": "Gerente de contratação",
+        "interviewer": "Entrevistador",
+        "coordinator": "Coordenador"
+      }
     }
   },
   "offers": {
@@ -1802,7 +1833,11 @@
       "voiceIntroBody": "Olá {{name}}. Você terá uma breve conversa falada com nosso entrevistador com IA — ele faz perguntas e você responde em voz alta, como em uma entrevista real. Permita o acesso ao microfone quando solicitado.",
       "connecting": "Conectando…",
       "startVoiceInterview": "Iniciar entrevista de voz",
-      "tapToAnswer": "Toque para responder agora"
+      "tapToAnswer": "Toque para responder agora",
+      "noSpeechDetected": "Não captamos uma resposta. Fale agora e ela aparecerá aqui — ou toque em Próximo novamente para pular esta pergunta.",
+      "typeAnswer": "Digitar resposta",
+      "useVoice": "Usar voz",
+      "typeAnswerPlaceholder": "Digite sua resposta aqui…"
     }
   },
   "settings": {
