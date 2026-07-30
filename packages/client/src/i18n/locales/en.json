@@ -14,6 +14,7 @@
     "candidates": "Candidates",
     "interviews": "Interviews",
     "offers": "Offers",
+    "myApprovals": "My Approvals",
     "onboarding": "Onboarding",
     "aiScoring": "AI Scoring",
     "referrals": "Referrals",
@@ -1192,6 +1193,17 @@
     }
   },
   "offers": {
+    "approvals": {
+      "title": "My Approvals",
+      "subtitle": "Offers awaiting your approval",
+      "empty": "You have no offers awaiting approval.",
+      "submitted": "Submitted {{date}}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Offer approved",
+      "rejected": "Offer rejected",
+      "actionFailed": "Could not update the offer"
+    },
     "status": {
       "all": "All",
       "draft": "Draft",
