@@ -163,6 +163,15 @@ export async function createJobTask(
   const db = getDB();
   await assertJob(orgId, jobId);
   if (data.assigned_to != null) await assertOrgMember(orgId, data.assigned_to);
+  // A linked application must belong to THIS org and job (no cross-tenant ref).
+  if (data.application_id != null) {
+    const app = await db.findOne("applications", {
+      id: data.application_id,
+      organization_id: orgId,
+      job_id: jobId,
+    });
+    if (!app) throw new ValidationError("Application does not belong to this job");
+  }
 
   const saved = await db.create<RecruitmentTask>("recruitment_tasks", {
     organization_id: orgId,

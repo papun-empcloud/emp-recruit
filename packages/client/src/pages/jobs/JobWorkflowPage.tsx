@@ -79,6 +79,15 @@ export function JobWorkflowPage() {
   });
   const applications = appsData?.data?.data ?? [];
 
+  // The org may configure a custom pipeline (arbitrary stage slugs). Group by
+  // those when present, else the fixed enum — matching JobDetailPage so a
+  // candidate in a custom stage isn't hidden from the board.
+  const { data: stagesData } = useQuery({
+    queryKey: ["pipeline-stages"],
+    queryFn: () => apiGet<Array<{ slug: string; name: string; color?: string }>>("/pipeline/stages"),
+  });
+  const customStages = stagesData?.data ?? [];
+
   const { data: teamData } = useQuery({
     queryKey: ["job-hiring-team", id],
     queryFn: () => apiGet<TeamMember[]>(`/jobs/${id}/hiring-team`),
@@ -159,9 +168,21 @@ export function JobWorkflowPage() {
     onError: (e: any) => toast.error(e?.response?.data?.error?.message || t("jobs.workflow.taskFailed")),
   });
 
+  const activeStages: Array<{ slug: string; name: string }> =
+    customStages.length > 0
+      ? customStages.map((s) => ({ slug: s.slug, name: t(`applications.stage.${s.slug}`, s.name) }))
+      : STAGES.map((s) => ({ slug: s, name: t(`applications.stage.${s}`, s) }));
+  // Also surface any stage present on an application but missing from the
+  // configured list, so no candidate is ever dropped from the board.
+  for (const a of applications) {
+    if (!activeStages.some((s) => s.slug === a.stage)) {
+      activeStages.push({ slug: a.stage, name: t(`applications.stage.${a.stage}`, a.stage) });
+    }
+  }
+
   const grouped: Record<string, AppRow[]> = {};
-  for (const s of STAGES) grouped[s] = [];
-  for (const a of applications) if (grouped[a.stage]) grouped[a.stage].push(a);
+  for (const s of activeStages) grouped[s.slug] = [];
+  for (const a of applications) grouped[a.stage]?.push(a);
 
   return (
     <div className="space-y-6">
@@ -181,14 +202,14 @@ export function JobWorkflowPage() {
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-semibold text-gray-900">{t("jobs.workflow.pipeline")}</h2>
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {STAGES.map((s) => (
-            <div key={s} className="min-w-[180px] flex-1">
-              <div className={`mb-2 flex items-center justify-between rounded-lg px-3 py-1.5 text-xs font-semibold ${STAGE_HEADER[s] ?? "bg-gray-100 text-gray-800"}`}>
-                <span>{t(`applications.stage.${s}`, s)}</span>
-                <span>{grouped[s].length}</span>
+          {activeStages.map((s) => (
+            <div key={s.slug} className="min-w-[180px] flex-1">
+              <div className={`mb-2 flex items-center justify-between rounded-lg px-3 py-1.5 text-xs font-semibold ${STAGE_HEADER[s.slug] ?? "bg-gray-100 text-gray-800"}`}>
+                <span>{s.name}</span>
+                <span>{grouped[s.slug].length}</span>
               </div>
               <div className="space-y-2">
-                {grouped[s].map((a) => (
+                {grouped[s.slug].map((a) => (
                   <Link
                     key={a.id}
                     to={`/applications/${a.id}`}
@@ -197,7 +218,7 @@ export function JobWorkflowPage() {
                     {candidateName(a)}
                   </Link>
                 ))}
-                {grouped[s].length === 0 && <p className="px-1 text-xs text-gray-300">—</p>}
+                {grouped[s.slug].length === 0 && <p className="px-1 text-xs text-gray-300">—</p>}
               </div>
             </div>
           ))}

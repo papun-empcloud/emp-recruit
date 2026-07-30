@@ -91,6 +91,10 @@ export function AiInterviewPage() {
   // Typed-answer mode: the only input path on browsers without SpeechRecognition
   // (Firefox/Safari), and an opt-in escape hatch elsewhere when speech is unreliable.
   const [typedMode, setTypedMode] = useState(!SpeechRecognitionCtor);
+  // Ref mirror so callbacks fired from TTS onDone / timers (which capture a stale
+  // closure) see the CURRENT typed-mode value — critical so a new question never
+  // silently restarts the mic and clobbers the candidate's typed answer.
+  const typedModeRef = useRef(typedMode);
   const recognitionRef = useRef<any>(null);
   // Text finalized before the CURRENT recognition run started (preserved across
   // mute/unmute and Chrome's auto-restarts) so we can rebuild the answer from the
@@ -453,6 +457,11 @@ export function AiInterviewPage() {
     answerRef.current = answer;
   }, [answer]);
 
+  // Keep typedModeRef in sync for the same reason startListening reads it.
+  useEffect(() => {
+    typedModeRef.current = typedMode;
+  }, [typedMode]);
+
   // Confirm the sound check and move on to the first question.
   function proceedToQuestions() {
     stopSoundCheck();
@@ -476,7 +485,10 @@ export function AiInterviewPage() {
   }
 
   function startListening() {
-    if (!SpeechRecognitionCtor) return;
+    // Never start recognition in typed mode — its onresult would overwrite the
+    // candidate's typed answer. beginAnswerPhase() calls this on every question
+    // via the TTS onDone callback, so this guard must live here (not just at call sites).
+    if (!SpeechRecognitionCtor || typedModeRef.current) return;
     // Tear down any previous recognition so start() doesn't throw "already started".
     manualStopRef.current = true; // suppress the old rec's onend restart
     try {
