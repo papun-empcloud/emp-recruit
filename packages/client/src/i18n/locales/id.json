@@ -244,6 +244,7 @@
       "errorSubmit": "Gagal mengirim lamaran",
       "errorResumeType": "Hanya file resume PDF, DOC, dan DOCX yang diperbolehkan.",
       "errorResumeSize": "File resume terlalu besar (maks 10MB).",
+      "errorResumeRequired": "Harap lampirkan resume Anda.",
       "errorFirstNameRequired": "Nama depan wajib diisi.",
       "errorLastNameRequired": "Nama belakang wajib diisi.",
       "errorEmailRequired": "Email wajib diisi.",

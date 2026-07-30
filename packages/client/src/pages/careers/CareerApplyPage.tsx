@@ -165,6 +165,7 @@ export function CareerApplyPage() {
     if (!form.last_name.trim()) next.last_name = t("careers.apply.errorLastNameRequired");
     if (!form.email.trim()) next.email = t("careers.apply.errorEmailRequired");
     else if (emailInvalid) next.email = t("careers.apply.errorEmailInvalid");
+    if (!resume) next.resume = t("careers.apply.errorResumeRequired");
     if (phoneInvalid) next.phone = t("careers.apply.errorPhoneInvalid");
     if (yearsNegative) next.experience_years = t("careers.apply.errorYearsNegative");
     else if (yearsTooHigh)
@@ -181,6 +182,10 @@ export function CareerApplyPage() {
     }
     if (emailInvalid) {
       toast.error(t("careers.apply.errorEmailInvalid"));
+      return;
+    }
+    if (!resume) {
+      toast.error(t("careers.apply.errorResumeRequired"));
       return;
     }
     if (phoneInvalid) {
@@ -311,7 +316,9 @@ export function CareerApplyPage() {
 
           {/* Resume upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">{t("careers.apply.resumeLabel")}</label>
+            <label className="block text-sm font-medium text-gray-700">
+              {t("careers.apply.resumeLabel")} <span className="text-red-500">*</span>
+            </label>
             {resume ? (
               <div className="mt-1 flex items-center gap-3 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2">
                 <FileText className="h-5 w-5 text-brand-600" />
@@ -336,6 +343,7 @@ export function CareerApplyPage() {
                 />
               </label>
             )}
+            {errors.resume && <p className="mt-1 text-xs text-red-600">{errors.resume}</p>}
           </div>
 
           {/* Cover letter */}

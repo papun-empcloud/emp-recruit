@@ -205,7 +205,15 @@ router.post(
         throw new ValidationError("job_id is required");
       }
 
-      const resumePath = req.file ? `/uploads/resumes/${req.file.filename}` : undefined;
+      // Resume is mandatory (BUG-013). uploadResume only rejects wrong file
+      // types; a request with no file at all previously created a candidate
+      // with resume_path = null. Enforce it here (server-side) so the API
+      // can't be bypassed by a client that skips the field.
+      if (!req.file) {
+        throw new ValidationError("Resume is required", { resume: ["Resume is required"] });
+      }
+
+      const resumePath = `/uploads/resumes/${req.file.filename}`;
 
       const result = await careerPageService.submitPublicApplication(
         String(req.params.slug),
