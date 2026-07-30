@@ -21,30 +21,17 @@ import { getUser } from "@/lib/auth-store";
 import { canAccessRecruit } from "@/lib/roles";
 import type { JobPosting, Candidate, PaginatedResponse } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
+import { usePipelineStages, stageColor } from "@/lib/pipeline-stages";
 
 // Staff who get the recruiting overview: an admin role OR a user granted recruit
 // access via an EmpCloud custom role (recruit:* permission). A plain `employee`
 // with neither cannot hit the admin APIs (jobs/candidates/applications all 403),
 // so they get a referral-focused dashboard instead of admin tiles that read 0.
 
-const STAGE_COLORS: Record<string, string> = {
-  applied: "from-blue-400 to-blue-500",
-  screened: "from-indigo-400 to-indigo-500",
-  interview: "from-purple-400 to-purple-500",
-  offer: "from-amber-400 to-amber-500",
-  hired: "from-green-400 to-green-500",
-  rejected: "from-red-400 to-red-500",
-};
-
-const STAGE_BADGE: Record<string, string> = {
-  applied: "bg-blue-100 text-blue-700",
-  screened: "bg-indigo-100 text-indigo-700",
-  interview: "bg-purple-100 text-purple-700",
-  offer: "bg-amber-100 text-amber-700",
-  hired: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
-  withdrawn: "bg-gray-100 text-gray-700",
-};
+// Stages shown in the pipeline distribution, in order. Their colors come from
+// the shared pipeline-stages source (Settings) so the Dashboard, Job board and
+// Settings never disagree on a stage's color (BUG-018).
+const STAGE_ORDER = ["applied", "screened", "interview", "offer", "hired", "rejected"] as const;
 
 export function DashboardPage() {
   return canAccessRecruit(getUser()) ? <AdminDashboard /> : <EmployeeDashboard />;
@@ -55,6 +42,10 @@ export function DashboardPage() {
 // ---------------------------------------------------------------------------
 function AdminDashboard() {
   const { t } = useTranslation();
+
+  // Pipeline stages (colors) — shared source of truth with Settings and the
+  // Job pipeline board so stage colors stay consistent app-wide (BUG-018).
+  const pipelineStages = usePipelineStages();
 
   // Fetch open jobs count
   const { data: jobsData } = useQuery({
@@ -193,9 +184,10 @@ function AdminDashboard() {
             </span>
           </div>
           <div className="space-y-4">
-            {Object.entries(STAGE_COLORS).map(([key, color]) => {
+            {STAGE_ORDER.map((key) => {
               const count = stageDistribution[key] ?? 0;
               const percentage = maxStageCount > 0 ? (count / maxStageCount) * 100 : 0;
+              const color = stageColor(key, pipelineStages);
               return (
                 <div key={key}>
                   <div className="mb-1.5 flex items-center justify-between text-sm">
@@ -204,11 +196,11 @@ function AdminDashboard() {
                   </div>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className={cn(
-                        "h-full rounded-full bg-gradient-to-r transition-all duration-500",
-                        color,
-                      )}
-                      style={{ width: `${count > 0 ? Math.max(percentage, 3) : 0}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${count > 0 ? Math.max(percentage, 3) : 0}%`,
+                        backgroundColor: color,
+                      }}
                     />
                   </div>
                 </div>
@@ -255,10 +247,11 @@ function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-3 ml-4">
                     <span
-                      className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                        STAGE_BADGE[app.stage] ?? "bg-gray-100 text-gray-700",
-                      )}
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                      style={{
+                        backgroundColor: stageColor(app.stage, pipelineStages) + "22",
+                        color: stageColor(app.stage, pipelineStages),
+                      }}
                     >
                       {t(`dashboard.stages.${app.stage}`)}
                     </span>
