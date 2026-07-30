@@ -18,7 +18,9 @@
     "toggleTheme": "Alternar modo oscuro",
     "changeLanguage": "Cambiar idioma",
     "applications": "Candidaturas",
-    "aiInterviews": "Entrevistas con IA"
+    "aiInterviews": "Entrevistas con IA",
+    "logoutConfirmTitle": "¿Cerrar sesión?",
+    "logoutConfirmMessage": "Deberás iniciar sesión de nuevo para acceder a tu cuenta."
   },
   "common": {
     "save": "Guardar",
