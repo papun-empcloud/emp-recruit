@@ -20,7 +20,16 @@
     "applications": "الطلبات",
     "aiInterviews": "مقابلات الذكاء الاصطناعي",
     "logoutConfirmTitle": "تسجيل الخروج؟",
-    "logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك."
+    "logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك.",
+    "groups": {
+      "overview": "نظرة عامة",
+      "jobs": "الوظائف",
+      "people": "الأشخاص",
+      "interviews": "المقابلات",
+      "hiring": "التوظيف",
+      "system": "النظام"
+    },
+    "myApprovals": "موافقاتي"
   },
   "common": {
     "save": "حفظ",
@@ -178,7 +187,8 @@
       "source_one": "أخرى",
       "source_two": "أخرى",
       "source_few": "أخرى",
-      "source_many": "أخرى"
+      "source_many": "أخرى",
+      "expYearsMax": "لا يمكن أن تتجاوز الخبرة (بالسنوات) 50"
     },
     "compare": {
       "stageUpdated": "تم تحديث المرحلة",
@@ -305,7 +315,13 @@
       "monthsLabel": "الأشهر",
       "errorMonthsRange": "يجب أن تكون الأشهر بين 0 و11",
       "skillsLabel": "المهارات (مفصولة بفواصل)",
-      "skillsPlaceholder": "React, Python, SQL"
+      "skillsPlaceholder": "React, Python, SQL",
+      "errorYearsMax": "لا يمكن أن تتجاوز سنوات الخبرة {{max}}.",
+      "errorSalaryMax": "يرجى إدخال راتب متوقع واقعي.",
+      "screeningTitle": "أسئلة التصفية",
+      "screeningSelect": "اختر…",
+      "screeningRequired": "هذا السؤال مطلوب",
+      "screeningRequiredToast": "يرجى الإجابة على جميع أسئلة التصفية المطلوبة."
     },
     "success": {
       "title": "شكرًا لتقديمك!",
@@ -483,7 +499,42 @@
     "countMatch_zero": "{{count}} طلبات تطابق عوامل التصفية",
     "countMatch_two": "{{count}} طلبات تطابق عوامل التصفية",
     "countMatch_few": "{{count}} طلبات تطابق عوامل التصفية",
-    "countMatch_many": "{{count}} طلبات تطابق عوامل التصفية"
+    "countMatch_many": "{{count}} طلبات تطابق عوامل التصفية",
+    "stage": {
+      "applied": "مُقدَّم",
+      "screened": "تمت التصفية",
+      "interview": "مقابلة",
+      "offer": "عرض",
+      "hired": "تم التوظيف",
+      "rejected": "مرفوض",
+      "withdrawn": "منسحب"
+    },
+    "detail": {
+      "back": "رجوع",
+      "notFound": "لم يتم العثور على الطلب.",
+      "viewCandidate": "عرض المرشح",
+      "stage": "المرحلة",
+      "ownership": "المسؤولية واتفاقية مستوى الخدمة",
+      "assignee": "مسؤول التوظيف",
+      "unassigned": "غير مُسنَد",
+      "slaDate": "تاريخ استحقاق اتفاقية مستوى الخدمة",
+      "save": "حفظ",
+      "screeningAnswers": "إجابات التصفية",
+      "knockoutFailed": "رسب في سؤال إقصائي",
+      "activity": "النشاط",
+      "noActivity": "لا يوجد نشاط بعد.",
+      "assignmentSaved": "تم تحديث الإسناد.",
+      "assignmentFailed": "تعذّر تحديث الإسناد.",
+      "stageMoved": "تم تحديث المرحلة.",
+      "stageFailed": "تعذّر تغيير المرحلة."
+    },
+    "bulk": {
+      "selected": "{{count}} مُختار",
+      "moveTo": "نقل إلى…",
+      "moved": "تم نقل {{count}} طلب.",
+      "moveFailed": "تعذّر نقل الطلبات المُختارة.",
+      "clear": "مسح"
+    }
   },
   "components": {
     "portalLayout": {
@@ -637,6 +688,87 @@
       "importBtn_two": "استيراد {{count}} مرشحين",
       "importBtn_few": "استيراد {{count}} مرشحين",
       "importBtn_many": "استيراد {{count}} مرشحين"
+    },
+    "bulkImportJobs": {
+      "ariaLabel": "استيراد جماعي للوظائف",
+      "title": "استيراد جماعي للوظائف",
+      "close": "إغلاق",
+      "errFileEmpty": "الملف فارغ.",
+      "errMissingColumns": "يجب أن يتضمن ملف Excel عمودَي العنوان والوصف. نزّل القالب للاطلاع على التنسيق المتوقع.",
+      "errReadFailed": "تعذّر قراءة هذا الملف. يرجى رفع ملف .xlsx (استخدم القالب).",
+      "errMissingTitle": "العنوان مفقود",
+      "errTitleMarkup": "لا يمكن أن يحتوي العنوان على الحرفين < أو >",
+      "errDescriptionShort": "يجب أن يكون الوصف 10 أحرف على الأقل",
+      "errBadNumber": "يجب أن تكون الخبرة والراتب أرقامًا صحيحة غير سالبة",
+      "errExpRange": "لا يمكن أن يكون الحد الأدنى للخبرة أكبر من الحد الأقصى للخبرة",
+      "errSalaryRange": "لا يمكن أن يكون الحد الأدنى للراتب أكبر من الحد الأقصى للراتب",
+      "resultCreated_one": "تم إنشاء {{count}} وظيفة كمسودة",
+      "resultCreated_other": "تم إنشاء {{count}} وظائف كمسودات",
+      "failedCount": "{{count}} تعذّر استيرادها",
+      "failedRows": "الصفوف الفاشلة",
+      "rowLabel": "الصف {{row}}",
+      "columnsPrefix": "ارفع ملف Excel ‏(.xlsx) يحتوي على الأعمدة",
+      "columnsSuffix": "(إلزامية) بالإضافة إلى الحقول الاختيارية department وlocation وemployment_type وexperience_min/max وsalary_min/max وsalary_currency وremote_policy وskills. القسم والموقع ونوع التوظيف والعملة وسياسة العمل عن بُعد هي قوائم منسدلة في القالب.",
+      "template": "القالب",
+      "changeFile": "انقر لاختيار ملف مختلف",
+      "selectFile": "انقر لاختيار ملف CSV",
+      "fileHint": ".xlsx، حتى 200 صف",
+      "previewReady_one": "معاينة — {{valid}} من {{count}} صف جاهز",
+      "previewReady_other": "معاينة — {{valid}} من {{count}} صفوف جاهزة",
+      "rowsSkipped": "سيتم تخطي {{count}} صف",
+      "colTitle": "العنوان",
+      "colDepartment": "القسم",
+      "colType": "النوع",
+      "colStatus": "الحالة",
+      "ready": "جاهز",
+      "importingCount_one": "جارٍ استيراد {{count}} وظيفة…",
+      "importingCount_other": "جارٍ استيراد {{count}} وظائف…",
+      "done": "تم",
+      "cancel": "إلغاء",
+      "importBtn_one": "استيراد {{count}} وظيفة",
+      "importBtn_other": "استيراد {{count}} وظائف",
+      "unknownError": "خطأ غير معروف"
+    },
+    "bulkUpdateJobs": {
+      "ariaLabel": "تحديث جماعي للوظائف",
+      "title": "تحديث جماعي للوظائف",
+      "close": "إغلاق",
+      "instructions": "نزّل وظائفك الحالية كملف Excel، وعدّل أي حقول (القسم والموقع ونوع التوظيف وسياسة العمل عن بُعد والحالة هي قوائم منسدلة؛ أبقِ عمود id)، ثم أعِد الرفع. تُترك الخلايا الفارغة دون تغيير.",
+      "currentJobs": "الوظائف الحالية",
+      "errFileEmpty": "الملف فارغ.",
+      "errMissingId": "يجب أن يتضمن ملف Excel عمود id. نزّل وظائفك الحالية للاطلاع على التنسيق المتوقع.",
+      "errReadFailed": "تعذّر قراءة هذا الملف. يرجى رفع قالب .xlsx الذي نزّلته.",
+      "errBadId": "معرّف وظيفة غير صالح",
+      "errTitleMarkup": "لا يمكن أن يحتوي العنوان على الحرفين < أو >",
+      "errDescriptionShort": "يجب أن يكون الوصف 10 أحرف على الأقل",
+      "errBadNumber": "يجب أن تكون الخبرة والراتب أرقامًا صحيحة غير سالبة",
+      "errExpRange": "لا يمكن أن يكون الحد الأدنى للخبرة أكبر من الحد الأقصى للخبرة",
+      "errSalaryRange": "لا يمكن أن يكون الحد الأدنى للراتب أكبر من الحد الأقصى للراتب",
+      "errBadStatus": "يجب أن تكون الحالة إحدى القيم draft أو open أو paused أو closed أو filled",
+      "errNoChanges": "لا توجد حقول لتحديثها",
+      "resultUpdated_one": "تم تحديث {{count}} وظيفة",
+      "resultUpdated_other": "تم تحديث {{count}} وظائف",
+      "failedCount": "{{count}} تعذّر تحديثها",
+      "failedRows": "الصفوف الفاشلة",
+      "rowLabel": "الصف {{row}}",
+      "changeFile": "انقر لاختيار ملف مختلف",
+      "selectFile": "انقر لاختيار ملف CSV",
+      "fileHint": ".xlsx، حتى 200 صف",
+      "previewReady_one": "معاينة — {{valid}} من {{count}} صف جاهز",
+      "previewReady_other": "معاينة — {{valid}} من {{count}} صفوف جاهزة",
+      "rowsSkipped": "سيتم تخطي {{count}} صف",
+      "colId": "المعرّف",
+      "colTitle": "العنوان",
+      "colStatus": "الحالة",
+      "colResult": "النتيجة",
+      "ready": "جاهز",
+      "updatingCount_one": "جارٍ تحديث {{count}} وظيفة…",
+      "updatingCount_other": "جارٍ تحديث {{count}} وظائف…",
+      "done": "تم",
+      "cancel": "إلغاء",
+      "updateBtn_one": "تحديث {{count}} وظيفة",
+      "updateBtn_other": "تحديث {{count}} وظائف",
+      "unknownError": "خطأ غير معروف"
     }
   },
   "dashboard": {
@@ -755,7 +887,9 @@
       "meetingLinkLabel": "رابط الاجتماع",
       "notesLabel": "ملاحظات",
       "notesPlaceholder": "ملاحظات إضافية للمقابلة...",
-      "cancel": "إلغاء"
+      "cancel": "إلغاء",
+      "subtitle": "جدوِل مقابلة لطلب مرشح.",
+      "noApplicationsTitle": "لا توجد طلبات"
     },
     "feedback": {
       "recStrongYes": "نعم بقوة",
@@ -949,7 +1083,9 @@
       "totalCount_zero": "{{count}} وظائف إجمالاً",
       "totalCount_two": "{{count}} وظائف إجمالاً",
       "totalCount_few": "{{count}} وظائف إجمالاً",
-      "totalCount_many": "{{count}} وظائف إجمالاً"
+      "totalCount_many": "{{count}} وظائف إجمالاً",
+      "bulkImport": "استيراد جماعي",
+      "bulkUpdate": "تحديث جماعي"
     },
     "detail": {
       "statusUpdated": "تم تحديث حالة الوظيفة",
@@ -1112,7 +1248,24 @@
       "cancel": "إلغاء",
       "updateJob": "تحديث الوظيفة",
       "saveDraft": "حفظ كمسودة",
-      "draftHint": "تبدأ الوظائف المحفوظة كمسودات. افتح الوظيفة وانقر على نشر لإدراجها في صفحة التوظيف الخاصة بك."
+      "draftHint": "تبدأ الوظائف المحفوظة كمسودات. افتح الوظيفة وانقر على نشر لإدراجها في صفحة التوظيف الخاصة بك.",
+      "generateWithAi": "إنشاء بالذكاء الاصطناعي",
+      "seniorityLabel": "المستوى الوظيفي",
+      "seniority": {
+        "intern": "متدرب",
+        "junior": "مبتدئ",
+        "mid": "متوسط",
+        "senior": "أول",
+        "lead": "قائد فريق",
+        "director": "مدير",
+        "vp": "نائب رئيس",
+        "cLevel": "المستوى التنفيذي"
+      },
+      "niceToHave": "مهارات مُفضّلة",
+      "aiGenerated": "تم الإنشاء بالذكاء الاصطناعي. راجع وعدّل حسب الحاجة.",
+      "aiGeneratedTemplate": "تم الإنشاء من قالب (لم يتم تكوين مزود ذكاء اصطناعي). راجع وعدّل.",
+      "aiGenerateFailed": "تعذّر إنشاء الوصف. يرجى المحاولة مرة أخرى.",
+      "aiNeedsTitleSkills": "أضف مسمى وظيفيًا ومهارة واحدة على الأقل أولاً."
     },
     "pipeline": {
       "title": "مسار التوظيف",
@@ -1232,7 +1385,8 @@
       "loadingUsers": "جارٍ تحميل المستخدمين...",
       "cancel": "إلغاء",
       "submitting": "جارٍ الإرسال...",
-      "submit": "إرسال"
+      "submit": "إرسال",
+      "manageTemplates": "إدارة / تعديل القوالب"
     },
     "form": {
       "toastCreated": "تم إنشاء العرض بنجاح",
@@ -1287,7 +1441,8 @@
       "jobTitleShort": "المسمى الوظيفي",
       "expiryDate": "تاريخ انتهاء الصلاحية",
       "notes": "ملاحظات",
-      "saveChanges": "حفظ التغييرات"
+      "saveChanges": "حفظ التغييرات",
+      "errExpiryBeforeJoining": "يجب أن يكون تاريخ انتهاء صلاحية العرض في تاريخ الالتحاق أو بعده"
     },
     "template": {
       "toastUpdated": "تم تحديث القالب",
@@ -1321,6 +1476,17 @@
       "delete": "حذف",
       "deleteConfirmTitle": "حذف هذا القالب؟",
       "deleteConfirmMessage": "يؤدي هذا إلى إزالة القالب بحيث لا يمكن استخدامه بعد الآن لخطابات عروض جديدة. تُحفظ الخطابات التي أُنشئت منه بالفعل."
+    },
+    "approvals": {
+      "title": "موافقاتي",
+      "subtitle": "عروض بانتظار موافقتك",
+      "empty": "لا توجد عروض بانتظار موافقتك.",
+      "submitted": "أُرسل {{date}}",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "approved": "تمت الموافقة على العرض",
+      "rejected": "تم رفض العرض",
+      "actionFailed": "تعذّر تحديث العرض"
     }
   },
   "onboarding": {
@@ -1478,7 +1644,14 @@
       "strongMatchDesc": "هذا المرشح مناسب تمامًا لهذه الوظيفة.",
       "goodMatchDesc": "هذا المرشح مناسب بشكل جيد مع تلبية معظم المتطلبات.",
       "partialMatchDesc": "يلبي هذا المرشح بعض المتطلبات ولكن لديه فجوات.",
-      "weakMatchDesc": "لا يلبي هذا المرشح معظم المتطلبات."
+      "weakMatchDesc": "لا يلبي هذا المرشح معظم المتطلبات.",
+      "noRequiredSkills": "لم يتم تقييم المهارات — لا توجد مهارات مطلوبة مُهيأة لهذه الوظيفة، لذا لا يمكن للدرجة قياس مدى تطابق المهارات. أضف مهارات مطلوبة للوظيفة للحصول على تطابق ذي مغزى، أو كوّن مزود ذكاء اصطناعي للتقييم المستند إلى المحتوى.",
+      "retryAiScoring": "إعادة محاولة التقييم بالذكاء الاصطناعي",
+      "retrySuccess": "تمت إعادة تقييم المرشح.",
+      "retryFailed": "تعذّرت إعادة التقييم. يرجى المحاولة مرة أخرى.",
+      "methodAi": "تقييم بالذكاء الاصطناعي · {{model}}",
+      "methodHeuristic": "درجة قائمة على القواعد (لم يتم تكوين مزود ذكاء اصطناعي)",
+      "reviewDisclaimer": "الدرجات المُنشأة بالذكاء الاصطناعي إرشادية فقط — راجعها دائمًا قبل اتخاذ قرارات التوظيف."
     }
   },
   "portal": {
@@ -1645,7 +1818,10 @@
       "questions": "الأسئلة",
       "transcript": "النص",
       "questionNumber": "س{{num}}.",
-      "noAnswer": "لا توجد إجابة"
+      "noAnswer": "لا توجد إجابة",
+      "methodAi": "تقييم بالذكاء الاصطناعي · {{model}}",
+      "methodCompletion": "درجة الإكمال فقط — تعكس مدى اكتمال الإجابة على الأسئلة، وليس صحة الإجابات أو جودتها. إنها ليست تقييمًا للمحتوى بالذكاء الاصطناعي؛ كوّن مزود ذكاء اصطناعي للحصول على تقييم حقيقي.",
+      "completionScoreLabel": "درجة الإكمال"
     },
     "session": {
       "leaveConfirm": "مغادرة المقابلة؟ لن تتمكن من استئنافها.",
@@ -1692,7 +1868,8 @@
       "voiceTitle": "مقابلة صوتية بالذكاء الاصطناعي",
       "voiceIntroBody": "مرحبًا {{name}}. ستجري محادثة صوتية قصيرة مع مُقابِلنا بالذكاء الاصطناعي — يطرح الأسئلة وتجيب بصوت عالٍ، تمامًا مثل مقابلة حقيقية. يرجى السماح بالوصول إلى الميكروفون عند المطالبة.",
       "connecting": "جارٍ الاتصال…",
-      "startVoiceInterview": "بدء المقابلة الصوتية"
+      "startVoiceInterview": "بدء المقابلة الصوتية",
+      "tapToAnswer": "انقر للإجابة الآن"
     }
   },
   "settings": {
@@ -1910,5 +2087,29 @@
     "title": "الصفحة غير موجودة",
     "subtitle": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
     "backHome": "العودة إلى لوحة التحكم"
+  },
+  "screening": {
+    "type": {
+      "text": "نص قصير",
+      "number": "رقم",
+      "yes_no": "نعم / لا",
+      "single_choice": "اختيار واحد"
+    },
+    "editor": {
+      "title": "أسئلة التصفية",
+      "subtitle": "اطرح أسئلة خاصة بالوظيفة في الطلب. حدّد سؤالًا كإقصائي لرفض المتقدّمين تلقائيًا الذين يقدّمون الإجابة المُستبعِدة.",
+      "empty": "لا توجد أسئلة تصفية بعد.",
+      "questionPlaceholder": "مثال: كم عدد سنوات خبرتك في Selenium؟",
+      "remove": "إزالة السؤال",
+      "required": "مطلوب",
+      "knockout": "إقصائي",
+      "optionsPlaceholder": "خيارات مفصولة بفواصل، مثال: نعم، لا، ربما",
+      "knockoutValue": "الإجابة المُستبعِدة",
+      "knockoutValuePlaceholder": "الإجابة التي تؤدي إلى الرفض التلقائي، مثال: لا",
+      "addQuestion": "إضافة سؤال",
+      "save": "حفظ الأسئلة",
+      "saved": "تم حفظ أسئلة التصفية.",
+      "saveFailed": "تعذّر حفظ أسئلة التصفية."
+    }
   }
 }

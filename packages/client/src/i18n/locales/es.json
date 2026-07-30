@@ -20,7 +20,16 @@
     "applications": "Candidaturas",
     "aiInterviews": "Entrevistas con IA",
     "logoutConfirmTitle": "¿Cerrar sesión?",
-    "logoutConfirmMessage": "Deberás iniciar sesión de nuevo para acceder a tu cuenta."
+    "logoutConfirmMessage": "Deberás iniciar sesión de nuevo para acceder a tu cuenta.",
+    "groups": {
+      "overview": "Resumen",
+      "jobs": "Empleos",
+      "people": "Personas",
+      "interviews": "Entrevistas",
+      "hiring": "Contratación",
+      "system": "Sistema"
+    },
+    "myApprovals": "Mis aprobaciones"
   },
   "common": {
     "save": "Guardar",
@@ -166,7 +175,8 @@
       "cancel": "Cancelar",
       "saveChanges": "Guardar cambios",
       "source_one": "Otro",
-      "source_many": "Otro"
+      "source_many": "Otro",
+      "expYearsMax": "La experiencia (años) no puede superar 50"
     },
     "compare": {
       "stageUpdated": "Etapa actualizada",
@@ -284,7 +294,13 @@
       "monthsLabel": "Meses",
       "errorMonthsRange": "Los meses deben estar entre 0 y 11",
       "skillsLabel": "Competencias (separadas por comas)",
-      "skillsPlaceholder": "React, Python, SQL"
+      "skillsPlaceholder": "React, Python, SQL",
+      "errorYearsMax": "Los años de experiencia no pueden superar {{max}}.",
+      "errorSalaryMax": "Introduce un salario esperado realista.",
+      "screeningTitle": "Preguntas de preselección",
+      "screeningSelect": "Selecciona…",
+      "screeningRequired": "Esta pregunta es obligatoria",
+      "screeningRequiredToast": "Responde todas las preguntas de preselección obligatorias."
     },
     "success": {
       "title": "¡Gracias por postularte!",
@@ -444,7 +460,42 @@
       "withdrawn": "Retirado"
     },
     "count_many": "{{count}} candidaturas",
-    "countMatch_many": "{{count}} candidaturas coinciden con tus filtros"
+    "countMatch_many": "{{count}} candidaturas coinciden con tus filtros",
+    "stage": {
+      "applied": "Postulado",
+      "screened": "Preseleccionado",
+      "interview": "Entrevista",
+      "offer": "Oferta",
+      "hired": "Contratado",
+      "rejected": "Rechazado",
+      "withdrawn": "Retirado"
+    },
+    "detail": {
+      "back": "Atrás",
+      "notFound": "Candidatura no encontrada.",
+      "viewCandidate": "Ver candidato",
+      "stage": "Etapa",
+      "ownership": "Responsabilidad y SLA",
+      "assignee": "Reclutador responsable",
+      "unassigned": "Sin asignar",
+      "slaDate": "Fecha límite de SLA",
+      "save": "Guardar",
+      "screeningAnswers": "Respuestas de preselección",
+      "knockoutFailed": "eliminatoria no superada",
+      "activity": "Actividad",
+      "noActivity": "Aún no hay actividad.",
+      "assignmentSaved": "Asignación actualizada.",
+      "assignmentFailed": "No se pudo actualizar la asignación.",
+      "stageMoved": "Etapa actualizada.",
+      "stageFailed": "No se pudo cambiar la etapa."
+    },
+    "bulk": {
+      "selected": "{{count}} seleccionadas",
+      "moveTo": "Mover a…",
+      "moved": "Se movieron {{count}} candidatura(s).",
+      "moveFailed": "No se pudieron mover las candidaturas seleccionadas.",
+      "clear": "Limpiar"
+    }
   },
   "components": {
     "portalLayout": {
@@ -586,6 +637,87 @@
       "previewReady_many": "Vista previa — {{valid}} de {{count}} filas listas",
       "importingCount_many": "Importando {{count}} candidatos…",
       "importBtn_many": "Importar {{count}} candidatos"
+    },
+    "bulkImportJobs": {
+      "ariaLabel": "Importación masiva de empleos",
+      "title": "Importación masiva de empleos",
+      "close": "Cerrar",
+      "errFileEmpty": "El archivo está vacío.",
+      "errMissingColumns": "El archivo de Excel debe incluir las columnas title y description. Descarga la plantilla para ver el formato esperado.",
+      "errReadFailed": "No se pudo leer ese archivo. Sube un archivo .xlsx (usa la plantilla).",
+      "errMissingTitle": "Falta el título",
+      "errTitleMarkup": "El título no puede contener los caracteres < o >",
+      "errDescriptionShort": "La descripción debe tener al menos 10 caracteres",
+      "errBadNumber": "La experiencia y el salario deben ser números enteros y no negativos",
+      "errExpRange": "La experiencia mínima no puede ser mayor que la máxima",
+      "errSalaryRange": "El salario mínimo no puede ser mayor que el máximo",
+      "resultCreated_one": "{{count}} empleo creado como borrador",
+      "resultCreated_other": "{{count}} empleos creados como borradores",
+      "failedCount": "{{count}} no se pudieron importar",
+      "failedRows": "Filas fallidas",
+      "rowLabel": "Fila {{row}}",
+      "columnsPrefix": "Sube un archivo de Excel (.xlsx) con las columnas",
+      "columnsSuffix": "(obligatorias) más las opcionales department, location, employment_type, experience_min/max, salary_min/max, salary_currency, remote_policy y skills. Departamento, ubicación, tipo de empleo, moneda y política de trabajo remoto son menús desplegables en la plantilla.",
+      "template": "Plantilla",
+      "changeFile": "Haz clic para elegir un archivo diferente",
+      "selectFile": "Haz clic para seleccionar un archivo CSV",
+      "fileHint": ".xlsx, hasta 200 filas",
+      "previewReady_one": "Vista previa — {{valid}} de {{count}} fila lista",
+      "previewReady_other": "Vista previa — {{valid}} de {{count}} filas listas",
+      "rowsSkipped": "Se omitirá(n) {{count}} fila(s)",
+      "colTitle": "Título",
+      "colDepartment": "Departamento",
+      "colType": "Tipo",
+      "colStatus": "Estado",
+      "ready": "Lista",
+      "importingCount_one": "Importando {{count}} empleo…",
+      "importingCount_other": "Importando {{count}} empleos…",
+      "done": "Listo",
+      "cancel": "Cancelar",
+      "importBtn_one": "Importar {{count}} empleo",
+      "importBtn_other": "Importar {{count}} empleos",
+      "unknownError": "Error desconocido"
+    },
+    "bulkUpdateJobs": {
+      "ariaLabel": "Actualización masiva de empleos",
+      "title": "Actualización masiva de empleos",
+      "close": "Cerrar",
+      "instructions": "Descarga tus empleos actuales como archivo de Excel, edita cualquier campo (departamento, ubicación, tipo de empleo, política de trabajo remoto y estado son menús desplegables; conserva la columna id) y vuelve a subirlo. Las celdas vacías se dejan sin cambios.",
+      "currentJobs": "Empleos actuales",
+      "errFileEmpty": "El archivo está vacío.",
+      "errMissingId": "El archivo de Excel debe incluir una columna id. Descarga tus empleos actuales para ver el formato esperado.",
+      "errReadFailed": "No se pudo leer ese archivo. Sube la plantilla .xlsx descargada.",
+      "errBadId": "ID de empleo no válido",
+      "errTitleMarkup": "El título no puede contener los caracteres < o >",
+      "errDescriptionShort": "La descripción debe tener al menos 10 caracteres",
+      "errBadNumber": "La experiencia y el salario deben ser números enteros y no negativos",
+      "errExpRange": "La experiencia mínima no puede ser mayor que la máxima",
+      "errSalaryRange": "El salario mínimo no puede ser mayor que el máximo",
+      "errBadStatus": "El estado debe ser uno de: draft, open, paused, closed, filled",
+      "errNoChanges": "No hay campos que actualizar",
+      "resultUpdated_one": "{{count}} empleo actualizado",
+      "resultUpdated_other": "{{count}} empleos actualizados",
+      "failedCount": "{{count}} no se pudieron actualizar",
+      "failedRows": "Filas fallidas",
+      "rowLabel": "Fila {{row}}",
+      "changeFile": "Haz clic para elegir un archivo diferente",
+      "selectFile": "Haz clic para seleccionar un archivo CSV",
+      "fileHint": ".xlsx, hasta 200 filas",
+      "previewReady_one": "Vista previa — {{valid}} de {{count}} fila lista",
+      "previewReady_other": "Vista previa — {{valid}} de {{count}} filas listas",
+      "rowsSkipped": "Se omitirá(n) {{count}} fila(s)",
+      "colId": "ID",
+      "colTitle": "Título",
+      "colStatus": "Estado",
+      "colResult": "Resultado",
+      "ready": "Lista",
+      "updatingCount_one": "Actualizando {{count}} empleo…",
+      "updatingCount_other": "Actualizando {{count}} empleos…",
+      "done": "Listo",
+      "cancel": "Cancelar",
+      "updateBtn_one": "Actualizar {{count}} empleo",
+      "updateBtn_other": "Actualizar {{count}} empleos",
+      "unknownError": "Error desconocido"
     }
   },
   "dashboard": {
@@ -704,7 +836,9 @@
       "meetingLinkLabel": "Enlace de la reunión",
       "notesLabel": "Notas",
       "notesPlaceholder": "Notas adicionales para la entrevista...",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "subtitle": "Programa una entrevista para la candidatura de un candidato.",
+      "noApplicationsTitle": "No se encontraron candidaturas"
     },
     "feedback": {
       "recStrongYes": "Sí rotundo",
@@ -895,7 +1029,9 @@
       "onsite": "Presencial",
       "internal": "Interno",
       "public": "Público",
-      "totalCount_many": "{{count}} empleos en total"
+      "totalCount_many": "{{count}} empleos en total",
+      "bulkImport": "Importación masiva",
+      "bulkUpdate": "Actualización masiva"
     },
     "detail": {
       "statusUpdated": "Estado del empleo actualizado",
@@ -1052,7 +1188,24 @@
       "cancel": "Cancelar",
       "updateJob": "Actualizar empleo",
       "saveDraft": "Guardar como borrador",
-      "draftHint": "Los empleos guardados comienzan como borradores. Abre el empleo y haz clic en Publicar para listarlo en tu página de empleo."
+      "draftHint": "Los empleos guardados comienzan como borradores. Abre el empleo y haz clic en Publicar para listarlo en tu página de empleo.",
+      "generateWithAi": "Generar con IA",
+      "seniorityLabel": "Nivel",
+      "seniority": {
+        "intern": "Becario",
+        "junior": "Junior",
+        "mid": "Nivel medio",
+        "senior": "Senior",
+        "lead": "Líder",
+        "director": "Director",
+        "vp": "VP",
+        "cLevel": "Alta dirección"
+      },
+      "niceToHave": "Deseable",
+      "aiGenerated": "Generado con IA. Revisa y edita según sea necesario.",
+      "aiGeneratedTemplate": "Generado a partir de una plantilla (sin proveedor de IA configurado). Revisa y edita.",
+      "aiGenerateFailed": "No se pudo generar la descripción. Inténtalo de nuevo.",
+      "aiNeedsTitleSkills": "Primero añade un título del empleo y al menos una competencia."
     },
     "pipeline": {
       "title": "Pipeline de contratación",
@@ -1172,7 +1325,8 @@
       "loadingUsers": "Cargando usuarios...",
       "cancel": "Cancelar",
       "submitting": "Enviando...",
-      "submit": "Enviar"
+      "submit": "Enviar",
+      "manageTemplates": "Gestionar / editar plantillas"
     },
     "form": {
       "toastCreated": "Oferta creada correctamente",
@@ -1227,7 +1381,8 @@
       "jobTitleShort": "Título del empleo",
       "expiryDate": "Fecha de expiración",
       "notes": "Notas",
-      "saveChanges": "Guardar cambios"
+      "saveChanges": "Guardar cambios",
+      "errExpiryBeforeJoining": "La fecha de expiración de la oferta debe ser igual o posterior a la fecha de incorporación"
     },
     "template": {
       "toastUpdated": "Plantilla actualizada",
@@ -1261,6 +1416,17 @@
       "delete": "Eliminar",
       "deleteConfirmTitle": "¿Eliminar esta plantilla?",
       "deleteConfirmMessage": "Esto elimina la plantilla para que ya no pueda usarse en nuevas cartas de oferta. Las cartas ya generadas a partir de ella se conservan."
+    },
+    "approvals": {
+      "title": "Mis aprobaciones",
+      "subtitle": "Ofertas pendientes de tu aprobación",
+      "empty": "No tienes ofertas pendientes de aprobación.",
+      "submitted": "Enviada {{date}}",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "approved": "Oferta aprobada",
+      "rejected": "Oferta rechazada",
+      "actionFailed": "No se pudo actualizar la oferta"
     }
   },
   "onboarding": {
@@ -1409,7 +1575,14 @@
       "strongMatchDesc": "Este candidato encaja perfectamente en el puesto.",
       "goodMatchDesc": "Este candidato encaja sólidamente y cumple la mayoría de los requisitos.",
       "partialMatchDesc": "Este candidato cumple algunos requisitos pero tiene carencias.",
-      "weakMatchDesc": "Este candidato no cumple la mayoría de los requisitos."
+      "weakMatchDesc": "Este candidato no cumple la mayoría de los requisitos.",
+      "noRequiredSkills": "Competencias no evaluadas — este empleo no tiene competencias requeridas configuradas, por lo que la puntuación no puede medir el encaje de competencias. Añade competencias requeridas al empleo para obtener una coincidencia significativa, o configura un proveedor de IA para una puntuación basada en el contenido.",
+      "retryAiScoring": "Reintentar puntuación con IA",
+      "retrySuccess": "Se volvió a puntuar al candidato.",
+      "retryFailed": "No se pudo volver a puntuar. Inténtalo de nuevo.",
+      "methodAi": "Evaluación con IA · {{model}}",
+      "methodHeuristic": "Puntuación basada en reglas (sin proveedor de IA configurado)",
+      "reviewDisclaimer": "Las puntuaciones generadas por IA son solo orientativas — revísalas siempre antes de tomar decisiones de contratación."
     }
   },
   "portal": {
@@ -1576,7 +1749,10 @@
       "questions": "Preguntas",
       "transcript": "Transcripción",
       "questionNumber": "P{{num}}.",
-      "noAnswer": "Sin respuesta"
+      "noAnswer": "Sin respuesta",
+      "methodAi": "Evaluación con IA · {{model}}",
+      "methodCompletion": "Solo puntuación de finalización — refleja hasta qué punto se respondieron las preguntas, no la corrección ni la calidad de las respuestas. No es una evaluación de contenido con IA; configura un proveedor de IA para una evaluación real.",
+      "completionScoreLabel": "Puntuación de finalización"
     },
     "session": {
       "leaveConfirm": "¿Salir de la entrevista? No podrás reanudarla.",
@@ -1623,7 +1799,8 @@
       "voiceTitle": "Entrevista con IA por voz",
       "voiceIntroBody": "Hola {{name}}. Tendrás una breve conversación hablada con nuestro entrevistador de IA: te hace preguntas y tú respondes en voz alta, como en una entrevista real. Permite el acceso al micrófono cuando se te solicite.",
       "connecting": "Conectando…",
-      "startVoiceInterview": "Iniciar entrevista por voz"
+      "startVoiceInterview": "Iniciar entrevista por voz",
+      "tapToAnswer": "Toca para responder ahora"
     }
   },
   "settings": {
@@ -1835,5 +2012,29 @@
     "title": "Página no encontrada",
     "subtitle": "La página que buscas no existe o se ha movido.",
     "backHome": "Volver al panel"
+  },
+  "screening": {
+    "type": {
+      "text": "Texto corto",
+      "number": "Número",
+      "yes_no": "Sí / No",
+      "single_choice": "Opción única"
+    },
+    "editor": {
+      "title": "Preguntas de preselección",
+      "subtitle": "Haz preguntas específicas del empleo en la candidatura. Marca una pregunta como eliminatoria para rechazar automáticamente a los candidatos que den la respuesta descalificatoria.",
+      "empty": "Aún no hay preguntas de preselección.",
+      "questionPlaceholder": "p. ej., ¿Cuántos años de experiencia con Selenium tienes?",
+      "remove": "Quitar pregunta",
+      "required": "Obligatoria",
+      "knockout": "Eliminatoria",
+      "optionsPlaceholder": "Opciones separadas por comas, p. ej. Sí, No, Quizás",
+      "knockoutValue": "Respuesta descalificatoria",
+      "knockoutValuePlaceholder": "Respuesta que rechaza automáticamente, p. ej. No",
+      "addQuestion": "Añadir pregunta",
+      "save": "Guardar preguntas",
+      "saved": "Preguntas de preselección guardadas.",
+      "saveFailed": "No se pudieron guardar las preguntas de preselección."
+    }
   }
 }
