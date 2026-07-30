@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { apiGet, apiPut } from "@/api/client";
+import { isValidOptionalPhone } from "@/lib/utils";
 import type { Candidate } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
 
@@ -125,6 +126,12 @@ export function CandidateEditPage() {
     }
     if (!Number.isFinite(months) || months < 0 || months > 11) {
       toast.error(t("candidates.form.expMonthsRange"));
+      return;
+    }
+    // Reject an obviously invalid phone before it hits the server (BUG-019):
+    // only digits/phone punctuation, 7–15 digits. Mirrors the shared validator.
+    if (form.phone.trim() && !isValidOptionalPhone(form.phone)) {
+      toast.error(t("candidates.form.phoneInvalid"));
       return;
     }
 

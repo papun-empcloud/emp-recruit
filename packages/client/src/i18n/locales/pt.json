@@ -120,6 +120,7 @@
       "addError": "Falha ao adicionar candidato",
       "expYearsNegative": "Os anos de experiência não podem ser negativos",
       "expMonthsRange": "Os meses de experiência devem estar entre 0 e 11",
+      "phoneInvalid": "Insira um número de telefone válido (7 a 15 dígitos)",
       "updatedSuccess": "Candidato atualizado",
       "updateError": "Falha ao atualizar candidato",
       "notFound": "Candidato não encontrado.",
