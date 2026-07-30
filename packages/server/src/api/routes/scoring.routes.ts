@@ -44,6 +44,34 @@ router.post(
   },
 );
 
+// POST /applications/:appId/rescore — retry AI scoring for one application.
+// Same operation as /score (re-evaluates and upserts the score), exposed under
+// an explicit name for the "Retry AI scoring" action on the score report.
+router.post(
+  "/applications/:appId/rescore",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const appId = req.params.appId;
+      if (!appId) throw new ValidationError("Application ID is required");
+
+      const orgId = req.user!.empcloudOrgId;
+      const db = getDB();
+      const app = await db.findOne<any>("applications", { id: appId, organization_id: orgId });
+      if (!app) throw new NotFoundError("Application", appId as string);
+
+      const result = await scoringService.scoreCandidate(
+        orgId,
+        app.candidate_id,
+        app.job_id,
+        appId as string,
+      );
+      return sendSuccess(res, result);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // POST /jobs/:jobId/batch-score — score all applications for a job
 router.post(
   "/jobs/:jobId/batch-score",

@@ -309,7 +309,7 @@ export async function scoreCandidate(
   candidateId: string,
   jobId: string,
   applicationId: string,
-): Promise<ScoreResult & { id: string }> {
+): Promise<ScoreResult & { id: string; scoringMethod: "ai" | "heuristic"; scoringModel: string | null }> {
   const db = getDB();
 
   // Fetch candidate
@@ -403,46 +403,62 @@ export async function scoreCandidate(
   // Deterministic heuristic by default so the individual "AI Score" and "Batch
   // Score All" always agree for the same candidate and are reproducible. Only
   // reach for the (non-deterministic, rate-limited) LLM when explicitly enabled.
-  const result =
-    (config.ai.resumeScoringLlm
-      ? await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)
-      : null) ?? heuristicScore();
+  // Record which path actually produced the score so the UI can distinguish a
+  // genuine AI evaluation from the rule-based fallback. (028)
+  const llmResult = config.ai.resumeScoringLlm
+    ? await computeLlmScore(job, candidate, allCandidateSkills, resumeText, jobSkills)
+    : null;
+  const result = llmResult ?? heuristicScore();
+  const scoringMethod: "ai" | "heuristic" = llmResult ? "ai" : "heuristic";
+  const scoringModel = llmResult ? getLLM()?.model() ?? null : null;
   const { overallScore, skillsScore, experienceScore, matchedSkills, missingSkills, recommendation } =
     result;
 
-  // Upsert score record (delete existing if any, then create new)
+  const row = {
+    overall_score: overallScore,
+    skills_score: skillsScore,
+    experience_score: experienceScore,
+    matched_skills: JSON.stringify(matchedSkills),
+    missing_skills: JSON.stringify(missingSkills),
+    recommendation,
+    scoring_method: scoringMethod,
+    scoring_model: scoringModel,
+    scored_at: new Date(),
+  };
+
+  // Upsert by application_id. The UNIQUE(application_id) constraint (028) makes
+  // this safe under concurrency: if a racing re-score inserted first, our insert
+  // fails and we update the row that won instead of creating a duplicate.
   const existingScore = await db.findOne<CandidateScore>("candidate_scores", {
     application_id: applicationId,
     organization_id: orgId,
   });
 
-  const scoreId = existingScore ? existingScore.id : uuidv4();
-
+  let scoreId: string;
   if (existingScore) {
-    await db.update<CandidateScore>("candidate_scores", existingScore.id, {
-      overall_score: overallScore,
-      skills_score: skillsScore,
-      experience_score: experienceScore,
-      matched_skills: JSON.stringify(matchedSkills),
-      missing_skills: JSON.stringify(missingSkills),
-      recommendation,
-      scored_at: new Date(),
-    } as any);
+    scoreId = existingScore.id;
+    await db.update<CandidateScore>("candidate_scores", existingScore.id, row as any);
   } else {
-    await db.create<CandidateScore>("candidate_scores", {
-      id: scoreId,
-      organization_id: orgId,
-      application_id: applicationId,
-      candidate_id: candidateId,
-      job_id: jobId,
-      overall_score: overallScore,
-      skills_score: skillsScore,
-      experience_score: experienceScore,
-      matched_skills: JSON.stringify(matchedSkills),
-      missing_skills: JSON.stringify(missingSkills),
-      recommendation,
-      scored_at: new Date(),
-    } as any);
+    scoreId = uuidv4();
+    try {
+      await db.create<CandidateScore>("candidate_scores", {
+        id: scoreId,
+        organization_id: orgId,
+        application_id: applicationId,
+        candidate_id: candidateId,
+        job_id: jobId,
+        ...row,
+      } as any);
+    } catch (err) {
+      // Lost a concurrent insert race — update the row that won instead.
+      const winner = await db.findOne<CandidateScore>("candidate_scores", {
+        application_id: applicationId,
+        organization_id: orgId,
+      });
+      if (!winner) throw err;
+      scoreId = winner.id;
+      await db.update<CandidateScore>("candidate_scores", winner.id, row as any);
+    }
   }
 
   return {
@@ -453,6 +469,8 @@ export async function scoreCandidate(
     matchedSkills,
     missingSkills,
     recommendation,
+    scoringMethod,
+    scoringModel,
   };
 }
 
@@ -462,12 +480,13 @@ function calculateSkillsScore(
   jobSkillsOriginal: string[],
 ): { skillsScore: number; matchedSkills: string[]; missingSkills: string[] } {
   if (jobSkillsLower.length === 0) {
-    // No required skills to match against. Awarding a flat 100 gave every
-    // candidate an identical perfect score (BUG-010). With nothing to match,
-    // score by the candidate's own skill breadth instead, so distinct
-    // candidates are differentiated (≈8 recognised skills reaches 100).
-    const score = Math.min(100, candidateSkills.length * 12);
-    return { skillsScore: score, matchedSkills: candidateSkills.slice(0, 12), missingSkills: [] };
+    // The job lists NO required skills, so there is nothing to assess skill fit
+    // against. Award zero skill points and match nothing. Scoring by the
+    // candidate's own skill breadth (the previous behaviour) handed unrelated
+    // candidates a positive "match" and even surfaced the candidate's own skills
+    // as "matched" — e.g. a graphic designer ranking as a Good Match for a QA
+    // Automation role. The UI flags this as "skills not assessed". (BLOCKER)
+    return { skillsScore: 0, matchedSkills: [], missingSkills: [] };
   }
 
   const matchedSkills: string[] = [];
@@ -555,7 +574,15 @@ export async function batchScoreCandidates(
   scored: number;
   total: number;
   skipped: number;
-  results: Array<ScoreResult & { id: string; applicationId: string; candidateId: string }>;
+  results: Array<
+    ScoreResult & {
+      id: string;
+      applicationId: string;
+      candidateId: string;
+      scoringMethod: "ai" | "heuristic";
+      scoringModel: string | null;
+    }
+  >;
 }> {
   const db = getDB();
 
@@ -572,7 +599,15 @@ export async function batchScoreCandidates(
     limit: 1000,
   });
 
-  const results: Array<ScoreResult & { id: string; applicationId: string; candidateId: string }> = [];
+  const results: Array<
+    ScoreResult & {
+      id: string;
+      applicationId: string;
+      candidateId: string;
+      scoringMethod: "ai" | "heuristic";
+      scoringModel: string | null;
+    }
+  > = [];
 
   for (const app of applicationsResult.data) {
     try {
@@ -601,15 +636,30 @@ export async function batchScoreCandidates(
 export async function getScoreReport(
   orgId: number,
   applicationId: string,
-): Promise<CandidateScore | null> {
+): Promise<(CandidateScore & { no_required_skills: boolean }) | null> {
   const db = getDB();
 
   const score = await db.findOne<CandidateScore>("candidate_scores", {
     application_id: applicationId,
     organization_id: orgId,
   });
+  if (!score) return null;
 
-  return score;
+  // Tell the UI when the job had no required skills configured, so it can show
+  // that skills weren't assessed rather than implying a real skill match. (BLOCKER)
+  const job = await db.findOne<JobPosting>("job_postings", {
+    id: score.job_id,
+    organization_id: orgId,
+  });
+  let jobSkills: string[] = [];
+  try {
+    const js = typeof job?.skills === "string" ? JSON.parse(job.skills) : job?.skills;
+    if (Array.isArray(js)) jobSkills = js.filter((s) => typeof s === "string");
+  } catch {
+    /* malformed skills JSON — treat as none */
+  }
+
+  return { ...score, no_required_skills: jobSkills.length === 0 };
 }
 
 // Shared SELECT/FROM/WHERE for a job's ranked candidates. Callers append the

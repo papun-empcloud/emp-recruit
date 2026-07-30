@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Brain, Copy, Loader2, MessageSquare, Mic, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Brain, Copy, Loader2, MessageSquare, Mic, CheckCircle2, Sparkles, AlertTriangle } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { formatDate, resolveUploadUrl } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -29,6 +29,7 @@ interface SessionDetail {
   concerns: string | null;
   summary: string | null;
   provider: string | null;
+  model?: string | null;
   created_at: string;
   completed_at: string | null;
   transcript: Transcript[];
@@ -77,6 +78,10 @@ export function AiInterviewDetailPage() {
 
   const link = `${window.location.origin}/ai-interview/${s.token}`;
   const rec = s.recommendation ? REC_LABEL[s.recommendation] : null;
+  // A genuine AI content evaluation vs the completion-only fallback. When it's
+  // only a completion score we don't show a hiring recommendation or call it a
+  // "hiring score", so it can't be mistaken for a quality assessment. (#1)
+  const isAiEval = !!(s.provider && s.provider !== "heuristic");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -175,7 +180,11 @@ export function AiInterviewDetailPage() {
                 {s.overall_score != null ? s.overall_score : "—"}
                 <span className="text-lg font-medium text-gray-400">/100</span>
               </p>
-              <p className="mt-1 text-xs text-gray-400">{t("aiInterview.detail.overallScore")}</p>
+              <p className="mt-1 text-xs text-gray-400">
+                {isAiEval
+                  ? t("aiInterview.detail.overallScore")
+                  : t("aiInterview.detail.completionScoreLabel")}
+              </p>
             </div>
             {s.communication_score != null && (
               <div>
@@ -186,10 +195,26 @@ export function AiInterviewDetailPage() {
                 <p className="mt-1 text-xs text-gray-400">{t("aiInterview.detail.communication")}</p>
               </div>
             )}
-            {rec && (
+            {/* Only a genuine AI evaluation earns a hiring recommendation. */}
+            {rec && isAiEval && (
               <span className={`rounded-full px-3 py-1 text-sm font-semibold ${rec.className}`}>{t(`aiInterview.recommendation.${s.recommendation}`)}</span>
             )}
           </div>
+
+          {/* Prominently distinguish a genuine AI evaluation from the
+              completion-only fallback score, so the recommendation isn't
+              mistaken for a content-based assessment. (#1) */}
+          {s.provider && s.provider !== "heuristic" ? (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              {t("aiInterview.detail.methodAi", { model: s.model || s.provider })}
+            </div>
+          ) : (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+              <span>{t("aiInterview.detail.methodCompletion")}</span>
+            </div>
+          )}
 
           {s.summary && <p className="mt-4 text-sm text-gray-700">{s.summary}</p>}
 

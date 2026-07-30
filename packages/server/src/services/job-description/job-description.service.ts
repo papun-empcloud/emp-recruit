@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { logger } from "../../utils/logger";
+import { getLLM } from "../ai/llm";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -280,103 +281,124 @@ function generateFromTemplate(input: JDInput): GeneratedJD {
   // Benefits
   const benefits = STANDARD_BENEFITS.slice(0, 7);
 
-  // Full description
-  const full_description = [
-    `## About the Role\n\n${overview}`,
-    `## Responsibilities\n\n${selectedResponsibilities.map((r) => `- ${r}`).join("\n")}`,
-    `## Requirements\n\n${requirements.map((r) => `- ${r}`).join("\n")}`,
-    `## Nice to Have\n\n${niceToHave.map((r) => `- ${r}`).join("\n")}`,
-    `## Benefits\n\n${benefits.map((b) => `- ${b}`).join("\n")}`,
-  ].join("\n\n");
-
-  return {
+  const jd = {
     overview,
     responsibilities: selectedResponsibilities,
     requirements,
     nice_to_have: niceToHave,
     benefits,
-    full_description,
   };
+  return { ...jd, full_description: buildFullDescription(jd) };
 }
 
 // ---------------------------------------------------------------------------
-// OpenAI Generator (optional)
+// Markdown assembly (shared by the template and LLM paths)
 // ---------------------------------------------------------------------------
 
-async function generateWithOpenAI(input: JDInput): Promise<GeneratedJD | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+function buildFullDescription(jd: Omit<GeneratedJD, "full_description">): string {
+  const sections = [
+    `## About the Role\n\n${jd.overview}`,
+    `## Responsibilities\n\n${jd.responsibilities.map((r) => `- ${r}`).join("\n")}`,
+    `## Requirements\n\n${jd.requirements.map((r) => `- ${r}`).join("\n")}`,
+  ];
+  if (jd.nice_to_have.length) {
+    sections.push(`## Nice to Have\n\n${jd.nice_to_have.map((r) => `- ${r}`).join("\n")}`);
+  }
+  if (jd.benefits.length) {
+    sections.push(`## Benefits\n\n${jd.benefits.map((b) => `- ${b}`).join("\n")}`);
+  }
+  return sections.join("\n\n");
+}
+
+// ---------------------------------------------------------------------------
+// LLM Generator — uses the CONFIGURED provider (Anthropic / OpenAI / compatible)
+// via the shared adapter, not a hard-coded OpenAI call. Falls back to null so
+// the caller can use the template when no provider is configured.
+// ---------------------------------------------------------------------------
+
+function buildPrompt(input: JDInput): { system: string; prompt: string } {
+  const system =
+    "You are an expert HR copywriter who writes clear, inclusive, role-appropriate job descriptions. " +
+    "Tailor every section to the specific role, seniority and industry. " +
+    "Never pad a description with skills, tools or responsibilities that are irrelevant to the role — " +
+    "for example, never mention software-engineering tools (Git, CI/CD, REST APIs, programming languages) " +
+    "for a non-technical role such as Sales, Marketing, HR, Finance or Operations. " +
+    "Return ONLY the requested JSON, with no surrounding prose or markdown.";
+
+  const context = [
+    `Job title: ${input.title}`,
+    `Seniority: ${input.seniority}`,
+    input.department ? `Department: ${input.department}` : null,
+    input.location ? `Location: ${input.location}` : null,
+    input.employment_type ? `Employment type: ${input.employment_type}` : null,
+    input.skills.length ? `Recruiter-provided skills to emphasise: ${input.skills.join(", ")}` : null,
+    input.company_description ? `Company context: ${input.company_description}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const prompt = `Write a job description for the role below. Every section must be specific to this role and its industry.
+
+${context}
+
+Guidance:
+- Match the tone and scope to the seniority level.
+- Only reference skills, tools and qualifications a real ${input.title} would actually use. Do NOT include unrelated technical tools for non-technical roles.
+- Prefer the recruiter-provided skills where relevant, then add other genuinely role-appropriate ones.
+- Keep bullets concise and outcome-focused.
+
+Return ONLY a JSON object with exactly these fields:
+{
+  "overview": "2-3 sentence summary",
+  "responsibilities": ["6-8 items"],
+  "requirements": ["5-7 must-haves"],
+  "nice_to_have": ["3-5 items"],
+  "benefits": ["5-7 items"]
+}`;
+
+  return { system, prompt };
+}
+
+function coerceStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x).trim()).filter(Boolean);
+}
+
+async function generateWithLLM(input: JDInput): Promise<GeneratedJD | null> {
+  const llm = getLLM();
+  if (!llm) return null;
 
   try {
-    const prompt = `Generate a professional job description for the following position:
+    const { system, prompt } = buildPrompt(input);
+    const raw = await llm.complete({ system, prompt, json: true, maxTokens: 2000 });
 
-Title: ${input.title}
-Department: ${input.department || "Not specified"}
-Seniority: ${input.seniority}
-Key Skills: ${input.skills.join(", ")}
-Location: ${input.location || "Not specified"}
-Employment Type: ${input.employment_type || "Full-time"}
+    // The model may wrap JSON in a ```json fence or add stray prose; extract it.
+    let jsonStr = raw.trim();
+    const fence = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fence) jsonStr = fence[1].trim();
+    if (!jsonStr.startsWith("{")) {
+      const brace = jsonStr.match(/\{[\s\S]*\}/);
+      if (brace) jsonStr = brace[0];
+    }
 
-Return a JSON object with these fields:
-- overview (string): 2-3 sentence overview of the role
-- responsibilities (string[]): 6-8 key responsibilities
-- requirements (string[]): 5-7 must-have requirements
-- nice_to_have (string[]): 3-5 nice-to-have qualifications
-- benefits (string[]): 5-7 benefits
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+    const jd = {
+      overview: String(parsed.overview ?? "").trim(),
+      responsibilities: coerceStringArray(parsed.responsibilities),
+      requirements: coerceStringArray(parsed.requirements),
+      nice_to_have: coerceStringArray(parsed.nice_to_have),
+      benefits: coerceStringArray(parsed.benefits),
+    };
 
-Return ONLY valid JSON, no markdown wrapping.`;
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are an expert HR copywriter who creates compelling job descriptions." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
-    });
-
-    if (!response.ok) {
-      logger.warn(`OpenAI API error: ${response.status} ${response.statusText}`);
+    // If the model returned something unusable, signal a template fallback.
+    if (!jd.overview || jd.responsibilities.length === 0 || jd.requirements.length === 0) {
+      logger.warn("LLM job description missing required sections; falling back to template");
       return null;
     }
 
-    const data = await response.json() as any;
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) return null;
-
-    // Try to parse JSON from the response (handle potential markdown code blocks)
-    let jsonStr = content;
-    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) jsonStr = jsonMatch[1];
-
-    const parsed = JSON.parse(jsonStr.trim());
-
-    const full_description = [
-      `## About the Role\n\n${parsed.overview}`,
-      `## Responsibilities\n\n${parsed.responsibilities.map((r: string) => `- ${r}`).join("\n")}`,
-      `## Requirements\n\n${parsed.requirements.map((r: string) => `- ${r}`).join("\n")}`,
-      `## Nice to Have\n\n${parsed.nice_to_have.map((r: string) => `- ${r}`).join("\n")}`,
-      `## Benefits\n\n${parsed.benefits.map((b: string) => `- ${b}`).join("\n")}`,
-    ].join("\n\n");
-
-    return {
-      overview: parsed.overview,
-      responsibilities: parsed.responsibilities,
-      requirements: parsed.requirements,
-      nice_to_have: parsed.nice_to_have,
-      benefits: parsed.benefits,
-      full_description,
-    };
+    return { ...jd, full_description: buildFullDescription(jd) };
   } catch (err) {
-    logger.warn("OpenAI generation failed, falling back to template:", err);
+    logger.warn("LLM job description generation failed, falling back to template:", err);
     return null;
   }
 }
@@ -386,18 +408,17 @@ Return ONLY valid JSON, no markdown wrapping.`;
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a job description from basic inputs.
- * Uses OpenAI if OPENAI_API_KEY is set, otherwise falls back to templates.
+ * Generate a job description from basic inputs. Uses the configured AI provider
+ * when one is available (AI_PROVIDER + key), otherwise falls back to the
+ * deterministic template so the feature always returns something usable.
  */
 export async function generateJobDescription(input: JDInput): Promise<GeneratedJD & { source: "ai" | "template" }> {
-  // Try OpenAI first if API key is available
-  const aiResult = await generateWithOpenAI(input);
+  const aiResult = await generateWithLLM(input);
   if (aiResult) {
-    logger.info(`Job description generated via OpenAI for: ${input.title}`);
+    logger.info(`Job description generated via ${getLLM()?.key ?? "ai"} for: ${input.title}`);
     return { ...aiResult, source: "ai" };
   }
 
-  // Fallback to template-based generation
   const templateResult = generateFromTemplate(input);
   logger.info(`Job description generated via template for: ${input.title}`);
   return { ...templateResult, source: "template" };
