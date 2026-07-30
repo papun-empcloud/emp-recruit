@@ -13,6 +13,8 @@ import {
   ReferralStatus,
   Recommendation,
   CandidateSource,
+  HiringTeamRole,
+  RecruitmentTaskStatus,
 } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -597,4 +599,40 @@ export const bulkStageSchema = z.object({
   application_ids: z.array(z.string().uuid()).min(1, "Select at least one application").max(500),
   stage: z.nativeEnum(ApplicationStage),
   notes: z.string().max(1000).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Hiring team & recruitment tasks (031)
+// ---------------------------------------------------------------------------
+
+const optionalDate = z
+  .string()
+  .refine((v) => !v || !isNaN(Date.parse(v)), { message: "Invalid date" })
+  .nullable()
+  .optional();
+
+export const addHiringTeamMemberSchema = z.object({
+  user_id: z.number().int().positive(),
+  role: z.nativeEnum(HiringTeamRole),
+});
+
+export const updateHiringTeamMemberSchema = z.object({
+  role: z.nativeEnum(HiringTeamRole),
+});
+
+export const createRecruitmentTaskSchema = z.object({
+  title: plainText(z.string().min(1, "Title is required").max(300)),
+  description: plainText(z.string().max(2000)).nullable().optional(),
+  assigned_to: z.number().int().positive().nullable().optional(),
+  due_date: optionalDate,
+  application_id: z.string().uuid().nullable().optional(),
+  status: z.nativeEnum(RecruitmentTaskStatus).optional(),
+});
+
+export const updateRecruitmentTaskSchema = z.object({
+  title: plainText(z.string().min(1).max(300)).optional(),
+  description: plainText(z.string().max(2000)).nullable().optional(),
+  assigned_to: z.number().int().positive().nullable().optional(),
+  due_date: optionalDate,
+  status: z.nativeEnum(RecruitmentTaskStatus).optional(),
 });

@@ -58,6 +58,19 @@ export enum OnboardingStatus {
   COMPLETED = "completed",
 }
 
+export enum HiringTeamRole {
+  RECRUITER = "recruiter",
+  HIRING_MANAGER = "hiring_manager",
+  INTERVIEWER = "interviewer",
+  COORDINATOR = "coordinator",
+}
+
+export enum RecruitmentTaskStatus {
+  TODO = "todo",
+  IN_PROGRESS = "in_progress",
+  DONE = "done",
+}
+
 export enum ReferralStatus {
   SUBMITTED = "submitted",
   UNDER_REVIEW = "under_review",
@@ -595,4 +608,37 @@ export interface ApplicationScreeningAnswer {
   answer: string | null;
   knockout_failed: boolean;
   created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Hiring team & recruitment tasks (031)
+// ---------------------------------------------------------------------------
+
+export interface JobHiringTeamMember {
+  id: string;
+  organization_id: number;
+  job_id: string;
+  user_id: number; // EmpCloud user
+  role: HiringTeamRole;
+  created_at: string;
+  // Resolved for display (from the EmpCloud master DB).
+  user_name?: string | null;
+  user_email?: string | null;
+}
+
+export interface RecruitmentTask {
+  id: string;
+  organization_id: number;
+  job_id: string | null;
+  application_id: string | null;
+  title: string;
+  description: string | null;
+  assigned_to: number | null; // EmpCloud user
+  due_date: string | null; // YYYY-MM-DD
+  status: RecruitmentTaskStatus;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  // Resolved for display.
+  assignee_name?: string | null;
 }

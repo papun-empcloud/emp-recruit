@@ -1037,6 +1037,7 @@
       "close": "Close",
       "resume": "Resume",
       "edit": "Edit",
+      "workflowBoard": "Workflow",
       "delete": "Delete",
       "description": "Description",
       "requirements": "Requirements",
@@ -1193,6 +1194,35 @@
     "pipeline": {
       "title": "Hiring Pipeline",
       "subtitle": "Kanban board view of applicants by stage."
+    },
+    "workflow": {
+      "title": "Workflow board",
+      "backToJob": "Back to job",
+      "pipeline": "Pipeline",
+      "hiringTeam": "Hiring team",
+      "addMember": "Add",
+      "selectUser": "Select a user…",
+      "noMembers": "No one is on the hiring team yet.",
+      "remove": "Remove",
+      "memberAdded": "Team member added.",
+      "memberRemoved": "Team member removed.",
+      "memberFailed": "Could not update the hiring team.",
+      "tasks": "Tasks",
+      "addTask": "Add",
+      "taskTitlePlaceholder": "Add a task…",
+      "noTasks": "No tasks yet.",
+      "unassigned": "Unassigned",
+      "delete": "Delete",
+      "toggleDone": "Toggle done",
+      "taskAdded": "Task added.",
+      "taskDeleted": "Task deleted.",
+      "taskFailed": "Could not update the task.",
+      "roles": {
+        "recruiter": "Recruiter",
+        "hiring_manager": "Hiring manager",
+        "interviewer": "Interviewer",
+        "coordinator": "Coordinator"
+      }
     }
   },
   "offers": {
