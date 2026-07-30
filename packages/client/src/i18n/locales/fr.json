@@ -252,6 +252,7 @@
       "errorSubmit": "Échec de l'envoi de la candidature",
       "errorResumeType": "Seuls les fichiers de CV au format PDF, DOC et DOCX sont autorisés.",
       "errorResumeSize": "Le fichier du CV est trop volumineux (10 Mo maximum).",
+      "errorResumeRequired": "Veuillez joindre votre CV.",
       "errorFirstNameRequired": "Le prénom est obligatoire.",
       "errorLastNameRequired": "Le nom est obligatoire.",
       "errorEmailRequired": "L'e-mail est obligatoire.",

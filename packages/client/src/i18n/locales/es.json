@@ -252,6 +252,7 @@
       "errorSubmit": "No se pudo enviar la candidatura",
       "errorResumeType": "Solo se permiten archivos de currículum PDF, DOC y DOCX.",
       "errorResumeSize": "El archivo del currículum es demasiado grande (máx. 10 MB).",
+      "errorResumeRequired": "Adjunta tu currículum.",
       "errorFirstNameRequired": "El nombre es obligatorio.",
       "errorLastNameRequired": "El apellido es obligatorio.",
       "errorEmailRequired": "El correo electrónico es obligatorio.",

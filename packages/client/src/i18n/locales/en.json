@@ -254,6 +254,7 @@
       "errorSubmit": "Failed to submit application",
       "errorResumeType": "Only PDF, DOC, and DOCX resume files are allowed.",
       "errorResumeSize": "Resume file is too large (max 10MB).",
+      "errorResumeRequired": "Please attach your resume.",
       "errorFirstNameRequired": "First name is required.",
       "errorLastNameRequired": "Last name is required.",
       "errorEmailRequired": "Email is required.",

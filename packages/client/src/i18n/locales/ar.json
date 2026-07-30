@@ -273,6 +273,7 @@
       "errorSubmit": "فشل في إرسال الطلب",
       "errorResumeType": "يُسمح فقط بملفات السيرة الذاتية بصيغة PDF وDOC وDOCX.",
       "errorResumeSize": "ملف السيرة الذاتية كبير جدًا (بحد أقصى 10 ميغابايت).",
+      "errorResumeRequired": "يرجى إرفاق سيرتك الذاتية.",
       "errorFirstNameRequired": "الاسم الأول مطلوب.",
       "errorLastNameRequired": "اسم العائلة مطلوب.",
       "errorEmailRequired": "البريد الإلكتروني مطلوب.",
