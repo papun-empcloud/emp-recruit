@@ -577,3 +577,24 @@ export const screeningAnswerSchema = z.object({
   answer: z.string().max(2000).optional(),
 });
 export const screeningAnswersSchema = z.array(screeningAnswerSchema).max(30);
+
+// ---------------------------------------------------------------------------
+// Application workflow (030) — assignment, SLA, bulk stage
+// ---------------------------------------------------------------------------
+
+export const assignApplicationSchema = z.object({
+  // null clears the assignment.
+  assigned_to: z.number().int().nullable().optional(),
+  // ISO date (YYYY-MM-DD); null/empty clears it.
+  sla_due_date: z
+    .string()
+    .refine((v) => !v || !isNaN(Date.parse(v)), { message: "Invalid date" })
+    .nullable()
+    .optional(),
+});
+
+export const bulkStageSchema = z.object({
+  application_ids: z.array(z.string().uuid()).min(1, "Select at least one application").max(500),
+  stage: z.nativeEnum(ApplicationStage),
+  notes: z.string().max(1000).optional(),
+});

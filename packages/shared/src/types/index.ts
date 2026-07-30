@@ -181,9 +181,22 @@ export interface Application {
   rating: number | null;
   notes: string | null;
   rejection_reason: string | null;
+  // Workflow (030): responsible recruiter (EmpCloud user id) + SLA target date.
+  assigned_to: number | null;
+  sla_due_date: string | null;
   applied_at: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ApplicationActivity {
+  id: string;
+  organization_id: number;
+  application_id: string;
+  actor_id: number | null;
+  type: "created" | "stage_change" | "note" | "assigned" | "sla_set" | "screening";
+  message: string;
+  created_at: string;
 }
 
 export interface ApplicationStageHistory {
