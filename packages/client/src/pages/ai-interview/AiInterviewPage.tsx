@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, ChevronRight, PhoneOff } from "lucide-react";
+import { Brain, Mic, MicOff, Volume2, Loader2, CheckCircle2, ChevronRight, PhoneOff, Keyboard } from "lucide-react";
 import axios from "axios";
 
 const PUBLIC_API = "/api/v1/public/ai-interviews";
@@ -35,6 +35,40 @@ const SpeechRecognitionCtor: any =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : undefined;
 
+// Browser speech recognition mangles common technical terms ("java script",
+// "type script", "no sql"). The Web Speech API offers no reliable vocabulary
+// hinting (SpeechGrammarList is unsupported in Chrome), so we normalise the
+// transcript with a conservative canonical-spelling map instead. Each rule is
+// idempotent — re-applying it to an already-corrected transcript is a no-op —
+// so it's safe to run on every interim result and on the committed base.
+const TERM_CORRECTIONS: Array<[RegExp, string]> = [
+  [/\bjava\s?script\b/gi, "JavaScript"],
+  [/\btype\s?script\b/gi, "TypeScript"],
+  [/\bnode\s?\.?\s?js\b/gi, "Node.js"],
+  [/\breact\s?js\b/gi, "React"],
+  [/\bnext\s?\.?\s?js\b/gi, "Next.js"],
+  [/\bvue\s?\.?\s?js\b/gi, "Vue"],
+  [/\bno\s?sql\b/gi, "NoSQL"],
+  [/\bmy\s?sql\b/gi, "MySQL"],
+  [/\bpostgres(?:ql)?\b/gi, "PostgreSQL"],
+  [/\bmongo\s?db\b/gi, "MongoDB"],
+  [/\bgraph\s?ql\b/gi, "GraphQL"],
+  [/\brest\s?ful\b/gi, "RESTful"],
+  [/\bgit\s?hub\b/gi, "GitHub"],
+  [/\bgit\s?lab\b/gi, "GitLab"],
+  [/\bkuber\s?netes\b/gi, "Kubernetes"],
+  [/\bdot\s?net\b/gi, ".NET"],
+  [/\bc\s?sharp\b/gi, "C#"],
+  [/\btail\s?wind\b/gi, "Tailwind"],
+  [/\bdev\s?ops\b/gi, "DevOps"],
+  [/\bci\s?cd\b/gi, "CI/CD"],
+];
+function correctTranscript(text: string): string {
+  let out = text;
+  for (const [re, rep] of TERM_CORRECTIONS) out = out.replace(re, rep);
+  return out;
+}
+
 export function AiInterviewPage() {
   const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
@@ -50,6 +84,13 @@ export function AiInterviewPage() {
   const [left, setLeft] = useState(false);
   const [soundChecked, setSoundChecked] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  // Shown when the candidate advances with an empty answer — a soft guard so a
+  // missed/failed transcription doesn't silently submit a blank answer. Tapping
+  // Next a second time (still empty) submits anyway (an intentional skip).
+  const [noSpeechWarn, setNoSpeechWarn] = useState(false);
+  // Typed-answer mode: the only input path on browsers without SpeechRecognition
+  // (Firefox/Safari), and an opt-in escape hatch elsewhere when speech is unreliable.
+  const [typedMode, setTypedMode] = useState(!SpeechRecognitionCtor);
   const recognitionRef = useRef<any>(null);
   // Text finalized before the CURRENT recognition run started (preserved across
   // mute/unmute and Chrome's auto-restarts) so we can rebuild the answer from the
@@ -463,10 +504,11 @@ export function AiInterviewPage() {
           if (r.isFinal) runFinal += r[0].transcript + " ";
           else interimText += r[0].transcript;
         }
-        const combined = `${committedRef.current} ${runFinal}`.replace(/\s+/g, " ").trim();
+        const combined = correctTranscript(`${committedRef.current} ${runFinal}`.replace(/\s+/g, " ").trim());
         answerRef.current = combined;
         setAnswer(combined);
-        setInterim(interimText);
+        setInterim(correctTranscript(interimText));
+        if (combined) setNoSpeechWarn(false);
       };
       rec.onend = () => {
         // Only act for the recognition that's still current.
@@ -521,6 +563,19 @@ export function AiInterviewPage() {
     else startListening();
   }
 
+  // Manual "Next question" tap. Guard against submitting an empty answer by
+  // accident (mic never caught anything): the first empty tap shows a prompt and
+  // keeps listening; a second empty tap submits anyway as an intentional skip.
+  // The timer path calls submitAnswer() directly so a silent candidate still advances.
+  function handleNext() {
+    if (!answer.trim() && !noSpeechWarn) {
+      setNoSpeechWarn(true);
+      if (SpeechRecognitionCtor && !typedMode && !listening) startListening();
+      return;
+    }
+    submitAnswer();
+  }
+
   async function submitAnswer() {
     if (!state || submitting) return;
     clearTimer();
@@ -533,6 +588,7 @@ export function AiInterviewPage() {
       setAnswer("");
       answerRef.current = "";
       committedRef.current = "";
+      setNoSpeechWarn(false);
       if (next.done) {
         await axios.post(`${PUBLIC_API}/${token}/complete`);
         // Upload the recorded audio so it appears on the recruiter's view.
@@ -762,20 +818,41 @@ export function AiInterviewPage() {
         </div>
       </div>
 
-      {/* Candidate subtitle — a live transcript of what they're saying */}
+      {/* Candidate input — a live transcript when speaking, or a text box when
+          typing (the only path on browsers without speech recognition). */}
       {!inSoundCheck && (
         <div className="px-4 pb-4">
-          <div className="mx-auto min-h-[3rem] max-w-3xl rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-center">
-            {liveTranscript ? (
-              <p className="text-sm text-gray-100">
-                {answer} <span className="text-gray-400">{interim}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500">
-                {listening ? t("aiInterview.session.listeningHint") : t("aiInterview.session.tapMicHint")}
-              </p>
-            )}
-          </div>
+          {typedMode ? (
+            <textarea
+              value={answer}
+              onChange={(e) => {
+                setAnswer(e.target.value);
+                answerRef.current = e.target.value;
+                if (e.target.value.trim()) setNoSpeechWarn(false);
+              }}
+              rows={3}
+              maxLength={5000}
+              placeholder={t("aiInterview.session.typeAnswerPlaceholder")}
+              className="mx-auto block w-full max-w-3xl resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:border-brand-400 focus:outline-none"
+            />
+          ) : (
+            <div className="mx-auto min-h-[3rem] max-w-3xl rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-center">
+              {liveTranscript ? (
+                <p className="text-sm text-gray-100">
+                  {answer} <span className="text-gray-400">{interim}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  {listening ? t("aiInterview.session.listeningHint") : t("aiInterview.session.tapMicHint")}
+                </p>
+              )}
+            </div>
+          )}
+          {noSpeechWarn && (
+            <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-amber-400">
+              {t("aiInterview.session.noSpeechDetected")}
+            </p>
+          )}
         </div>
       )}
 
@@ -790,7 +867,7 @@ export function AiInterviewPage() {
           </button>
         ) : (
           <>
-            {SpeechRecognitionCtor && (
+            {SpeechRecognitionCtor && !typedMode && (
               <button
                 onClick={toggleMic}
                 title={
@@ -814,8 +891,24 @@ export function AiInterviewPage() {
                 {listening ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
               </button>
             )}
+            {SpeechRecognitionCtor && (
+              <button
+                onClick={() => {
+                  setTypedMode((prev) => {
+                    const next = !prev;
+                    if (next) stopListening();
+                    return next;
+                  });
+                }}
+                title={typedMode ? t("aiInterview.session.useVoice") : t("aiInterview.session.typeAnswer")}
+                className="flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-medium text-white transition-colors hover:bg-white/20"
+              >
+                {typedMode ? <Mic className="h-4 w-4" /> : <Keyboard className="h-4 w-4" />}
+                {typedMode ? t("aiInterview.session.useVoice") : t("aiInterview.session.typeAnswer")}
+              </button>
+            )}
             <button
-              onClick={submitAnswer}
+              onClick={handleNext}
               disabled={submitting}
               title={isLast ? t("aiInterview.session.finishInterview") : t("aiInterview.session.nextQuestion")}
               className="flex h-12 items-center gap-2 rounded-full bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles, Plus } from "lucide-react";
 import { ScreeningQuestionsEditor } from "@/components/ScreeningQuestionsEditor";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import type { JobPosting } from "@emp-recruit/shared";
@@ -115,6 +115,8 @@ export function JobFormPage() {
   const [form, setForm] = useState<FormData>(INITIAL);
   // Seniority hint for the AI generator (generation-only, not persisted).
   const [seniority, setSeniority] = useState("mid");
+  // Role-appropriate skills the AI suggested; click a chip to add it to the field.
+  const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
 
   const { data: existingJob, isLoading: loadingJob } = useQuery({
     queryKey: ["job", id],
@@ -237,6 +239,15 @@ export function JobFormPage() {
         requirements: reqHtml || p.requirements,
         benefits: benHtml || p.benefits,
       }));
+      // Only suggest skills the field doesn't already contain.
+      const have = new Set(
+        form.skills.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+      );
+      setSuggestedSkills(
+        (Array.isArray(jd?.suggested_skills) ? jd.suggested_skills : []).filter(
+          (s: string) => s && !have.has(s.toLowerCase()),
+        ),
+      );
       toast.success(jd?.source === "ai" ? t("jobs.form.aiGenerated") : t("jobs.form.aiGeneratedTemplate"));
     },
     onError: (err: any) =>
@@ -250,6 +261,17 @@ export function JobFormPage() {
       return;
     }
     generateMutation.mutate();
+  }
+
+  // Append a suggested skill to the comma-separated skills field (dedup), and
+  // drop it from the suggestion chips.
+  function addSuggestedSkill(skill: string) {
+    setForm((p) => {
+      const existing = p.skills.split(",").map((s) => s.trim()).filter(Boolean);
+      if (existing.some((s) => s.toLowerCase() === skill.toLowerCase())) return p;
+      return { ...p, skills: [...existing, skill].join(", ") };
+    });
+    setSuggestedSkills((prev) => prev.filter((s) => s.toLowerCase() !== skill.toLowerCase()));
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -613,6 +635,24 @@ export function JobFormPage() {
           </div>
 
           {field(t("jobs.form.skillsLabel"), "skills", "text", { placeholder: t("jobs.form.skillsPlaceholder") })}
+          {suggestedSkills.length > 0 && (
+            <div className="-mt-2">
+              <p className="mb-1.5 text-xs font-medium text-gray-500">{t("jobs.form.suggestedSkills")}</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestedSkills.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => addSuggestedSkill(s)}
+                    className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                  >
+                    <Plus className="h-3 w-3" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {/* #13 — can't pick a deadline in the past. Enforced client-side
               via the native min attribute; backend rejects Invalid dates too. */}
           <div>

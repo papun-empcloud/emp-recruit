@@ -1153,6 +1153,7 @@
         "cLevel": "C-level"
       },
       "niceToHave": "Nice to have",
+      "suggestedSkills": "Suggested skills — click to add",
       "aiGenerated": "Generated with AI. Review and edit as needed.",
       "aiGeneratedTemplate": "Generated from a template (no AI provider configured). Review and edit.",
       "aiGenerateFailed": "Couldn't generate the description. Please try again.",
@@ -1786,6 +1787,10 @@
       "replayQuestion": "Replay question",
       "listeningHint": "Listening… start speaking your answer.",
       "tapMicHint": "Tap the mic to answer out loud.",
+      "noSpeechDetected": "We didn't catch an answer. Speak now and it'll appear here — or tap Next again to skip this question.",
+      "typeAnswer": "Type instead",
+      "useVoice": "Use voice",
+      "typeAnswerPlaceholder": "Type your answer here…",
       "canHearYou": "I can hear you",
       "mute": "Mute",
       "unmute": "Unmute",
