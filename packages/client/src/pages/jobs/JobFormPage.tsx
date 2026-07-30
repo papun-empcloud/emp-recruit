@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles } from "lucide-react";
 import { ScreeningQuestionsEditor } from "@/components/ScreeningQuestionsEditor";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import type { JobPosting } from "@emp-recruit/shared";
@@ -43,6 +43,30 @@ const REMOTE_POLICIES = [
   { value: "remote", labelKey: "jobs.form.remotePolicy.remote" },
   { value: "hybrid", labelKey: "jobs.form.remotePolicy.hybrid" },
 ];
+
+// Seniority is a generation-only hint (not a stored job field) used by the
+// AI job-description generator.
+const SENIORITY_OPTIONS = [
+  { value: "intern", labelKey: "jobs.form.seniority.intern" },
+  { value: "junior", labelKey: "jobs.form.seniority.junior" },
+  { value: "mid", labelKey: "jobs.form.seniority.mid" },
+  { value: "senior", labelKey: "jobs.form.seniority.senior" },
+  { value: "lead", labelKey: "jobs.form.seniority.lead" },
+  { value: "director", labelKey: "jobs.form.seniority.director" },
+  { value: "vp", labelKey: "jobs.form.seniority.vp" },
+  { value: "c_level", labelKey: "jobs.form.seniority.cLevel" },
+];
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+function toHtmlList(items?: string[]): string {
+  if (!items?.length) return "";
+  return `<ul>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
+}
 
 interface FormData {
   title: string;
@@ -89,6 +113,8 @@ export function JobFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormData>(INITIAL);
+  // Seniority hint for the AI generator (generation-only, not persisted).
+  const [seniority, setSeniority] = useState("mid");
 
   const { data: existingJob, isLoading: loadingJob } = useQuery({
     queryKey: ["job", id],
@@ -184,6 +210,47 @@ export function JobFormPage() {
       }
     },
   });
+
+  // AI job-description generation: fills the description/requirements/benefits
+  // editors from the configured provider (falls back to a template server-side).
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const skills = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
+      const body: Record<string, any> = { title: form.title.trim(), seniority, skills };
+      if (form.department) body.department = form.department;
+      if (form.location) body.location = form.location;
+      if (form.employment_type) body.employment_type = form.employment_type;
+      const res = await apiPost<any>("/jobs/generate-description", body);
+      return res.data;
+    },
+    onSuccess: (jd: any) => {
+      const descHtml = `${jd?.overview ? `<p>${escapeHtml(jd.overview)}</p>` : ""}${toHtmlList(jd?.responsibilities)}`;
+      const reqHtml = `${toHtmlList(jd?.requirements)}${
+        jd?.nice_to_have?.length
+          ? `<p><strong>${t("jobs.form.niceToHave")}</strong></p>${toHtmlList(jd.nice_to_have)}`
+          : ""
+      }`;
+      const benHtml = toHtmlList(jd?.benefits);
+      setForm((p) => ({
+        ...p,
+        description: descHtml || p.description,
+        requirements: reqHtml || p.requirements,
+        benefits: benHtml || p.benefits,
+      }));
+      toast.success(jd?.source === "ai" ? t("jobs.form.aiGenerated") : t("jobs.form.aiGeneratedTemplate"));
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || t("jobs.form.aiGenerateFailed")),
+  });
+
+  function generateWithAi() {
+    const skills = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
+    if (form.title.trim().length < 2 || skills.length === 0) {
+      toast.error(t("jobs.form.aiNeedsTitleSkills"));
+      return;
+    }
+    generateMutation.mutate();
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -341,9 +408,40 @@ export function JobFormPage() {
           })}
 
           <div>
-            <label htmlFor="job-description" className="block text-sm font-medium text-gray-700 mb-1">
-              {t("jobs.form.description")} <span className="text-red-500">*</span>
-            </label>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <label htmlFor="job-description" className="block text-sm font-medium text-gray-700">
+                {t("jobs.form.description")} <span className="text-red-500">*</span>
+              </label>
+              {/* Generate the description/requirements/benefits with AI, using
+                  the title, chosen seniority, department, location and skills. */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={seniority}
+                  onChange={(e) => setSeniority(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
+                  title={t("jobs.form.seniorityLabel")}
+                >
+                  {SENIORITY_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {t(o.labelKey)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={generateWithAi}
+                  disabled={generateMutation.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+                >
+                  {generateMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {t("jobs.form.generateWithAi")}
+                </button>
+              </div>
+            </div>
             {/* #14 — backend enforces min length 10; handleSubmit measures the
                 editor's visible text so the user gets immediate feedback
                 instead of a confusing 400. */}
