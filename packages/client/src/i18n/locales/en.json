@@ -420,6 +420,41 @@
   "applications": {
     "title": "Applications",
     "subtitle": "Every application across your open roles.",
+    "stage": {
+      "applied": "Applied",
+      "screened": "Screened",
+      "interview": "Interview",
+      "offer": "Offer",
+      "hired": "Hired",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "detail": {
+      "back": "Back",
+      "notFound": "Application not found.",
+      "viewCandidate": "View candidate",
+      "stage": "Stage",
+      "ownership": "Ownership & SLA",
+      "assignee": "Responsible recruiter",
+      "unassigned": "Unassigned",
+      "slaDate": "SLA due date",
+      "save": "Save",
+      "screeningAnswers": "Screening answers",
+      "knockoutFailed": "knockout failed",
+      "activity": "Activity",
+      "noActivity": "No activity yet.",
+      "assignmentSaved": "Assignment updated.",
+      "assignmentFailed": "Could not update assignment.",
+      "stageMoved": "Stage updated.",
+      "stageFailed": "Could not change the stage."
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "moveTo": "Move to…",
+      "moved": "Moved {{count}} application(s).",
+      "moveFailed": "Could not move the selected applications.",
+      "clear": "Clear"
+    },
     "searchLabel": "Search",
     "searchPlaceholder": "Candidate name, email or job…",
     "jobRole": "Job role",
