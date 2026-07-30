@@ -267,7 +267,14 @@ router.get(
   "/careers/:slug/jobs/:jobId/screening-questions",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const questions = await screeningService.getPublicJobQuestions(String(req.params.jobId));
+      // Scope to the career page's org + public visibility (open, not internal,
+      // shown on the page). Throws 404 for any job that isn't publicly listed
+      // on this slug — same guard the job-detail/apply endpoints enforce.
+      const job = await careerPageService.getPublicJobDetail(
+        String(req.params.slug),
+        String(req.params.jobId),
+      );
+      const questions = await screeningService.getPublicJobQuestions(job.id);
       sendSuccess(res, questions);
     } catch (err) {
       next(err);

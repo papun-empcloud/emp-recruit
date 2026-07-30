@@ -293,7 +293,9 @@
       "monthsLabel": "Months",
       "errorMonthsRange": "Months must be between 0 and 11",
       "skillsLabel": "Skills (comma separated)",
-      "skillsPlaceholder": "React, Python, SQL"
+      "skillsPlaceholder": "React, Python, SQL",
+      "screeningLoadError": "Couldn't load the application form. Please try again.",
+      "retry": "Try again"
     },
     "success": {
       "title": "Thank You for Applying!",

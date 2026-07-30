@@ -300,7 +300,9 @@
       "screeningTitle": "Questions de présélection",
       "screeningSelect": "Sélectionner…",
       "screeningRequired": "Cette question est obligatoire",
-      "screeningRequiredToast": "Veuillez répondre à toutes les questions de présélection obligatoires."
+      "screeningRequiredToast": "Veuillez répondre à toutes les questions de présélection obligatoires.",
+      "screeningLoadError": "Impossible de charger le formulaire de candidature. Veuillez réessayer.",
+      "retry": "Réessayer"
     },
     "success": {
       "title": "Merci pour votre candidature !",

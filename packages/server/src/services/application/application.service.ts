@@ -178,6 +178,18 @@ export async function assignApplication(
   const app = await db.findOne<Application>("applications", { id, organization_id: orgId });
   if (!app) throw new NotFoundError("Application", id);
 
+  // Users live in the EmpCloud master DB with no FK from this table, so an
+  // arbitrary user id would otherwise persist and later leak that (possibly
+  // cross-org) user's name back on read. Only allow assigning to an ACTIVE
+  // member of the caller's own organization.
+  let assignee: Awaited<ReturnType<typeof findUserById>> = null;
+  if (data.assigned_to != null) {
+    assignee = await findUserById(data.assigned_to).catch(() => null);
+    if (!assignee || assignee.organization_id !== orgId || assignee.status !== 1) {
+      throw new ValidationError("Assignee must be an active member of your organization");
+    }
+  }
+
   const updates: Record<string, any> = {};
   if (data.assigned_to !== undefined) updates.assigned_to = data.assigned_to;
   if (data.sla_due_date !== undefined) {
@@ -189,8 +201,7 @@ export async function assignApplication(
     if (data.assigned_to === null) {
       await logActivity(orgId, id, userId, "assigned", "Unassigned");
     } else {
-      const u = await findUserById(data.assigned_to).catch(() => null);
-      const name = u ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() : `User #${data.assigned_to}`;
+      const name = assignee ? `${assignee.first_name ?? ""} ${assignee.last_name ?? ""}`.trim() : "";
       await logActivity(orgId, id, userId, "assigned", `Assigned to ${name || `User #${data.assigned_to}`}`);
     }
   }
@@ -351,10 +362,13 @@ export async function getApplication(orgId: number, id: string): Promise<any> {
   const app = rows[0]?.[0];
   if (!app) throw new NotFoundError("Application", id);
 
-  // Resolve the assigned recruiter's name (EmpCloud user) for display.
+  // Resolve the assigned recruiter's name (EmpCloud user) for display. Guard on
+  // org membership so a stale/foreign assigned_to can never leak a cross-org
+  // user's name (assignment is org-validated on write, this is defense-in-depth).
   if (app.assigned_to != null) {
     const u = await findUserById(app.assigned_to).catch(() => null);
-    app.assignee_name = u ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || null : null;
+    app.assignee_name =
+      u && u.organization_id === orgId ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || null : null;
   } else {
     app.assignee_name = null;
   }

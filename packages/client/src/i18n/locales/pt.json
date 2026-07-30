@@ -300,7 +300,9 @@
       "screeningTitle": "Perguntas de triagem",
       "screeningSelect": "Selecione…",
       "screeningRequired": "Esta pergunta é obrigatória",
-      "screeningRequiredToast": "Responda a todas as perguntas de triagem obrigatórias."
+      "screeningRequiredToast": "Responda a todas as perguntas de triagem obrigatórias.",
+      "screeningLoadError": "Não foi possível carregar o formulário de candidatura. Tente novamente.",
+      "retry": "Tentar novamente"
     },
     "success": {
       "title": "Obrigado por se Candidatar!",

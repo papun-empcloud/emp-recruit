@@ -250,10 +250,30 @@ export function CareerApplyPage() {
     applyMutation.mutate();
   }
 
-  if (jobQuery.isLoading) {
+  // Wait for BOTH the job and its screening questions before showing the form:
+  // rendering with a failed screening fetch would let the applicant submit with
+  // no required answers and hit an unfixable server rejection.
+  if (jobQuery.isLoading || screeningQuery.isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      </div>
+    );
+  }
+
+  if (screeningQuery.isError) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-gray-700">{t("careers.apply.screeningLoadError")}</p>
+          <button
+            type="button"
+            onClick={() => screeningQuery.refetch()}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            {t("careers.apply.retry")}
+          </button>
+        </div>
       </div>
     );
   }
@@ -388,6 +408,7 @@ export function CareerApplyPage() {
                       <input
                         type={q.type === "number" ? "number" : "text"}
                         value={val}
+                        maxLength={2000}
                         onChange={(e) => set(e.target.value)}
                         className={fieldClass(key)}
                       />

@@ -321,7 +321,9 @@
       "screeningTitle": "أسئلة التصفية",
       "screeningSelect": "اختر…",
       "screeningRequired": "هذا السؤال مطلوب",
-      "screeningRequiredToast": "يرجى الإجابة على جميع أسئلة التصفية المطلوبة."
+      "screeningRequiredToast": "يرجى الإجابة على جميع أسئلة التصفية المطلوبة.",
+      "screeningLoadError": "تعذّر تحميل نموذج التقديم. يُرجى المحاولة مرة أخرى.",
+      "retry": "إعادة المحاولة"
     },
     "success": {
       "title": "شكرًا لتقديمك!",

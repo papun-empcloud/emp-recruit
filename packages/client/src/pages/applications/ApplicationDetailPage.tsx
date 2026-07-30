@@ -90,6 +90,9 @@ export function ApplicationDetailPage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["application", id] });
     queryClient.invalidateQueries({ queryKey: ["application-activity", id] });
+    // The applications list renders a stage badge from cached rows; without
+    // this it stays stale (up to the global staleTime) after a stage change.
+    queryClient.invalidateQueries({ queryKey: ["applications"] });
   };
 
   const assignMutation = useMutation({

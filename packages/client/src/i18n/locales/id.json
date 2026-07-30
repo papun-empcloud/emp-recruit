@@ -293,7 +293,9 @@
       "screeningTitle": "Pertanyaan seleksi",
       "screeningSelect": "Pilih…",
       "screeningRequired": "Pertanyaan ini wajib diisi",
-      "screeningRequiredToast": "Silakan jawab semua pertanyaan seleksi yang wajib."
+      "screeningRequiredToast": "Silakan jawab semua pertanyaan seleksi yang wajib.",
+      "screeningLoadError": "Tidak dapat memuat formulir lamaran. Silakan coba lagi.",
+      "retry": "Coba lagi"
     },
     "success": {
       "title": "Terima Kasih Telah Melamar!",
