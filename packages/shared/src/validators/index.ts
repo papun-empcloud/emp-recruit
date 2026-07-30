@@ -190,11 +190,30 @@ export const bulkUpdateJobsSchema = z.object({
 // Candidates
 // ---------------------------------------------------------------------------
 
+// Optional phone: when present, allow only digits and common phone punctuation
+// and require an E.164-reasonable digit count (7 to 15). Previously this was
+// z.string().max(20) — a character cap that never checked the digit count, so a
+// 20-digit string sailed straight through (BUG-019). 15 (E.164 max) is used
+// rather than a hard 10 so international numbers with a country code still pass.
+const optionalPhone = z
+  .string()
+  .max(20)
+  .refine(
+    (v) => {
+      if (!v.trim()) return true;
+      if (/[^\d+\-()\s]/.test(v)) return false;
+      const digits = v.replace(/\D/g, "");
+      return digits.length >= 7 && digits.length <= 15;
+    },
+    { message: "Enter a valid phone number (7 to 15 digits)" },
+  )
+  .optional();
+
 export const createCandidateSchema = z.object({
   first_name: z.string().trim().min(1).max(64),
   last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
-  phone: z.string().max(20).optional(),
+  phone: optionalPhone,
   source: z.nativeEnum(CandidateSource).default(CandidateSource.DIRECT),
   linkedin_url: z.string().url().optional(),
   portfolio_url: z.string().url().optional(),
@@ -217,7 +236,7 @@ export const bulkImportCandidateRowSchema = z.object({
   first_name: z.string().trim().min(1).max(64),
   last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
-  phone: z.string().max(20).optional(),
+  phone: optionalPhone,
   source: z.nativeEnum(CandidateSource).optional(),
   current_company: z.string().max(200).optional(),
   current_title: z.string().max(200).optional(),

@@ -16,6 +16,20 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+/**
+ * Validate an optional phone number, mirroring the shared `optionalPhone`
+ * server validator (BUG-019): only digits and phone punctuation are allowed,
+ * and the digit count must be 7–15. An empty/blank value is considered valid
+ * (the field is optional); callers should skip the check when it's blank.
+ */
+export function isValidOptionalPhone(value: string): boolean {
+  const v = value.trim();
+  if (!v) return true;
+  if (/[^\d+\-()\s]/.test(v)) return false;
+  const digits = v.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 /** The active i18n language, used so dates/times/numbers localize with the UI. */
 export function activeLocale(): string {
   return i18n.language || "en";

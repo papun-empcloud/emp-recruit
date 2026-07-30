@@ -124,6 +124,7 @@
       "expYearsNegative": "Experience years cannot be negative",
       "expYearsMax": "Experience (years) can't exceed 50",
       "expMonthsRange": "Experience months must be between 0 and 11",
+      "phoneInvalid": "Enter a valid phone number (7 to 15 digits)",
       "updatedSuccess": "Candidate updated",
       "updateError": "Failed to update candidate",
       "notFound": "Candidate not found.",

@@ -115,6 +115,7 @@
       "addError": "Gagal menambahkan kandidat",
       "expYearsNegative": "Tahun pengalaman tidak boleh negatif",
       "expMonthsRange": "Bulan pengalaman harus antara 0 dan 11",
+      "phoneInvalid": "Masukkan nomor telepon yang valid (7 hingga 15 digit)",
       "updatedSuccess": "Kandidat diperbarui",
       "updateError": "Gagal memperbarui kandidat",
       "notFound": "Kandidat tidak ditemukan.",
