@@ -25,6 +25,7 @@ import { cn, getInitials } from "@/lib/utils";
 import { BackToDashboard } from "@/components/BackToDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isAdminRole, canAccessRecruit } from "@/lib/roles";
 
@@ -86,6 +87,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const location = useLocation();
   const logout = useAuthStore((s) => s.logout);
   const { t } = useTranslation();
@@ -160,7 +162,7 @@ export function DashboardLayout() {
               <p className="text-xs text-gray-500">{roleLabel}</p>
             </div>
             <button
-              onClick={logout}
+              onClick={() => setConfirmLogout(true)}
               className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               title={t("nav.logout")}
             >
@@ -219,6 +221,20 @@ export function DashboardLayout() {
           </ErrorBoundary>
         </main>
       </div>
+
+      {/* Confirm before signing out — avoids accidental logouts (BUG-017). */}
+      <ConfirmDialog
+        open={confirmLogout}
+        title={t("nav.logoutConfirmTitle")}
+        message={t("nav.logoutConfirmMessage")}
+        confirmLabel={t("nav.logout")}
+        variant="danger"
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+        }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </div>
   );
 }

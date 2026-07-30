@@ -18,7 +18,9 @@
     "toggleTheme": "Basculer le mode sombre",
     "changeLanguage": "Changer de langue",
     "applications": "Candidatures",
-    "aiInterviews": "Entretiens IA"
+    "aiInterviews": "Entretiens IA",
+    "logoutConfirmTitle": "Se déconnecter ?",
+    "logoutConfirmMessage": "Vous devrez vous reconnecter pour accéder à votre compte."
   },
   "common": {
     "save": "Enregistrer",

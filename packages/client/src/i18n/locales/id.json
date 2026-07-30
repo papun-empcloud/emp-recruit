@@ -18,7 +18,9 @@
     "toggleTheme": "Alihkan mode gelap",
     "changeLanguage": "Ubah bahasa",
     "applications": "Lamaran",
-    "aiInterviews": "Wawancara AI"
+    "aiInterviews": "Wawancara AI",
+    "logoutConfirmTitle": "Keluar?",
+    "logoutConfirmMessage": "Anda perlu masuk kembali untuk mengakses akun Anda."
   },
   "common": {
     "save": "Simpan",

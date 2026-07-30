@@ -26,7 +26,9 @@
     "toggleTheme": "Toggle dark mode",
     "changeLanguage": "Change language",
     "applications": "Applications",
-    "aiInterviews": "AI Interviews"
+    "aiInterviews": "AI Interviews",
+    "logoutConfirmTitle": "Sign out?",
+    "logoutConfirmMessage": "You'll need to sign in again to access your account."
   },
   "common": {
     "save": "Save",

@@ -18,7 +18,9 @@
     "toggleTheme": "تبديل الوضع الداكن",
     "changeLanguage": "تغيير اللغة",
     "applications": "الطلبات",
-    "aiInterviews": "مقابلات الذكاء الاصطناعي"
+    "aiInterviews": "مقابلات الذكاء الاصطناعي",
+    "logoutConfirmTitle": "تسجيل الخروج؟",
+    "logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك."
   },
   "common": {
     "save": "حفظ",
