@@ -70,10 +70,13 @@ export function LanguageSwitcher() {
                 onClick={() => choose(lng.code)}
                 className={cn(
                   "flex w-full items-center justify-between gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50",
-                  active === lng.code && "font-semibold text-brand-700",
+                  active === lng.code && "bg-brand-50 font-semibold text-brand-700",
                 )}
               >
-                <span>{lng.label}</span>
+                <span className="flex items-center gap-3">
+                  <span className="w-6 text-xs font-semibold uppercase text-gray-400">{lng.code}</span>
+                  <span>{lng.label}</span>
+                </span>
                 {active === lng.code && <Check className="h-4 w-4 text-brand-600" />}
               </button>
             </li>
