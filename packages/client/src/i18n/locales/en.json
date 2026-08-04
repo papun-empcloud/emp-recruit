@@ -27,6 +27,10 @@
     "changeLanguage": "Change language",
     "applications": "Applications",
     "aiInterviews": "AI Interviews",
+    "badges": {
+      "beta": "Beta",
+      "new": "New"
+    },
     "logoutConfirmTitle": "Sign out?",
     "logoutConfirmMessage": "You'll need to sign in again to access your account."
   },
@@ -671,6 +675,7 @@
       "totalCandidates": "Total Candidates",
       "totalApplications": "Total Applications",
       "totalJobs": "Total Jobs",
+      "closedJobs": "Closed Jobs",
       "myReferrals": "My Referrals",
       "inReview": "In Review",
       "hired": "Hired",
@@ -679,6 +684,10 @@
     "pipelineDistribution": "Pipeline Distribution",
     "totalCount": "{{count}} total",
     "recentApplications": "Recent Applications",
+    "upcomingInterviews": "Upcoming Interviews",
+    "noUpcomingInterviews": "Your calendar is clear. Schedule an interview when you are ready to meet the next great candidate.",
+    "interviewsEmptyTitle": "Nothing on the calendar",
+    "interviewMinutes": "{{count}} min",
     "viewAll": "View all",
     "noApplications": "No applications yet.",
     "welcome": "Welcome, {{name}}",
@@ -714,6 +723,46 @@
       "toastApproved": "Offer approved",
       "toastRejected": "Offer rejected",
       "toastActionFailed": "Action failed"
+    },
+    "trend": {
+      "period": "vs last week"
+    },
+    "funnel": {
+      "overallConversion": "Overall conversion rate",
+      "reached": "{{value}} reached this stage",
+      "ofApplied": "{{value}}% of applied",
+      "fromPrevious": "{{value}}% from previous",
+      "tableCaption": "Hiring funnel — applications that reached each stage",
+      "colStage": "Stage",
+      "colReached": "Reached",
+      "colOfApplied": "% of applied"
+    },
+    "actionCenter": {
+      "title": "Action Center",
+      "awaitingScreening_one": "{{count}} candidate awaiting screening",
+      "awaitingScreening_other": "{{count}} candidates awaiting screening",
+      "screeningDescription": "Review and move candidates forward.",
+      "interviewsToday_one": "{{count}} interview today",
+      "interviewsToday_other": "{{count}} interviews today",
+      "interviewsDescription": "View today's interview schedule.",
+      "offersNeedApproval_one": "{{count}} offer needs approval",
+      "offersNeedApproval_other": "{{count}} offers need approval",
+      "offersDescription": "Review and approve pending offers.",
+      "viewAll": "View all tasks"
+    },
+    "insights": {
+      "title": "AI Insights",
+      "subtitle": "Smart signals from your hiring activity",
+      "emptyTitle": "Insights are gathering",
+      "emptyDescription": "Insights will appear as your recruiting activity grows.",
+      "viewAll": "View all insights",
+      "dropOff": "Biggest drop-off is at {{stage}} — {{pct}}% of candidates don't advance.",
+      "topSource": "{{source}} converts best, at a {{pct}}% hire rate. Keep investing!",
+      "timeToHire": "Your average time to hire is {{days}} days.",
+      "timeToHireBetter": "Your time to hire has improved by {{pct}}% compared to last month.",
+      "timeToHireWorse": "Your time to hire is {{pct}}% slower than last month.",
+      "pendingOffers_one": "{{count}} offer is pending. Consider sending a follow-up.",
+      "pendingOffers_other": "{{count}} offers are pending. Consider sending a follow-up."
     }
   },
   "interviews": {

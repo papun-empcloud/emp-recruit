@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {
   Briefcase,
+  Archive,
   Users,
   FileText,
   TrendingUp,
@@ -14,24 +15,52 @@ import {
   Clock,
   Award,
   XCircle,
+  Plus,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiGet, apiPost } from "@/api/client";
 import { getUser } from "@/lib/auth-store";
 import { canAccessRecruit } from "@/lib/roles";
-import type { JobPosting, Candidate, PaginatedResponse } from "@emp-recruit/shared";
+import type { PaginatedResponse } from "@emp-recruit/shared";
 import { cn, formatDate } from "@/lib/utils";
 import { usePipelineStages, stageColor } from "@/lib/pipeline-stages";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard, type StatAccent } from "@/components/dashboard/StatCard";
+import { PipelineFunnel, type FunnelStageDatum } from "@/components/dashboard/PipelineFunnel";
+import { AiInsights } from "@/components/dashboard/AiInsights";
+
+interface ConversionFunnelResponse {
+  stages: FunnelStageDatum[];
+  overallConversionRate: number;
+}
+
+// Shape of GET /analytics/stat-cards — a current total plus its week-over-week
+// change, derived from daily inflow (items added per day). "Open jobs as of day
+// X" can't be replayed, since nothing records when a job stopped being open, so
+// all four metrics use inflow.
+interface StatMetric {
+  total: number;
+  today: number;
+  deltaPct: number | null;
+}
+interface StatCardsResponse {
+  openJobs: StatMetric;
+  totalCandidates: StatMetric;
+  totalApplications: StatMetric;
+  totalJobs: StatMetric;
+}
+
+interface DashboardInterview {
+  id: string;
+  scheduled_at: string;
+}
 
 // Staff who get the recruiting overview: an admin role OR a user granted recruit
 // access via an EmpCloud custom role (recruit:* permission). A plain `employee`
 // with neither cannot hit the admin APIs (jobs/candidates/applications all 403),
 // so they get a referral-focused dashboard instead of admin tiles that read 0.
-
-// Stages shown in the pipeline distribution, in order. Their colors come from
-// the shared pipeline-stages source (Settings) so the Dashboard, Job board and
-// Settings never disagree on a stage's color (BUG-018).
-const STAGE_ORDER = ["applied", "screened", "interview", "offer", "hired", "rejected"] as const;
 
 export function DashboardPage() {
   return canAccessRecruit(getUser()) ? <AdminDashboard /> : <EmployeeDashboard />;
@@ -47,22 +76,19 @@ function AdminDashboard() {
   // Job pipeline board so stage colors stay consistent app-wide (BUG-018).
   const pipelineStages = usePipelineStages();
 
-  // Fetch open jobs count
-  const { data: jobsData } = useQuery({
-    queryKey: ["dashboard-jobs"],
-    queryFn: () => apiGet<PaginatedResponse<JobPosting>>("/jobs", { status: "open", perPage: 1 }),
+  // KPI row — one request for all four tiles' totals, daily inflow and deltas.
+  // This replaces the four separate perPage=1 count queries the tiles used to
+  // make; those could only ever produce a bare number, because the totals they
+  // read carry no history to draw a trend from.
+  const { data: statsRes, isLoading: statsLoading } = useQuery({
+    queryKey: ["dashboard-stat-cards"],
+    queryFn: () => apiGet<StatCardsResponse>("/analytics/stat-cards"),
   });
+  const stats = statsRes?.data;
 
-  // Fetch all jobs for total count
-  const { data: allJobsData } = useQuery({
-    queryKey: ["dashboard-all-jobs"],
-    queryFn: () => apiGet<PaginatedResponse<JobPosting>>("/jobs", { perPage: 1 }),
-  });
-
-  // Fetch candidates count
-  const { data: candidatesData } = useQuery({
-    queryKey: ["dashboard-candidates"],
-    queryFn: () => apiGet<PaginatedResponse<Candidate>>("/candidates", { perPage: 1 }),
+  const { data: closedJobsData, isLoading: closedJobsLoading } = useQuery({
+    queryKey: ["dashboard-closed-jobs"],
+    queryFn: () => apiGet<PaginatedResponse<any>>("/jobs", { status: "closed", perPage: 1 }),
   });
 
   // Fetch recent applications
@@ -70,161 +96,220 @@ function AdminDashboard() {
     queryKey: ["dashboard-applications"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { perPage: 10, sort: "applied_at", order: "desc" }),
   });
-
-  // Fetch application stage distribution via multiple stage queries
-  const { data: appliedData } = useQuery({
-    queryKey: ["dashboard-stage-applied"],
+  const { data: screeningData } = useQuery({
+    queryKey: ["dashboard-action-screening"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "applied", perPage: 1 }),
   });
-  const { data: screenedData } = useQuery({
-    queryKey: ["dashboard-stage-screened"],
-    queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "screened", perPage: 1 }),
-  });
-  const { data: interviewData } = useQuery({
-    queryKey: ["dashboard-stage-interview"],
-    queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "interview", perPage: 1 }),
-  });
-  const { data: offerData } = useQuery({
-    queryKey: ["dashboard-stage-offer"],
-    queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "offer", perPage: 1 }),
-  });
-  const { data: hiredData } = useQuery({
-    queryKey: ["dashboard-stage-hired"],
-    queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "hired", perPage: 1 }),
-  });
   const { data: rejectedData } = useQuery({
-    queryKey: ["dashboard-stage-rejected"],
+    queryKey: ["dashboard-pipeline-rejected"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "rejected", perPage: 1 }),
   });
 
-  const openJobsCount = jobsData?.data?.total ?? 0;
-  const totalJobs = allJobsData?.data?.total ?? 0;
-  const totalCandidates = candidatesData?.data?.total ?? 0;
-  const totalApplications = appsData?.data?.total ?? 0;
+  const { data: pendingOffersData } = useQuery({
+    queryKey: ["dashboard-action-offers"],
+    queryFn: () => apiGet<PaginatedResponse<any>>("/offers", { status: "pending_approval", limit: 1 }),
+  });
+
+  const { data: interviewsData } = useQuery({
+    queryKey: ["dashboard-upcoming-interviews"],
+    queryFn: () => apiGet<PaginatedResponse<DashboardInterview>>("/interviews", {
+      status: "scheduled", limit: 100, sort_field: "scheduled_at", sort_order: "asc",
+    }),
+  });
+
+  // Conversion funnel — cumulative reach per stage. Replaces the six
+  // per-stage perPage=1 count queries the old bar list fired: those returned
+  // current OCCUPANCY, which is not funnel data (it isn't monotonic, so the
+  // bands would widen and narrow at random and the percentages would be
+  // meaningless). One request now instead of six.
+  const { data: funnelRes, isLoading: funnelLoading } = useQuery({
+    queryKey: ["dashboard-conversion-funnel"],
+    queryFn: () => apiGet<ConversionFunnelResponse>("/analytics/conversion-funnel"),
+  });
+  const funnel = funnelRes?.data;
+
   const recentApps = appsData?.data?.data ?? [];
+  const pipelineDisplayStages: FunnelStageDatum[] = funnel
+    ? [
+        ...funnel.stages.filter((stage) => stage.stage !== "rejected"),
+        {
+          stage: "rejected",
+          reached: rejectedData?.data?.total ?? 0,
+          pctOfTop: 0,
+          pctFromPrev: 0,
+        },
+      ]
+    : [];
+  const scheduledInterviews = interviewsData?.data?.data ?? [];
+  const today = new Date();
+  const interviewsToday = scheduledInterviews.filter((interview) => {
+    const scheduled = new Date(interview.scheduled_at);
+    return scheduled.getFullYear() === today.getFullYear()
+      && scheduled.getMonth() === today.getMonth()
+      && scheduled.getDate() === today.getDate();
+  }).length;
+  const actionItems = [
+    {
+      label: t("dashboard.actionCenter.awaitingScreening", { count: screeningData?.data?.total ?? 0 }),
+      description: t("dashboard.actionCenter.screeningDescription"),
+      icon: Users,
+      to: "/applications",
+      tone: "border-amber-200 bg-amber-50/70",
+      iconTone: "bg-amber-500",
+    },
+    {
+      label: t("dashboard.actionCenter.interviewsToday", { count: interviewsToday }),
+      description: t("dashboard.actionCenter.interviewsDescription"),
+      icon: Calendar,
+      to: "/interviews",
+      tone: "border-blue-200 bg-blue-50/70",
+      iconTone: "bg-blue-500",
+    },
+    {
+      label: t("dashboard.actionCenter.offersNeedApproval", { count: pendingOffersData?.data?.total ?? 0 }),
+      description: t("dashboard.actionCenter.offersDescription"),
+      icon: FileText,
+      to: "/offers",
+      tone: "border-red-200 bg-red-50/70",
+      iconTone: "bg-red-500",
+    },
+  ];
 
-  const stageDistribution: Record<string, number> = {
-    applied: appliedData?.data?.total ?? 0,
-    screened: screenedData?.data?.total ?? 0,
-    interview: interviewData?.data?.total ?? 0,
-    offer: offerData?.data?.total ?? 0,
-    hired: hiredData?.data?.total ?? 0,
-    rejected: rejectedData?.data?.total ?? 0,
-  };
-
-  const maxStageCount = Math.max(...Object.values(stageDistribution), 1);
-
-  const statCards = [
+  // Accents are assigned per tile and never cycled — see StatCard for the
+  // validator results behind these four.
+  const statCards: Array<{
+    label: string;
+    metric?: StatMetric;
+    icon: typeof Briefcase;
+    accent: StatAccent;
+    link: string;
+  }> = [
     {
       label: t("dashboard.stats.openJobs"),
-      value: openJobsCount,
+      metric: stats?.openJobs,
       icon: Briefcase,
-      color: "bg-brand-50 text-brand-600",
+      accent: "indigo",
       link: "/jobs?status=open",
     },
     {
       label: t("dashboard.stats.totalCandidates"),
-      value: totalCandidates,
+      metric: stats?.totalCandidates,
       icon: Users,
-      color: "bg-purple-50 text-purple-600",
+      accent: "magenta",
       link: "/candidates",
     },
     {
       label: t("dashboard.stats.totalApplications"),
-      value: totalApplications,
+      metric: stats?.totalApplications,
       icon: FileText,
-      color: "bg-blue-50 text-blue-600",
+      accent: "aqua",
       link: "/applications",
     },
     {
       label: t("dashboard.stats.totalJobs"),
-      value: totalJobs,
+      metric: stats?.totalJobs,
       icon: TrendingUp,
-      color: "bg-green-50 text-green-600",
+      accent: "orange",
       link: "/jobs",
+    },
+    {
+      label: t("dashboard.stats.closedJobs"),
+      metric: { total: closedJobsData?.data?.total ?? 0, today: 0, deltaPct: null },
+      icon: Archive,
+      accent: "slate",
+      link: "/jobs?status=closed",
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("dashboard.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">{t("dashboard.subtitle")}</p>
+      {/* Header. Same layout and same primary-button treatment as the Job
+          Postings header, and it reuses that page's `jobs.list.createJob` label
+          so the two can never drift apart or be translated differently. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{t("dashboard.title")}</h1>
+          <p className="mt-1 text-sm text-gray-500">{t("dashboard.subtitle")}</p>
+        </div>
+        <Link
+          to="/jobs/new"
+          className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-700 sm:self-auto"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          {t("jobs.list.createJob")}
+        </Link>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI row */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {statCards.map((stat) => (
-          <Link
+          <StatCard
             key={stat.label}
+            label={stat.label}
+            value={stat.metric?.total ?? 0}
+            icon={stat.icon}
+            accent={stat.accent}
             to={stat.link}
-            className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <div className={cn("rounded-xl p-3", stat.color)}>
-                <stat.icon className="h-5 w-5" />
-              </div>
-              <ArrowUpRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-brand-500" />
-            </div>
-            <p className="mt-4 text-3xl font-bold tracking-tight text-gray-900">{stat.value}</p>
-            <p className="mt-0.5 text-sm font-medium text-gray-500">{stat.label}</p>
-          </Link>
+            deltaPct={stat.metric?.deltaPct}
+            isLoading={statsLoading || (stat.accent === "slate" && closedJobsLoading)}
+          />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Pipeline Stage Distribution */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.pipelineDistribution")}</h2>
-            <span className="text-xs font-medium text-gray-400">
-              {t("dashboard.totalCount", {
-                count: Object.values(stageDistribution).reduce((a, b) => a + b, 0),
-              })}
-            </span>
-          </div>
-          <div className="space-y-4">
-            {STAGE_ORDER.map((key) => {
-              const count = stageDistribution[key] ?? 0;
-              const percentage = maxStageCount > 0 ? (count / maxStageCount) * 100 : 0;
-              const color = stageColor(key, pipelineStages);
-              return (
-                <div key={key}>
-                  <div className="mb-1.5 flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-700">{t(`dashboard.stages.${key}`)}</span>
-                    <span className="font-semibold text-gray-900">{count}</span>
-                  </div>
-                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${count > 0 ? Math.max(percentage, 3) : 0}%`,
-                        backgroundColor: color,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Peer cards. `items-start` stops the grid stretching every card to
+          the tallest one — the insight card is naturally short, and stretched it
+          would be mostly empty space below its button. */}
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
+        {/* Hiring funnel — cumulative reach per stage */}
+        <Card className="h-full lg:col-span-3">
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-5">
+            <CardTitle>{t("dashboard.pipelineDistribution")}</CardTitle>
+            <Badge variant="secondary">
+              {t("dashboard.totalCount", { count: funnel?.stages?.[0]?.reached ?? 0 })}
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            {funnelLoading ? (
+              <Skeleton className="h-32 w-full" />
+            ) : funnel && pipelineDisplayStages.some((s) => s.reached > 0) ? (
+              <PipelineFunnel
+                stages={pipelineDisplayStages}
+                overallConversionRate={funnel.overallConversionRate}
+              />
+            ) : (
+              <p className="py-8 text-center text-sm text-gray-500">
+                {t("dashboard.noApplications")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Recent Applications */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">{t("dashboard.recentApplications")}</h2>
+        <Card className="flex h-full flex-col">
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle>{t("dashboard.recentApplications")}</CardTitle>
             <Link
               to="/applications"
               className="text-sm text-brand-600 hover:text-brand-700 inline-flex items-center gap-1"
             >
               {t("dashboard.viewAll")} <ChevronRight className="h-4 w-4" />
             </Link>
-          </div>
-
+          </CardHeader>
+          <CardContent className="flex-1">
           {recentApps.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">{t("dashboard.noApplications")}</p>
           ) : (
-            <div className="space-y-3">
+            // Ten rows fetched, five in view: the container is capped at five
+            // row-heights (66px row + 12px gap) and scrolls for the rest.
+            // pr-1 keeps the scrollbar off the row borders; -mr-1 gives that
+            // padding back so the rows stay flush with the card.
+            <div
+              className="-mr-1 space-y-3 overflow-y-auto pr-1"
+              style={{ maxHeight: 5 * 60 + 4 * 12 }}
+              tabIndex={0}
+              role="group"
+              aria-label={t("dashboard.recentApplications")}
+            >
               {/* #28 — each row now links to the candidate's detail page.
                   Falls back to the job detail if candidate_id is somehow
                   missing on legacy rows. */}
@@ -264,6 +349,39 @@ function AdminDashboard() {
               ))}
             </div>
           )}
+          </CardContent>
+        </Card>
+
+        <Card className="flex h-full flex-col">
+          <CardHeader className="pb-4">
+            <CardTitle>{t("dashboard.actionCenter.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-3">
+            {actionItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={cn("group flex flex-1 items-center gap-3 rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-sm", item.tone)}
+              >
+                <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-sm", item.iconTone)}>
+                  <item.icon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-gray-900">{item.label}</span>
+                  <span className="mt-0.5 block truncate text-xs text-gray-500">{item.description}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+            ))}
+            <Link to="/applications" className="mt-auto flex w-full items-center justify-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-brand-600 transition-colors hover:border-brand-300 hover:bg-brand-50">
+              {t("dashboard.actionCenter.viewAll")} <ChevronRight className="h-4 w-4" />
+            </Link>
+          </CardContent>
+        </Card>
+        {/* Insights. Renders nothing at all when the org has no findings worth
+            stating, so it never occupies a column to say "no insights". */}
+        <div className="h-full [&>*]:h-full">
+          <AiInsights />
         </div>
       </div>
     </div>
@@ -344,11 +462,13 @@ function EmployeeDashboard() {
   // Each card deep-links to the referral list pre-filtered to the SAME statuses
   // its number counts — In Review and Bonus each span two statuses, so filtering
   // on just one showed a list that didn't match the count (BUG-010).
-  const stats = [
-    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, color: "bg-brand-50 text-brand-600", link: "/referrals" },
-    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, color: "bg-yellow-50 text-yellow-600", link: "/referrals?status=submitted,under_review" },
-    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, color: "bg-green-50 text-green-600", link: "/referrals?status=hired" },
-    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, color: "bg-purple-50 text-purple-600", link: "/referrals?status=bonus_eligible,bonus_paid" },
+  // No trend data exists for a single employee's referrals, so these tiles get
+  // the same card treatment with the sparkline omitted rather than an invented one.
+  const stats: Array<{ label: string; value: number; icon: typeof Gift; accent: StatAccent; link: string }> = [
+    { label: t("dashboard.stats.myReferrals"), value: total, icon: Gift, accent: "indigo", link: "/referrals" },
+    { label: t("dashboard.stats.inReview"), value: inReview, icon: Clock, accent: "orange", link: "/referrals?status=submitted,under_review" },
+    { label: t("dashboard.stats.hired"), value: hired, icon: CheckCircle2, accent: "aqua", link: "/referrals?status=hired" },
+    { label: t("dashboard.stats.bonus"), value: rewarded, icon: Award, accent: "magenta", link: "/referrals?status=bonus_eligible,bonus_paid" },
   ];
 
   return (
@@ -363,17 +483,15 @@ function EmployeeDashboard() {
       {/* Referral stat cards — clickable, deep-link to the filtered list */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Link
+          <StatCard
             key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            accent={stat.accent}
             to={stat.link}
-            className="block rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-          >
-            <div className={cn("inline-flex rounded-xl p-3", stat.color)}>
-              <stat.icon className="h-5 w-5" />
-            </div>
-            <p className="mt-4 text-3xl font-bold tracking-tight text-gray-900">{stat.value}</p>
-            <p className="mt-0.5 text-sm font-medium text-gray-500">{stat.label}</p>
-          </Link>
+            isLoading={isLoading}
+          />
         ))}
       </div>
 
