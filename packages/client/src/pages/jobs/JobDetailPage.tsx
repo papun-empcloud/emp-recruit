@@ -497,6 +497,13 @@ export function JobDetailPage() {
             </>
           )}
           <Link
+            to={`/jobs/${job.id}/workflow`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Users className="h-4 w-4" />
+            {t("jobs.detail.workflowBoard")}
+          </Link>
+          <Link
             to={`/jobs/${job.id}/edit`}
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >

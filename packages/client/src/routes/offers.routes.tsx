@@ -16,11 +16,15 @@ const OfferEditPage = lazyWithRetry(() =>
 const OfferLetterTemplatePage = lazyWithRetry(() =>
   import("@/pages/offers/OfferLetterTemplatePage").then((m) => ({ default: m.OfferLetterTemplatePage })),
 );
+const OfferApprovalsPage = lazyWithRetry(() =>
+  import("@/pages/offers/OfferApprovalsPage").then((m) => ({ default: m.OfferApprovalsPage })),
+);
 
 export const offerRoutes = (
   <>
     <Route path="/offers" element={<OfferListPage />} />
     <Route path="/offers/new" element={<OfferCreatePage />} />
+    <Route path="/offers/my-approvals" element={<OfferApprovalsPage />} />
     <Route path="/offers/letter-templates" element={<OfferLetterTemplatePage />} />
     <Route path="/offers/:id/edit" element={<OfferEditPage />} />
     <Route path="/offers/:id" element={<OfferDetailPage />} />

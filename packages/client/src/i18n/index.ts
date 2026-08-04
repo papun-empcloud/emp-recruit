@@ -1,7 +1,7 @@
 // ============================================================================
 // i18n — app localization (react-i18next)
 // ============================================================================
-// Six languages, statically bundled. Language is detected from localStorage
+// Nine languages, statically bundled. Language is detected from localStorage
 // then the browser, persisted to localStorage, and applied to <html lang/dir>
 // so Arabic renders right-to-left. Missing keys fall back to English.
 // ============================================================================
@@ -10,11 +10,14 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 
 import en from "./locales/en.json";
+import hi from "./locales/hi.json";
 import es from "./locales/es.json";
-import id from "./locales/id.json";
 import fr from "./locales/fr.json";
+import de from "./locales/de.json";
 import ar from "./locales/ar.json";
 import pt from "./locales/pt.json";
+import ja from "./locales/ja.json";
+import zh from "./locales/zh.json";
 
 export interface LanguageMeta {
   code: string;
@@ -25,11 +28,14 @@ export interface LanguageMeta {
 
 export const LANGUAGES: LanguageMeta[] = [
   { code: "en", label: "English", dir: "ltr" },
+  { code: "hi", label: "हिन्दी", dir: "ltr" },
   { code: "es", label: "Español", dir: "ltr" },
-  { code: "id", label: "Indonesia", dir: "ltr" },
   { code: "fr", label: "Français", dir: "ltr" },
+  { code: "de", label: "Deutsch", dir: "ltr" },
   { code: "ar", label: "العربية", dir: "rtl" },
   { code: "pt", label: "Português", dir: "ltr" },
+  { code: "ja", label: "日本語", dir: "ltr" },
+  { code: "zh", label: "中文", dir: "ltr" },
 ];
 
 const RTL_LANGS = new Set(LANGUAGES.filter((l) => l.dir === "rtl").map((l) => l.code));
@@ -48,11 +54,14 @@ i18n
   .init({
     resources: {
       en: { translation: en },
+      hi: { translation: hi },
       es: { translation: es },
-      id: { translation: id },
       fr: { translation: fr },
+      de: { translation: de },
       ar: { translation: ar },
       pt: { translation: pt },
+      ja: { translation: ja },
+      zh: { translation: zh },
     },
     fallbackLng: "en",
     supportedLngs: LANGUAGES.map((l) => l.code),

@@ -6,10 +6,13 @@ import {
   createApplicationSchema,
   moveStageSchema,
   addNoteSchema,
+  assignApplicationSchema,
+  bulkStageSchema,
   idParamSchema,
   paginationSchema,
 } from "@emp-recruit/shared";
 import * as applicationService from "../../services/application/application.service";
+import * as screeningService from "../../services/screening/screening.service";
 
 const router = Router();
 
@@ -124,6 +127,63 @@ router.get("/:id/timeline", async (req: Request, res: Response, next: NextFuncti
 
     const timeline = await applicationService.getTimeline(orgId, id);
     return sendSuccess(res, timeline);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /:id/assign — set responsible recruiter and/or SLA due date
+router.patch("/:id/assign", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const data = assignApplicationSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+    const userId = req.user!.empcloudUserId;
+    const application = await applicationService.assignApplication(orgId, id, userId, data);
+    return sendSuccess(res, application);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid assignment data", err.flatten().fieldErrors));
+    }
+    next(err);
+  }
+});
+
+// GET /:id/activity — the unified activity feed for an application
+router.get("/:id/activity", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = idParamSchema.parse(req.params);
+    const orgId = req.user!.empcloudOrgId;
+    const activity = await applicationService.getActivity(orgId, id);
+    return sendSuccess(res, activity);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /bulk-stage — move several applications to a stage at once
+router.post("/bulk-stage", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { application_ids, stage, notes } = bulkStageSchema.parse(req.body);
+    const orgId = req.user!.empcloudOrgId;
+    const userId = req.user!.empcloudUserId;
+    const result = await applicationService.bulkMoveStage(orgId, application_ids, stage, userId, notes);
+    return sendSuccess(res, result);
+  } catch (err: any) {
+    if (err.name === "ZodError") {
+      return next(new ValidationError("Invalid bulk-stage data", err.flatten().fieldErrors));
+    }
+    next(err);
+  }
+});
+
+// GET /:id/screening-answers — a candidate's screening answers for this application
+router.get("/:id/screening-answers", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id);
+    const orgId = req.user!.empcloudOrgId;
+    const answers = await screeningService.getApplicationAnswers(orgId, id);
+    return sendSuccess(res, answers);
   } catch (err) {
     next(err);
   }

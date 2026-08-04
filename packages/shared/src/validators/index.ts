@@ -13,6 +13,8 @@ import {
   ReferralStatus,
   Recommendation,
   CandidateSource,
+  HiringTeamRole,
+  RecruitmentTaskStatus,
 } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -543,4 +545,94 @@ export const submitAssessmentSchema = z.object({
       time_taken_seconds: z.number().int().min(0).optional(),
     }),
   ).min(1).max(500),
+});
+
+// ---------------------------------------------------------------------------
+// Screening / Knockout Questions (029)
+// ---------------------------------------------------------------------------
+
+export const screeningQuestionTypeEnum = z.enum(["text", "number", "yes_no", "single_choice"]);
+
+export const screeningQuestionInputSchema = z
+  .object({
+    question: z.string().trim().min(2).max(500),
+    type: screeningQuestionTypeEnum.default("text"),
+    options: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
+    required: z.boolean().default(true),
+    is_knockout: z.boolean().default(false),
+    knockout_value: z.string().max(255).optional(),
+    sort_order: z.number().int().min(0).default(0),
+  })
+  .refine((d) => d.type !== "single_choice" || (d.options != null && d.options.length >= 2), {
+    message: "Single-choice questions need at least two options",
+    path: ["options"],
+  });
+
+// Replace the full ordered set of screening questions on a job in one request.
+export const setScreeningQuestionsSchema = z.object({
+  questions: z.array(screeningQuestionInputSchema).max(30),
+});
+
+// A candidate's answers submitted with a public application.
+export const screeningAnswerSchema = z.object({
+  question_id: z.string().uuid(),
+  answer: z.string().max(2000).optional(),
+});
+export const screeningAnswersSchema = z.array(screeningAnswerSchema).max(30);
+
+// ---------------------------------------------------------------------------
+// Application workflow (030) — assignment, SLA, bulk stage
+// ---------------------------------------------------------------------------
+
+export const assignApplicationSchema = z.object({
+  // null clears the assignment.
+  assigned_to: z.number().int().nullable().optional(),
+  // ISO date (YYYY-MM-DD); null/empty clears it.
+  sla_due_date: z
+    .string()
+    .refine((v) => !v || !isNaN(Date.parse(v)), { message: "Invalid date" })
+    .nullable()
+    .optional(),
+});
+
+export const bulkStageSchema = z.object({
+  application_ids: z.array(z.string().uuid()).min(1, "Select at least one application").max(500),
+  stage: z.nativeEnum(ApplicationStage),
+  notes: z.string().max(1000).optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Hiring team & recruitment tasks (031)
+// ---------------------------------------------------------------------------
+
+const optionalDate = z
+  .string()
+  .refine((v) => !v || !isNaN(Date.parse(v)), { message: "Invalid date" })
+  .nullable()
+  .optional();
+
+export const addHiringTeamMemberSchema = z.object({
+  user_id: z.number().int().positive(),
+  role: z.nativeEnum(HiringTeamRole),
+});
+
+export const updateHiringTeamMemberSchema = z.object({
+  role: z.nativeEnum(HiringTeamRole),
+});
+
+export const createRecruitmentTaskSchema = z.object({
+  title: plainText(z.string().min(1, "Title is required").max(300)),
+  description: plainText(z.string().max(2000)).nullable().optional(),
+  assigned_to: z.number().int().positive().nullable().optional(),
+  due_date: optionalDate,
+  application_id: z.string().uuid().nullable().optional(),
+  status: z.nativeEnum(RecruitmentTaskStatus).optional(),
+});
+
+export const updateRecruitmentTaskSchema = z.object({
+  title: plainText(z.string().min(1).max(300)).optional(),
+  description: plainText(z.string().max(2000)).nullable().optional(),
+  assigned_to: z.number().int().positive().nullable().optional(),
+  due_date: optionalDate,
+  status: z.nativeEnum(RecruitmentTaskStatus).optional(),
 });

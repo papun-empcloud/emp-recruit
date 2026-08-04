@@ -14,6 +14,7 @@
     "candidates": "Candidates",
     "interviews": "Interviews",
     "offers": "Offers",
+    "myApprovals": "My Approvals",
     "onboarding": "Onboarding",
     "aiScoring": "AI Scoring",
     "referrals": "Referrals",
@@ -271,6 +272,10 @@
       "errorYearsMax": "Years of experience can't exceed {{max}}.",
       "errorSalaryNegative": "Expected salary cannot be negative.",
       "errorSalaryMax": "Please enter a realistic expected salary.",
+      "screeningTitle": "Screening questions",
+      "screeningSelect": "Select…",
+      "screeningRequired": "This question is required",
+      "screeningRequiredToast": "Please answer all required screening questions.",
       "errorNameEmailRequired": "Please fill in your name and email.",
       "backToJob": "Back to job details",
       "title": "Apply for {{title}}",
@@ -292,7 +297,9 @@
       "monthsLabel": "Months",
       "errorMonthsRange": "Months must be between 0 and 11",
       "skillsLabel": "Skills (comma separated)",
-      "skillsPlaceholder": "React, Python, SQL"
+      "skillsPlaceholder": "React, Python, SQL",
+      "screeningLoadError": "Couldn't load the application form. Please try again.",
+      "retry": "Try again"
     },
     "success": {
       "title": "Thank You for Applying!",
@@ -420,6 +427,41 @@
   "applications": {
     "title": "Applications",
     "subtitle": "Every application across your open roles.",
+    "stage": {
+      "applied": "Applied",
+      "screened": "Screened",
+      "interview": "Interview",
+      "offer": "Offer",
+      "hired": "Hired",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "detail": {
+      "back": "Back",
+      "notFound": "Application not found.",
+      "viewCandidate": "View candidate",
+      "stage": "Stage",
+      "ownership": "Ownership & SLA",
+      "assignee": "Responsible recruiter",
+      "unassigned": "Unassigned",
+      "slaDate": "SLA due date",
+      "save": "Save",
+      "screeningAnswers": "Screening answers",
+      "knockoutFailed": "knockout failed",
+      "activity": "Activity",
+      "noActivity": "No activity yet.",
+      "assignmentSaved": "Assignment updated.",
+      "assignmentFailed": "Could not update assignment.",
+      "stageMoved": "Stage updated.",
+      "stageFailed": "Could not change the stage."
+    },
+    "bulk": {
+      "selected": "{{count}} selected",
+      "moveTo": "Move to…",
+      "moved": "Moved {{count}} application(s).",
+      "moveFailed": "Could not move the selected applications.",
+      "clear": "Clear"
+    },
     "searchLabel": "Search",
     "searchPlaceholder": "Candidate name, email or job…",
     "jobRole": "Job role",
@@ -1044,6 +1086,7 @@
       "close": "Close",
       "resume": "Resume",
       "edit": "Edit",
+      "workflowBoard": "Workflow",
       "delete": "Delete",
       "description": "Description",
       "requirements": "Requirements",
@@ -1147,6 +1190,24 @@
       "descriptionAria": "Job description",
       "descriptionPlaceholder": "Describe the role, responsibilities, and what success looks like...",
       "descriptionHint": "Format with the toolbar. Minimum 10 characters.",
+      "generateWithAi": "Generate with AI",
+      "seniorityLabel": "Seniority",
+      "seniority": {
+        "intern": "Intern",
+        "junior": "Junior",
+        "mid": "Mid-level",
+        "senior": "Senior",
+        "lead": "Lead",
+        "director": "Director",
+        "vp": "VP",
+        "cLevel": "C-level"
+      },
+      "niceToHave": "Nice to have",
+      "suggestedSkills": "Suggested skills — click to add",
+      "aiGenerated": "Generated with AI. Review and edit as needed.",
+      "aiGeneratedTemplate": "Generated from a template (no AI provider configured). Review and edit.",
+      "aiGenerateFailed": "Couldn't generate the description. Please try again.",
+      "aiNeedsTitleSkills": "Add a job title and at least one skill first.",
       "department": "Department",
       "selectDepartment": "Select department",
       "departmentPlaceholder": "e.g. Engineering",
@@ -1182,9 +1243,49 @@
     "pipeline": {
       "title": "Hiring Pipeline",
       "subtitle": "Kanban board view of applicants by stage."
+    },
+    "workflow": {
+      "title": "Workflow board",
+      "backToJob": "Back to job",
+      "pipeline": "Pipeline",
+      "hiringTeam": "Hiring team",
+      "addMember": "Add",
+      "selectUser": "Select a user…",
+      "noMembers": "No one is on the hiring team yet.",
+      "remove": "Remove",
+      "memberAdded": "Team member added.",
+      "memberRemoved": "Team member removed.",
+      "memberFailed": "Could not update the hiring team.",
+      "tasks": "Tasks",
+      "addTask": "Add",
+      "taskTitlePlaceholder": "Add a task…",
+      "noTasks": "No tasks yet.",
+      "unassigned": "Unassigned",
+      "delete": "Delete",
+      "toggleDone": "Toggle done",
+      "taskAdded": "Task added.",
+      "taskDeleted": "Task deleted.",
+      "taskFailed": "Could not update the task.",
+      "roles": {
+        "recruiter": "Recruiter",
+        "hiring_manager": "Hiring manager",
+        "interviewer": "Interviewer",
+        "coordinator": "Coordinator"
+      }
     }
   },
   "offers": {
+    "approvals": {
+      "title": "My Approvals",
+      "subtitle": "Offers awaiting your approval",
+      "empty": "You have no offers awaiting approval.",
+      "submitted": "Submitted {{date}}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "Offer approved",
+      "rejected": "Offer rejected",
+      "actionFailed": "Could not update the offer"
+    },
     "status": {
       "all": "All",
       "draft": "Draft",
@@ -1479,6 +1580,30 @@
       "addTask": "Add Task"
     }
   },
+  "screening": {
+    "type": {
+      "text": "Short text",
+      "number": "Number",
+      "yes_no": "Yes / No",
+      "single_choice": "Single choice"
+    },
+    "editor": {
+      "title": "Screening questions",
+      "subtitle": "Ask job-specific questions on the application. Mark a question as a knockout to auto-reject applicants who give the disqualifying answer.",
+      "empty": "No screening questions yet.",
+      "questionPlaceholder": "e.g., How many years of Selenium experience do you have?",
+      "remove": "Remove question",
+      "required": "Required",
+      "knockout": "Knockout",
+      "optionsPlaceholder": "Comma-separated choices, e.g. Yes, No, Maybe",
+      "knockoutValue": "Disqualifying answer",
+      "knockoutValuePlaceholder": "Answer that auto-rejects, e.g. No",
+      "addQuestion": "Add question",
+      "save": "Save questions",
+      "saved": "Screening questions saved.",
+      "saveFailed": "Could not save screening questions."
+    }
+  },
   "scoring": {
     "recommendation": {
       "strongMatch": "Strong Match",
@@ -1741,6 +1866,10 @@
       "replayQuestion": "Replay question",
       "listeningHint": "Listening… start speaking your answer.",
       "tapMicHint": "Tap the mic to answer out loud.",
+      "noSpeechDetected": "We didn't catch an answer. Speak now and it'll appear here — or tap Next again to skip this question.",
+      "typeAnswer": "Type instead",
+      "useVoice": "Use voice",
+      "typeAnswerPlaceholder": "Type your answer here…",
       "canHearYou": "I can hear you",
       "mute": "Mute",
       "unmute": "Unmute",
