@@ -160,7 +160,7 @@ export function CareerJobDetailPage() {
             <p className="mt-1 text-sm text-gray-500">{t("careers.detail.applyPrompt")}</p>
             <Link
               to={`/careers/${slug}/jobs/${jobId}/apply`}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-200 transition-all hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               {t("careers.detail.applyNow")}
               <ChevronRight className="h-4 w-4" />

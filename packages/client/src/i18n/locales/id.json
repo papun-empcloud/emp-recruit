@@ -756,6 +756,30 @@
       "toastApproved": "Penawaran disetujui",
       "toastRejected": "Penawaran ditolak",
       "toastActionFailed": "Tindakan gagal"
+    },
+    "trend": {
+      "period": "dibanding pekan lalu"
+    },
+    "funnel": {
+      "overallConversion": "Tingkat konversi keseluruhan",
+      "reached": "{{value}} mencapai tahap ini",
+      "ofApplied": "{{value}}% dari pelamar",
+      "fromPrevious": "{{value}}% dari tahap sebelumnya",
+      "tableCaption": "Funnel rekrutmen — lamaran yang mencapai setiap tahap",
+      "colStage": "Tahap",
+      "colReached": "Tercapai",
+      "colOfApplied": "% dari pelamar"
+    },
+    "insights": {
+      "title": "Wawasan AI",
+      "viewAll": "Lihat semua wawasan",
+      "dropOff": "Penurunan terbesar ada di tahap {{stage}}: {{pct}}% kandidat tidak lanjut.",
+      "topSource": "{{source}} paling efektif, dengan tingkat perekrutan {{pct}}%. Teruskan investasinya!",
+      "timeToHire": "Rata-rata waktu perekrutan Anda adalah {{days}} hari.",
+      "timeToHireBetter": "Waktu perekrutan Anda membaik {{pct}}% dibandingkan bulan lalu.",
+      "timeToHireWorse": "Waktu perekrutan Anda {{pct}}% lebih lambat dibandingkan bulan lalu.",
+      "pendingOffers_one": "{{count}} penawaran masih menunggu. Pertimbangkan untuk menindaklanjuti.",
+      "pendingOffers_other": "{{count}} penawaran masih menunggu. Pertimbangkan untuk menindaklanjuti."
     }
   },
   "interviews": {

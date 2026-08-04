@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // PUBLIC ROUTES (NO AUTH)
 // Career pages, public job listings, and application submissions.
 // ============================================================================
@@ -95,7 +95,7 @@ const applySchema = z.object({
         if (!v.trim()) return true;
         if (/[^\d+\-()\s]/.test(v)) return false;
         const digits = v.replace(/\D/g, "");
-        return digits.length >= 1 && digits.length <= 20;
+        return digits.length >= 7 && digits.length <= 15;
       },
       { message: "Please enter a valid phone number" },
     )

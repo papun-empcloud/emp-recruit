@@ -773,6 +773,30 @@
       "toastApproved": "Offre approuvée",
       "toastRejected": "Offre rejetée",
       "toastActionFailed": "Échec de l'action"
+    },
+    "trend": {
+      "period": "par rapport à la semaine dernière"
+    },
+    "funnel": {
+      "overallConversion": "Taux de conversion global",
+      "reached": "{{value}} ont atteint cette étape",
+      "ofApplied": "{{value}} % des candidatures",
+      "fromPrevious": "{{value}} % de l'étape précédente",
+      "tableCaption": "Entonnoir de recrutement — candidatures ayant atteint chaque étape",
+      "colStage": "Étape",
+      "colReached": "Atteint",
+      "colOfApplied": "% des candidatures"
+    },
+    "insights": {
+      "title": "Analyses IA",
+      "viewAll": "Voir toutes les analyses",
+      "dropOff": "La plus forte perte se situe à l'étape {{stage}} : {{pct}} % des candidatures n'avancent pas.",
+      "topSource": "{{source}} convertit le mieux, avec {{pct}} % de recrutements. Continuez à investir !",
+      "timeToHire": "Votre délai moyen de recrutement est de {{days}} jours.",
+      "timeToHireBetter": "Votre délai de recrutement s'est amélioré de {{pct}} % par rapport au mois dernier.",
+      "timeToHireWorse": "Votre délai de recrutement est {{pct}} % plus long que le mois dernier.",
+      "pendingOffers_one": "{{count}} offre est en attente. Pensez à envoyer une relance.",
+      "pendingOffers_other": "{{count}} offres sont en attente. Pensez à envoyer une relance."
     }
   },
   "interviews": {

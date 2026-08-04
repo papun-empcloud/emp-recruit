@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -27,6 +27,7 @@ interface PublicScreeningQuestion {
 // rejected; these cap unrealistic values like 999 years / 999,999,999 salary.
 const MAX_EXPERIENCE_YEARS = 50;
 const MAX_EXPECTED_SALARY = 100_000_000;
+const MAX_PHONE_DIGITS = 15;
 
 export function CareerApplyPage() {
   const { t } = useTranslation();
@@ -127,7 +128,13 @@ export function CareerApplyPage() {
     // Phone: reject non-numeric input as it's typed — only digits and the usual
     // phone punctuation (+ - ( ) space) are kept. (BUG-02)
     if (name === "phone") {
-      setForm((prev) => ({ ...prev, phone: value.replace(/[^\d+\-()\s]/g, "") }));
+      let digits = 0;
+      const phone = value
+        .replace(/[^\d+\-()\s]/g, "")
+        .split("")
+        .filter((character) => !/\d/.test(character) || ++digits <= MAX_PHONE_DIGITS)
+        .join("");
+      setForm((prev) => ({ ...prev, phone }));
       return;
     }
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -177,7 +184,7 @@ export function CareerApplyPage() {
     // number of any reasonable length must never block submission (BUG-09).
     const phoneDigits = form.phone.replace(/\D/g, "");
     const phoneInvalid =
-      form.phone.trim() !== "" && (phoneDigits.length === 0 || phoneDigits.length > 20);
+      form.phone.trim() !== "" && (phoneDigits.length < 7 || phoneDigits.length > MAX_PHONE_DIGITS);
     const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
     const yearsTooHigh =
       form.experience_years !== "" && Number(form.experience_years) > MAX_EXPERIENCE_YEARS;

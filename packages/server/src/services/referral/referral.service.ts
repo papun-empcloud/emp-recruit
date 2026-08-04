@@ -27,6 +27,17 @@ interface ListParams {
   referrerId?: number; // for employee: show only own referrals
 }
 
+/** Jobs employees may refer candidates to. Kept behind the referral API because
+ * the general /jobs endpoint is intentionally restricted to recruiting roles. */
+export async function listInternalOpenJobs(orgId: number): Promise<JobPosting[]> {
+  const db = getDB();
+  const result = await db.findMany<JobPosting>("job_postings", {
+    filters: { organization_id: orgId, status: "open", is_internal: true },
+    sort: { field: "created_at", order: "desc" },
+    limit: 100,
+  });
+  return result.data;
+}
 export async function submitReferral(
   orgId: number,
   userId: number,

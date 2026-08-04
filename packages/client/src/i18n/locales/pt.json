@@ -773,6 +773,30 @@
       "toastApproved": "Oferta aprovada",
       "toastRejected": "Oferta rejeitada",
       "toastActionFailed": "Falha na ação"
+    },
+    "trend": {
+      "period": "em relação à semana passada"
+    },
+    "funnel": {
+      "overallConversion": "Taxa de conversão geral",
+      "reached": "{{value}} chegaram a esta etapa",
+      "ofApplied": "{{value}}% das candidaturas",
+      "fromPrevious": "{{value}}% da etapa anterior",
+      "tableCaption": "Funil de contratação — candidaturas que chegaram a cada etapa",
+      "colStage": "Etapa",
+      "colReached": "Chegaram",
+      "colOfApplied": "% das candidaturas"
+    },
+    "insights": {
+      "title": "Insights com IA",
+      "viewAll": "Ver todos os insights",
+      "dropOff": "A maior perda está em {{stage}}: {{pct}}% das candidaturas não avançam.",
+      "topSource": "{{source}} é a fonte que melhor converte, com {{pct}}% de contratações. Continue investindo!",
+      "timeToHire": "O seu tempo médio de contratação é de {{days}} dias.",
+      "timeToHireBetter": "O seu tempo de contratação melhorou {{pct}}% em relação ao mês passado.",
+      "timeToHireWorse": "O seu tempo de contratação está {{pct}}% mais lento do que no mês passado.",
+      "pendingOffers_one": "{{count}} proposta está pendente. Considere enviar um lembrete.",
+      "pendingOffers_other": "{{count}} propostas estão pendentes. Considere enviar um lembrete."
     }
   },
   "interviews": {

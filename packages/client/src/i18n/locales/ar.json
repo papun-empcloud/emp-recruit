@@ -824,6 +824,34 @@
       "toastApproved": "تمت الموافقة على العرض",
       "toastRejected": "تم رفض العرض",
       "toastActionFailed": "فشل الإجراء"
+    },
+    "trend": {
+      "period": "مقارنة بالأسبوع الماضي"
+    },
+    "funnel": {
+      "overallConversion": "معدل التحويل الإجمالي",
+      "reached": "{{value}} وصلوا إلى هذه المرحلة",
+      "ofApplied": "{{value}}% من المتقدمين",
+      "fromPrevious": "{{value}}% من المرحلة السابقة",
+      "tableCaption": "مسار التوظيف — الطلبات التي وصلت إلى كل مرحلة",
+      "colStage": "المرحلة",
+      "colReached": "وصلوا",
+      "colOfApplied": "% من المتقدمين"
+    },
+    "insights": {
+      "title": "رؤى الذكاء الاصطناعي",
+      "viewAll": "عرض كل الرؤى",
+      "dropOff": "أكبر انخفاض عند مرحلة {{stage}}: {{pct}}% من المتقدمين لا يتقدمون.",
+      "topSource": "{{source}} هو المصدر الأفضل تحويلاً بنسبة توظيف {{pct}}%. واصل الاستثمار فيه!",
+      "timeToHire": "متوسط وقت التوظيف لديك هو {{days}} يومًا.",
+      "timeToHireBetter": "تحسّن وقت التوظيف لديك بنسبة {{pct}}% مقارنة بالشهر الماضي.",
+      "timeToHireWorse": "وقت التوظيف لديك أبطأ بنسبة {{pct}}% مقارنة بالشهر الماضي.",
+      "pendingOffers_zero": "{{count}} عرض معلّق. فكّر في إرسال متابعة.",
+      "pendingOffers_one": "عرض واحد معلّق. فكّر في إرسال متابعة.",
+      "pendingOffers_two": "عرضان معلّقان. فكّر في إرسال متابعة.",
+      "pendingOffers_few": "{{count}} عروض معلّقة. فكّر في إرسال متابعة.",
+      "pendingOffers_many": "{{count}} عرضًا معلّقًا. فكّر في إرسال متابعة.",
+      "pendingOffers_other": "{{count}} عرض معلّق. فكّر في إرسال متابعة."
     }
   },
   "interviews": {
