@@ -14,6 +14,7 @@
     "candidates": "候補者",
     "interviews": "面談",
     "offers": "オファー",
+    "myApprovals": "自分の承認",
     "onboarding": "オンボーディング",
     "aiScoring": "AIの規模",
     "referrals": "インフォメーション",
@@ -27,12 +28,12 @@
     "changeLanguage": "言語を変更",
     "applications": "アプリケーション",
     "aiInterviews": "AIインタビュー",
+    "logoutConfirmTitle": "サインアップ",
+    "logoutConfirmMessage": "アカウントにアクセスするには、再度サインインする必要があります。",
     "badges": {
       "beta": "ベタ",
       "new": "新品"
-    },
-    "logoutConfirmTitle": "サインアップ",
-    "logoutConfirmMessage": "アカウントにアクセスするには、再度サインインする必要があります。"
+    }
   },
   "common": {
     "save": "保存",
@@ -281,6 +282,10 @@
       "errorYearsMax": "経験の年は超過できません{{max}}.",
       "errorSalaryNegative": "期待される給与は負えない。",
       "errorSalaryMax": "想定した給与を必ずご入力ください。",
+      "screeningTitle": "スクリーニング質問",
+      "screeningSelect": "選択…",
+      "screeningRequired": "この質問は必須です",
+      "screeningRequiredToast": "必須のスクリーニング質問にすべてお答えください。",
       "errorNameEmailRequired": "お名前とメールアドレスを入力してください。",
       "backToJob": "求人情報に戻る",
       "title": "申し込み{{title}}",
@@ -302,7 +307,9 @@
       "monthsLabel": "月",
       "errorMonthsRange": "月は0から11の間でなければなりません",
       "skillsLabel": "スキル(コンマ区切り)",
-      "skillsPlaceholder": "反応、Python、SQL"
+      "skillsPlaceholder": "反応、Python、SQL",
+      "screeningLoadError": "応募フォームを読み込めませんでした。もう一度お試しください。",
+      "retry": "再試行"
     },
     "success": {
       "title": "お問い合わせ",
@@ -432,6 +439,41 @@
   "applications": {
     "title": "アプリケーション",
     "subtitle": "開いた役割を渡るあらゆる適用。",
+    "stage": {
+      "applied": "応募済み",
+      "screened": "スクリーニング済み",
+      "interview": "面接",
+      "offer": "オファー",
+      "hired": "採用",
+      "rejected": "不採用",
+      "withdrawn": "辞退"
+    },
+    "detail": {
+      "back": "戻る",
+      "notFound": "応募が見つかりません。",
+      "viewCandidate": "候補者を表示",
+      "stage": "ステージ",
+      "ownership": "担当とSLA",
+      "assignee": "担当採用担当者",
+      "unassigned": "未割り当て",
+      "slaDate": "SLA期限日",
+      "save": "保存",
+      "screeningAnswers": "スクリーニング回答",
+      "knockoutFailed": "不合格",
+      "activity": "アクティビティ",
+      "noActivity": "まだアクティビティはありません。",
+      "assignmentSaved": "担当を更新しました。",
+      "assignmentFailed": "担当を更新できませんでした。",
+      "stageMoved": "ステージを更新しました。",
+      "stageFailed": "ステージを変更できませんでした。"
+    },
+    "bulk": {
+      "selected": "{{count}}件選択中",
+      "moveTo": "移動先…",
+      "moved": "{{count}}件の応募を移動しました。",
+      "moveFailed": "選択した応募を移動できませんでした。",
+      "clear": "クリア"
+    },
     "searchLabel": "検索",
     "searchPlaceholder": "氏名、Eメール、または求人名",
     "jobRole": "求人情報",
@@ -687,19 +729,15 @@
       "totalCandidates": "総候補者",
       "totalApplications": "トータルアプリケーション",
       "totalJobs": "業務内容",
-      "closedJobs": "クローズドジョブ",
       "myReferrals": "私の紹介",
       "inReview": "レビュー中",
       "hired": "ハイレッド",
-      "bonus": "ボーナス"
+      "bonus": "ボーナス",
+      "closedJobs": "クローズドジョブ"
     },
     "pipelineDistribution": "パイプラインの配分",
     "totalCount": "{{count}}合計:",
     "recentApplications": "最近の申請",
-    "upcomingInterviews": "今後のインタビュー",
-    "noUpcomingInterviews": "カレンダーはクリアです。 次の偉大な候補に会う準備ができたら、インタビューをスケジュールします。",
-    "interviewsEmptyTitle": "カレンダーに何もない",
-    "interviewMinutes": "{{count}} 分",
     "viewAll": "すべて表示",
     "noApplications": "申請はまだありません。",
     "welcome": "ようこそ、{{name}}",
@@ -736,6 +774,10 @@
       "toastRejected": "提供拒否",
       "toastActionFailed": "操作に失敗しました"
     },
+    "upcomingInterviews": "今後のインタビュー",
+    "noUpcomingInterviews": "カレンダーはクリアです。 次の偉大な候補に会う準備ができたら、インタビューをスケジュールします。",
+    "interviewsEmptyTitle": "カレンダーに何もない",
+    "interviewMinutes": "{{count}} 分",
     "trend": {
       "period": "先週の対比"
     },
@@ -1057,6 +1099,7 @@
       "close": "閉じる",
       "resume": "ログイン",
       "edit": "編集",
+      "workflowBoard": "ワークフロー",
       "delete": "削除",
       "description": "説明",
       "requirements": "要件",
@@ -1168,6 +1211,24 @@
       "descriptionAria": "求人情報",
       "descriptionPlaceholder": "役割、責任、そして成功がどのようなものなのかを記述する...",
       "descriptionHint": "ツールバーでフォーマットします。 最小10文字。",
+      "generateWithAi": "AIで生成",
+      "seniorityLabel": "職位レベル",
+      "seniority": {
+        "intern": "インターン",
+        "junior": "ジュニア",
+        "mid": "ミドル",
+        "senior": "シニア",
+        "lead": "リード",
+        "director": "ディレクター",
+        "vp": "VP",
+        "cLevel": "経営幹部"
+      },
+      "niceToHave": "あれば尚可",
+      "suggestedSkills": "推奨スキル — クリックして追加",
+      "aiGenerated": "AIで生成しました。必要に応じて確認・編集してください。",
+      "aiGeneratedTemplate": "テンプレートから生成しました（AIプロバイダーが設定されていません）。確認・編集してください。",
+      "aiGenerateFailed": "説明を生成できませんでした。もう一度お試しください。",
+      "aiNeedsTitleSkills": "まず求人タイトルとスキルを1つ以上追加してください。",
       "department": "部署",
       "selectDepartment": "部門を選択",
       "departmentPlaceholder": "例:エンジニアリング",
@@ -1203,9 +1264,49 @@
     "pipeline": {
       "title": "採用パイプライン",
       "subtitle": "舞台で応募者の観葉ボードビュー。"
+    },
+    "workflow": {
+      "title": "ワークフローボード",
+      "backToJob": "求人に戻る",
+      "pipeline": "パイプライン",
+      "hiringTeam": "採用チーム",
+      "addMember": "追加",
+      "selectUser": "ユーザーを選択…",
+      "noMembers": "採用チームにはまだ誰もいません。",
+      "remove": "削除",
+      "memberAdded": "チームメンバーを追加しました。",
+      "memberRemoved": "チームメンバーを削除しました。",
+      "memberFailed": "採用チームを更新できませんでした。",
+      "tasks": "タスク",
+      "addTask": "追加",
+      "taskTitlePlaceholder": "タスクを追加…",
+      "noTasks": "タスクはまだありません。",
+      "unassigned": "未割り当て",
+      "delete": "削除",
+      "toggleDone": "完了を切り替え",
+      "taskAdded": "タスクを追加しました。",
+      "taskDeleted": "タスクを削除しました。",
+      "taskFailed": "タスクを更新できませんでした。",
+      "roles": {
+        "recruiter": "採用担当者",
+        "hiring_manager": "採用マネージャー",
+        "interviewer": "面接官",
+        "coordinator": "コーディネーター"
+      }
     }
   },
   "offers": {
+    "approvals": {
+      "title": "自分の承認",
+      "subtitle": "承認待ちのオファー",
+      "empty": "承認待ちのオファーはありません。",
+      "submitted": "提出日: {{date}}",
+      "approve": "承認",
+      "reject": "却下",
+      "approved": "オファーを承認しました",
+      "rejected": "オファーを却下しました",
+      "actionFailed": "オファーを更新できませんでした"
+    },
     "status": {
       "all": "すべて",
       "draft": "下書き",
@@ -1504,6 +1605,30 @@
       "updateTaskFailed": "??????????????"
     }
   },
+  "screening": {
+    "type": {
+      "text": "短いテキスト",
+      "number": "数値",
+      "yes_no": "はい / いいえ",
+      "single_choice": "単一選択"
+    },
+    "editor": {
+      "title": "スクリーニング質問",
+      "subtitle": "応募時に求人固有の質問を尋ねます。失格となる回答をした応募者を自動的に不合格にするには、質問をノックアウトに設定してください。",
+      "empty": "スクリーニング質問がまだありません。",
+      "questionPlaceholder": "例: Seleniumの経験は何年ありますか？",
+      "remove": "質問を削除",
+      "required": "必須",
+      "knockout": "ノックアウト",
+      "optionsPlaceholder": "カンマ区切りの選択肢、例: はい, いいえ, どちらとも言えない",
+      "knockoutValue": "失格となる回答",
+      "knockoutValuePlaceholder": "自動的に不合格となる回答、例: いいえ",
+      "addQuestion": "質問を追加",
+      "save": "質問を保存",
+      "saved": "スクリーニング質問を保存しました。",
+      "saveFailed": "スクリーニング質問を保存できませんでした。"
+    }
+  },
   "scoring": {
     "recommendation": {
       "strongMatch": "強いマッチ",
@@ -1766,6 +1891,10 @@
       "replayQuestion": "質問を再生する",
       "listeningHint": "耳を傾ける...あなたの答えを話す開始。",
       "tapMicHint": "マイクをタップして、大声で回答します。",
+      "noSpeechDetected": "回答を聞き取れませんでした。今話すとここに表示されます — またはもう一度「次へ」をタップしてこの質問をスキップしてください。",
+      "typeAnswer": "入力で回答",
+      "useVoice": "音声を使用",
+      "typeAnswerPlaceholder": "ここに回答を入力してください…",
       "canHearYou": "お問い合わせ",
       "mute": "ミュート",
       "unmute": "ミュート",

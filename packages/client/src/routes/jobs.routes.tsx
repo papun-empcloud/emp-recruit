@@ -16,6 +16,9 @@ const JobEditPage = lazyWithRetry(() =>
 const JobPipelinePage = lazyWithRetry(() =>
   import("@/pages/jobs/JobPipelinePage").then((m) => ({ default: m.JobPipelinePage })),
 );
+const JobWorkflowPage = lazyWithRetry(() =>
+  import("@/pages/jobs/JobWorkflowPage").then((m) => ({ default: m.JobWorkflowPage })),
+);
 
 export const jobRoutes = (
   <>
@@ -24,5 +27,6 @@ export const jobRoutes = (
     <Route path="/jobs/:id" element={<JobDetailPage />} />
     <Route path="/jobs/:id/edit" element={<JobEditPage />} />
     <Route path="/jobs/:id/pipeline" element={<JobPipelinePage />} />
+    <Route path="/jobs/:id/workflow" element={<JobWorkflowPage />} />
   </>
 );

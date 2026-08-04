@@ -1,8 +1,31 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
+import { findUserById } from "../../db/empcloud";
 import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
-import type { Application, ApplicationStageHistory } from "@emp-recruit/shared";
+import type { Application, ApplicationActivity, ApplicationStageHistory } from "@emp-recruit/shared";
+
+// ---------------------------------------------------------------------------
+// Activity feed (030) — a unified per-application log.
+// ---------------------------------------------------------------------------
+
+export async function logActivity(
+  orgId: number,
+  applicationId: string,
+  actorId: number | null,
+  type: ApplicationActivity["type"],
+  message: string,
+): Promise<void> {
+  const db = getDB();
+  await db.create("application_activity", {
+    id: uuidv4(),
+    organization_id: orgId,
+    application_id: applicationId,
+    actor_id: actorId,
+    type,
+    message: message.slice(0, 500),
+  } as any);
+}
 
 // ---------------------------------------------------------------------------
 // Service functions
@@ -118,7 +141,104 @@ export async function moveStage(
     notes: notes ?? null,
   });
 
+  await logActivity(orgId, id, userId, "stage_change", `Moved from ${fromStage} to ${newStage}`);
+
   return updated;
+}
+
+// Move several applications to a stage in one action; each is validated and
+// moved independently, and a per-application activity entry is written.
+export async function bulkMoveStage(
+  orgId: number,
+  applicationIds: string[],
+  newStage: string,
+  userId: number,
+  notes?: string,
+): Promise<{ moved: number; failed: { id: string; reason: string }[] }> {
+  const result = { moved: 0, failed: [] as { id: string; reason: string }[] };
+  for (const id of applicationIds) {
+    try {
+      await moveStage(orgId, id, newStage, userId, notes);
+      result.moved++;
+    } catch (err: any) {
+      result.failed.push({ id, reason: err?.message ?? "Unknown error" });
+    }
+  }
+  return result;
+}
+
+// Assign a responsible recruiter and/or set the SLA due date on an application.
+export async function assignApplication(
+  orgId: number,
+  id: string,
+  userId: number,
+  data: { assigned_to?: number | null; sla_due_date?: string | null },
+): Promise<Application> {
+  const db = getDB();
+  const app = await db.findOne<Application>("applications", { id, organization_id: orgId });
+  if (!app) throw new NotFoundError("Application", id);
+
+  // Users live in the EmpCloud master DB with no FK from this table, so an
+  // arbitrary user id would otherwise persist and later leak that (possibly
+  // cross-org) user's name back on read. Only allow assigning to an ACTIVE
+  // member of the caller's own organization.
+  let assignee: Awaited<ReturnType<typeof findUserById>> = null;
+  if (data.assigned_to != null) {
+    assignee = await findUserById(data.assigned_to).catch(() => null);
+    if (!assignee || assignee.organization_id !== orgId || assignee.status !== 1) {
+      throw new ValidationError("Assignee must be an active member of your organization");
+    }
+  }
+
+  const updates: Record<string, any> = {};
+  if (data.assigned_to !== undefined) updates.assigned_to = data.assigned_to;
+  if (data.sla_due_date !== undefined) {
+    updates.sla_due_date = data.sla_due_date ? String(data.sla_due_date).slice(0, 10) : null;
+  }
+  const updated = await db.update<Application>("applications", id, updates);
+
+  if (data.assigned_to !== undefined) {
+    if (data.assigned_to === null) {
+      await logActivity(orgId, id, userId, "assigned", "Unassigned");
+    } else {
+      const name = assignee ? `${assignee.first_name ?? ""} ${assignee.last_name ?? ""}`.trim() : "";
+      await logActivity(orgId, id, userId, "assigned", `Assigned to ${name || `User #${data.assigned_to}`}`);
+    }
+  }
+  if (data.sla_due_date !== undefined) {
+    await logActivity(
+      orgId,
+      id,
+      userId,
+      "sla_set",
+      data.sla_due_date ? `SLA due date set to ${String(data.sla_due_date).slice(0, 10)}` : "SLA due date cleared",
+    );
+  }
+  return updated;
+}
+
+// The unified activity feed for an application (most recent first).
+export async function getActivity(orgId: number, applicationId: string): Promise<ApplicationActivity[]> {
+  const db = getDB();
+  const app = await db.findOne<Application>("applications", { id: applicationId, organization_id: orgId });
+  if (!app) throw new NotFoundError("Application", applicationId);
+
+  const result = await db.findMany<any>("application_activity", {
+    filters: { organization_id: orgId, application_id: applicationId },
+    sort: { field: "created_at", order: "desc" },
+    limit: 200,
+  });
+
+  // Resolve actor names (EmpCloud users) for display.
+  const actorIds = [...new Set(result.data.map((r) => r.actor_id).filter((x): x is number => x != null))];
+  const names = new Map<number, string>();
+  await Promise.all(
+    actorIds.map(async (uid) => {
+      const u = await findUserById(uid).catch(() => null);
+      if (u) names.set(uid, `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim());
+    }),
+  );
+  return result.data.map((r) => ({ ...r, actor_name: r.actor_id != null ? names.get(r.actor_id) ?? null : null }));
 }
 
 export async function listApplications(
@@ -241,6 +361,17 @@ export async function getApplication(orgId: number, id: string): Promise<any> {
 
   const app = rows[0]?.[0];
   if (!app) throw new NotFoundError("Application", id);
+
+  // Resolve the assigned recruiter's name (EmpCloud user) for display. Guard on
+  // org membership so a stale/foreign assigned_to can never leak a cross-org
+  // user's name (assignment is org-validated on write, this is defense-in-depth).
+  if (app.assigned_to != null) {
+    const u = await findUserById(app.assigned_to).catch(() => null);
+    app.assignee_name =
+      u && u.organization_id === orgId ? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || null : null;
+  } else {
+    app.assignee_name = null;
+  }
   return app;
 }
 
@@ -284,5 +415,6 @@ export async function addNote(
     [entry, entry, applicationId, orgId],
   );
   const updated = await db.findOne<Application>("applications", { id: applicationId, organization_id: orgId });
+  await logActivity(orgId, applicationId, userId, "note", note.slice(0, 200));
   return updated as Application;
 }

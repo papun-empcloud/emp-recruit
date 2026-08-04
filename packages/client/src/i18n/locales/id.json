@@ -20,7 +20,16 @@
     "applications": "Lamaran",
     "aiInterviews": "Wawancara AI",
     "logoutConfirmTitle": "Keluar?",
-    "logoutConfirmMessage": "Anda perlu masuk kembali untuk mengakses akun Anda."
+    "logoutConfirmMessage": "Anda perlu masuk kembali untuk mengakses akun Anda.",
+    "groups": {
+      "overview": "Ikhtisar",
+      "jobs": "Pekerjaan",
+      "people": "Orang",
+      "interviews": "Wawancara",
+      "hiring": "Perekrutan",
+      "system": "Sistem"
+    },
+    "myApprovals": "Persetujuan Saya"
   },
   "common": {
     "save": "Simpan",
@@ -161,7 +170,9 @@
       "notes": "Catatan",
       "notesPlaceholder": "Catatan internal apa pun tentang kandidat...",
       "cancel": "Batal",
-      "saveChanges": "Simpan Perubahan"
+      "saveChanges": "Simpan Perubahan",
+      "expYearsMax": "Pengalaman (tahun) tidak boleh melebihi 50",
+      "source_one": "Lainnya"
     },
     "compare": {
       "stageUpdated": "Tahap diperbarui",
@@ -276,7 +287,15 @@
       "monthsLabel": "Bulan",
       "errorMonthsRange": "Bulan harus antara 0 dan 11",
       "skillsLabel": "Keterampilan (dipisahkan koma)",
-      "skillsPlaceholder": "React, Python, SQL"
+      "skillsPlaceholder": "React, Python, SQL",
+      "errorYearsMax": "Tahun pengalaman tidak boleh melebihi {{max}}.",
+      "errorSalaryMax": "Silakan masukkan ekspektasi gaji yang realistis.",
+      "screeningTitle": "Pertanyaan seleksi",
+      "screeningSelect": "Pilih…",
+      "screeningRequired": "Pertanyaan ini wajib diisi",
+      "screeningRequiredToast": "Silakan jawab semua pertanyaan seleksi yang wajib.",
+      "screeningLoadError": "Tidak dapat memuat formulir lamaran. Silakan coba lagi.",
+      "retry": "Coba lagi"
     },
     "success": {
       "title": "Terima Kasih Telah Melamar!",
@@ -430,6 +449,41 @@
       "hired": "Direkrut",
       "rejected": "Ditolak",
       "withdrawn": "Ditarik"
+    },
+    "stage": {
+      "applied": "Melamar",
+      "screened": "Diseleksi",
+      "interview": "Wawancara",
+      "offer": "Penawaran",
+      "hired": "Direkrut",
+      "rejected": "Ditolak",
+      "withdrawn": "Ditarik"
+    },
+    "detail": {
+      "back": "Kembali",
+      "notFound": "Lamaran tidak ditemukan.",
+      "viewCandidate": "Lihat kandidat",
+      "stage": "Tahap",
+      "ownership": "Kepemilikan & SLA",
+      "assignee": "Perekrut penanggung jawab",
+      "unassigned": "Belum ditugaskan",
+      "slaDate": "Tanggal jatuh tempo SLA",
+      "save": "Simpan",
+      "screeningAnswers": "Jawaban seleksi",
+      "knockoutFailed": "terdiskualifikasi",
+      "activity": "Aktivitas",
+      "noActivity": "Belum ada aktivitas.",
+      "assignmentSaved": "Penugasan diperbarui.",
+      "assignmentFailed": "Gagal memperbarui penugasan.",
+      "stageMoved": "Tahap diperbarui.",
+      "stageFailed": "Gagal mengubah tahap."
+    },
+    "bulk": {
+      "selected": "{{count}} dipilih",
+      "moveTo": "Pindahkan ke…",
+      "moved": "{{count}} lamaran dipindahkan.",
+      "moveFailed": "Gagal memindahkan lamaran yang dipilih.",
+      "clear": "Bersihkan"
     }
   },
   "components": {
@@ -568,6 +622,87 @@
       "cancel": "Batal",
       "importBtn_one": "Impor {{count}} kandidat",
       "importBtn_other": "Impor {{count}} kandidat"
+    },
+    "bulkImportJobs": {
+      "ariaLabel": "Impor pekerjaan secara massal",
+      "title": "Impor Pekerjaan Massal",
+      "close": "Tutup",
+      "errFileEmpty": "File kosong.",
+      "errMissingColumns": "File Excel harus menyertakan kolom title dan description. Unduh templat untuk format yang diharapkan.",
+      "errReadFailed": "Tidak dapat membaca file tersebut. Silakan unggah file .xlsx (gunakan templat).",
+      "errMissingTitle": "Judul tidak ada",
+      "errTitleMarkup": "Judul tidak boleh mengandung karakter < atau >",
+      "errDescriptionShort": "Deskripsi minimal harus 10 karakter",
+      "errBadNumber": "Pengalaman dan gaji harus berupa angka bulat non-negatif",
+      "errExpRange": "Pengalaman min tidak boleh lebih besar dari pengalaman maks",
+      "errSalaryRange": "Gaji min tidak boleh lebih besar dari gaji maks",
+      "resultCreated_one": "{{count}} pekerjaan dibuat sebagai draf",
+      "resultCreated_other": "{{count}} pekerjaan dibuat sebagai draf",
+      "failedCount": "{{count}} tidak dapat diimpor",
+      "failedRows": "Baris gagal",
+      "rowLabel": "Baris {{row}}",
+      "columnsPrefix": "Unggah file Excel (.xlsx) dengan kolom",
+      "columnsSuffix": "(wajib) plus opsional department, location, employment_type, experience_min/max, salary_min/max, salary_currency, remote_policy dan skills. Departemen, lokasi, jenis pekerjaan, mata uang, dan kebijakan jarak jauh adalah dropdown di templat.",
+      "template": "Templat",
+      "changeFile": "Klik untuk memilih file lain",
+      "selectFile": "Klik untuk memilih file CSV",
+      "fileHint": ".xlsx, hingga 200 baris",
+      "previewReady_one": "Pratinjau — {{valid}} dari {{count}} baris siap",
+      "previewReady_other": "Pratinjau — {{valid}} dari {{count}} baris siap",
+      "rowsSkipped": "{{count}} baris akan dilewati",
+      "colTitle": "Judul",
+      "colDepartment": "Departemen",
+      "colType": "Jenis",
+      "colStatus": "Status",
+      "ready": "Siap",
+      "importingCount_one": "Mengimpor {{count}} pekerjaan…",
+      "importingCount_other": "Mengimpor {{count}} pekerjaan…",
+      "done": "Selesai",
+      "cancel": "Batal",
+      "importBtn_one": "Impor {{count}} pekerjaan",
+      "importBtn_other": "Impor {{count}} pekerjaan",
+      "unknownError": "Kesalahan tidak diketahui"
+    },
+    "bulkUpdateJobs": {
+      "ariaLabel": "Perbarui pekerjaan secara massal",
+      "title": "Pembaruan Pekerjaan Massal",
+      "close": "Tutup",
+      "instructions": "Unduh pekerjaan Anda saat ini sebagai file Excel, edit kolom apa pun (departemen, lokasi, jenis pekerjaan, kebijakan jarak jauh, dan status adalah dropdown; pertahankan kolom id), lalu unggah ulang. Sel kosong dibiarkan tidak berubah.",
+      "currentJobs": "Pekerjaan saat ini",
+      "errFileEmpty": "File kosong.",
+      "errMissingId": "File Excel harus menyertakan kolom id. Unduh pekerjaan Anda saat ini untuk format yang diharapkan.",
+      "errReadFailed": "Tidak dapat membaca file tersebut. Silakan unggah templat .xlsx yang telah diunduh.",
+      "errBadId": "ID pekerjaan tidak valid",
+      "errTitleMarkup": "Judul tidak boleh mengandung karakter < atau >",
+      "errDescriptionShort": "Deskripsi minimal harus 10 karakter",
+      "errBadNumber": "Pengalaman dan gaji harus berupa angka bulat non-negatif",
+      "errExpRange": "Pengalaman min tidak boleh lebih besar dari pengalaman maks",
+      "errSalaryRange": "Gaji min tidak boleh lebih besar dari gaji maks",
+      "errBadStatus": "Status harus salah satu dari draft, open, paused, closed, filled",
+      "errNoChanges": "Tidak ada kolom untuk diperbarui",
+      "resultUpdated_one": "{{count}} pekerjaan diperbarui",
+      "resultUpdated_other": "{{count}} pekerjaan diperbarui",
+      "failedCount": "{{count}} tidak dapat diperbarui",
+      "failedRows": "Baris gagal",
+      "rowLabel": "Baris {{row}}",
+      "changeFile": "Klik untuk memilih file lain",
+      "selectFile": "Klik untuk memilih file CSV",
+      "fileHint": ".xlsx, hingga 200 baris",
+      "previewReady_one": "Pratinjau — {{valid}} dari {{count}} baris siap",
+      "previewReady_other": "Pratinjau — {{valid}} dari {{count}} baris siap",
+      "rowsSkipped": "{{count}} baris akan dilewati",
+      "colId": "ID",
+      "colTitle": "Judul",
+      "colStatus": "Status",
+      "colResult": "Hasil",
+      "ready": "Siap",
+      "updatingCount_one": "Memperbarui {{count}} pekerjaan…",
+      "updatingCount_other": "Memperbarui {{count}} pekerjaan…",
+      "done": "Selesai",
+      "cancel": "Batal",
+      "updateBtn_one": "Perbarui {{count}} pekerjaan",
+      "updateBtn_other": "Perbarui {{count}} pekerjaan",
+      "unknownError": "Kesalahan tidak diketahui"
     }
   },
   "dashboard": {
@@ -710,7 +845,9 @@
       "meetingLinkLabel": "Tautan Rapat",
       "notesLabel": "Catatan",
       "notesPlaceholder": "Catatan tambahan untuk wawancara...",
-      "cancel": "Batal"
+      "cancel": "Batal",
+      "subtitle": "Siapkan wawancara untuk lamaran kandidat.",
+      "noApplicationsTitle": "Tidak ada lamaran ditemukan"
     },
     "feedback": {
       "recStrongYes": "Sangat Setuju",
@@ -900,7 +1037,9 @@
       "colCreated": "Dibuat",
       "onsite": "Di Lokasi",
       "internal": "Internal",
-      "public": "Publik"
+      "public": "Publik",
+      "bulkImport": "Impor Massal",
+      "bulkUpdate": "Perbarui Massal"
     },
     "detail": {
       "statusUpdated": "Status pekerjaan diperbarui",
@@ -988,7 +1127,8 @@
         "indeed": "Aktif. Indeed merayapi umpan XML publik lowongan organisasi ini (daftar organik gratis). Kirim URL umpan ke Indeed sekali, lalu lowongan yang dipublikasikan muncul otomatis.",
         "naukri": "Memerlukan langganan pemberi kerja/RMS Naukri + kunci API pemberi kerja. Belum terhubung.",
         "apna": "Memerlukan akun perusahaan Apna + akses API pemberi kerja. Belum terhubung."
-      }
+      },
+      "workflowBoard": "Alur Kerja"
     },
     "form": {
       "employmentType": {
@@ -1055,11 +1195,58 @@
       "cancel": "Batal",
       "updateJob": "Perbarui Pekerjaan",
       "saveDraft": "Simpan sebagai Draf",
-      "draftHint": "Pekerjaan yang disimpan dimulai sebagai draf. Buka pekerjaan dan klik Terbitkan untuk mencantumkannya di halaman karier Anda."
+      "draftHint": "Pekerjaan yang disimpan dimulai sebagai draf. Buka pekerjaan dan klik Terbitkan untuk mencantumkannya di halaman karier Anda.",
+      "generateWithAi": "Hasilkan dengan AI",
+      "seniorityLabel": "Senioritas",
+      "seniority": {
+        "intern": "Magang",
+        "junior": "Junior",
+        "mid": "Tingkat Menengah",
+        "senior": "Senior",
+        "lead": "Lead",
+        "director": "Direktur",
+        "vp": "VP",
+        "cLevel": "C-level"
+      },
+      "niceToHave": "Nilai tambah",
+      "aiGenerated": "Dihasilkan dengan AI. Tinjau dan edit seperlunya.",
+      "aiGeneratedTemplate": "Dihasilkan dari templat (tidak ada penyedia AI yang dikonfigurasi). Tinjau dan edit.",
+      "aiGenerateFailed": "Gagal menghasilkan deskripsi. Silakan coba lagi.",
+      "aiNeedsTitleSkills": "Tambahkan judul pekerjaan dan setidaknya satu keterampilan terlebih dahulu.",
+      "suggestedSkills": "Keterampilan yang disarankan — klik untuk menambahkan"
     },
     "pipeline": {
       "title": "Alur Perekrutan",
       "subtitle": "Tampilan papan Kanban pelamar berdasarkan tahap."
+    },
+    "workflow": {
+      "title": "Papan Alur Kerja",
+      "backToJob": "Kembali ke pekerjaan",
+      "pipeline": "Alur",
+      "hiringTeam": "Tim Perekrutan",
+      "addMember": "Tambah",
+      "selectUser": "Pilih pengguna…",
+      "noMembers": "Belum ada anggota tim perekrutan.",
+      "remove": "Hapus",
+      "memberAdded": "Anggota tim ditambahkan.",
+      "memberRemoved": "Anggota tim dihapus.",
+      "memberFailed": "Gagal memperbarui tim perekrutan.",
+      "tasks": "Tugas",
+      "addTask": "Tambah",
+      "taskTitlePlaceholder": "Tambah tugas…",
+      "noTasks": "Belum ada tugas.",
+      "unassigned": "Belum ditugaskan",
+      "delete": "Hapus",
+      "toggleDone": "Alihkan selesai",
+      "taskAdded": "Tugas ditambahkan.",
+      "taskDeleted": "Tugas dihapus.",
+      "taskFailed": "Gagal memperbarui tugas.",
+      "roles": {
+        "recruiter": "Perekrut",
+        "hiring_manager": "Manajer Perekrutan",
+        "interviewer": "Pewawancara",
+        "coordinator": "Koordinator"
+      }
     }
   },
   "offers": {
@@ -1175,7 +1362,8 @@
       "loadingUsers": "Memuat pengguna...",
       "cancel": "Batal",
       "submitting": "Mengirim...",
-      "submit": "Kirim"
+      "submit": "Kirim",
+      "manageTemplates": "Kelola / edit templat"
     },
     "form": {
       "toastCreated": "Penawaran berhasil dibuat",
@@ -1230,7 +1418,8 @@
       "jobTitleShort": "Judul Pekerjaan",
       "expiryDate": "Tanggal Kedaluwarsa",
       "notes": "Catatan",
-      "saveChanges": "Simpan Perubahan"
+      "saveChanges": "Simpan Perubahan",
+      "errExpiryBeforeJoining": "Tanggal kedaluwarsa penawaran harus pada atau setelah tanggal bergabung"
     },
     "template": {
       "toastUpdated": "Templat diperbarui",
@@ -1264,6 +1453,17 @@
       "delete": "Hapus",
       "deleteConfirmTitle": "Hapus templat ini?",
       "deleteConfirmMessage": "Ini menghapus templat sehingga tidak dapat lagi digunakan untuk surat penawaran baru. Surat yang sudah dibuat darinya tetap disimpan."
+    },
+    "approvals": {
+      "title": "Persetujuan Saya",
+      "subtitle": "Penawaran yang menunggu persetujuan Anda",
+      "empty": "Tidak ada penawaran yang menunggu persetujuan Anda.",
+      "submitted": "Dikirim {{date}}",
+      "approve": "Setujui",
+      "reject": "Tolak",
+      "approved": "Penawaran disetujui",
+      "rejected": "Penawaran ditolak",
+      "actionFailed": "Gagal memperbarui penawaran"
     }
   },
   "onboarding": {
@@ -1409,7 +1609,14 @@
       "strongMatchDesc": "Kandidat ini sangat cocok untuk posisi ini.",
       "goodMatchDesc": "Kandidat ini cukup cocok dengan sebagian besar persyaratan terpenuhi.",
       "partialMatchDesc": "Kandidat ini memenuhi beberapa persyaratan tetapi memiliki kesenjangan.",
-      "weakMatchDesc": "Kandidat ini tidak memenuhi sebagian besar persyaratan."
+      "weakMatchDesc": "Kandidat ini tidak memenuhi sebagian besar persyaratan.",
+      "noRequiredSkills": "Keterampilan tidak dinilai — pekerjaan ini tidak memiliki keterampilan wajib yang dikonfigurasi, sehingga skor tidak dapat mengukur kecocokan keterampilan. Tambahkan keterampilan wajib ke pekerjaan untuk kecocokan yang bermakna, atau konfigurasikan penyedia AI untuk penilaian berbasis konten.",
+      "retryAiScoring": "Coba lagi penilaian AI",
+      "retrySuccess": "Kandidat dinilai ulang.",
+      "retryFailed": "Gagal menilai ulang. Silakan coba lagi.",
+      "methodAi": "Evaluasi AI · {{model}}",
+      "methodHeuristic": "Skor berbasis aturan (tidak ada penyedia AI yang dikonfigurasi)",
+      "reviewDisclaimer": "Skor yang dihasilkan AI hanya sebagai panduan — selalu tinjau sebelum membuat keputusan perekrutan."
     }
   },
   "portal": {
@@ -1576,7 +1783,10 @@
       "questions": "Pertanyaan",
       "transcript": "Transkrip",
       "questionNumber": "Q{{num}}.",
-      "noAnswer": "Tidak ada jawaban"
+      "noAnswer": "Tidak ada jawaban",
+      "methodAi": "Evaluasi AI · {{model}}",
+      "methodCompletion": "Hanya skor penyelesaian — ini mencerminkan seberapa lengkap pertanyaan dijawab, bukan kebenaran atau kualitas jawaban. Ini bukan penilaian konten AI; konfigurasikan penyedia AI untuk evaluasi yang sebenarnya.",
+      "completionScoreLabel": "Skor penyelesaian"
     },
     "session": {
       "leaveConfirm": "Tinggalkan wawancara? Anda tidak akan dapat melanjutkannya.",
@@ -1623,7 +1833,12 @@
       "voiceTitle": "Wawancara Suara AI",
       "voiceIntroBody": "Hai {{name}}. Anda akan melakukan percakapan lisan singkat dengan pewawancara AI kami — ia mengajukan pertanyaan dan Anda menjawab dengan lantang, seperti wawancara sungguhan. Izinkan akses mikrofon saat diminta.",
       "connecting": "Menghubungkan…",
-      "startVoiceInterview": "Mulai wawancara suara"
+      "startVoiceInterview": "Mulai wawancara suara",
+      "tapToAnswer": "Ketuk untuk menjawab sekarang",
+      "noSpeechDetected": "Kami tidak menangkap jawaban. Bicaralah sekarang dan jawaban akan muncul di sini — atau ketuk Berikutnya lagi untuk melewati pertanyaan ini.",
+      "typeAnswer": "Ketik saja",
+      "useVoice": "Gunakan suara",
+      "typeAnswerPlaceholder": "Ketik jawaban Anda di sini…"
     }
   },
   "settings": {
@@ -1833,5 +2048,29 @@
     "title": "Halaman tidak ditemukan",
     "subtitle": "Halaman yang Anda cari tidak ada atau telah dipindahkan.",
     "backHome": "Kembali ke Dasbor"
+  },
+  "screening": {
+    "type": {
+      "text": "Teks singkat",
+      "number": "Angka",
+      "yes_no": "Ya / Tidak",
+      "single_choice": "Pilihan tunggal"
+    },
+    "editor": {
+      "title": "Pertanyaan seleksi",
+      "subtitle": "Ajukan pertanyaan spesifik pekerjaan pada lamaran. Tandai pertanyaan sebagai diskualifikasi untuk otomatis menolak pelamar yang memberikan jawaban yang mendiskualifikasi.",
+      "empty": "Belum ada pertanyaan seleksi.",
+      "questionPlaceholder": "mis. Berapa tahun pengalaman Selenium yang Anda miliki?",
+      "remove": "Hapus pertanyaan",
+      "required": "Wajib",
+      "knockout": "Diskualifikasi",
+      "optionsPlaceholder": "Pilihan dipisahkan koma, mis. Ya, Tidak, Mungkin",
+      "knockoutValue": "Jawaban yang mendiskualifikasi",
+      "knockoutValuePlaceholder": "Jawaban yang otomatis menolak, mis. Tidak",
+      "addQuestion": "Tambah pertanyaan",
+      "save": "Simpan pertanyaan",
+      "saved": "Pertanyaan seleksi tersimpan.",
+      "saveFailed": "Gagal menyimpan pertanyaan seleksi."
+    }
   }
 }

@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Sparkles, Plus } from "lucide-react";
+import { ScreeningQuestionsEditor } from "@/components/ScreeningQuestionsEditor";
 import { apiGet, apiPost, apiPut } from "@/api/client";
 import type { JobPosting } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
@@ -42,6 +43,30 @@ const REMOTE_POLICIES = [
   { value: "remote", labelKey: "jobs.form.remotePolicy.remote" },
   { value: "hybrid", labelKey: "jobs.form.remotePolicy.hybrid" },
 ];
+
+// Seniority is a generation-only hint (not a stored job field) used by the
+// AI job-description generator.
+const SENIORITY_OPTIONS = [
+  { value: "intern", labelKey: "jobs.form.seniority.intern" },
+  { value: "junior", labelKey: "jobs.form.seniority.junior" },
+  { value: "mid", labelKey: "jobs.form.seniority.mid" },
+  { value: "senior", labelKey: "jobs.form.seniority.senior" },
+  { value: "lead", labelKey: "jobs.form.seniority.lead" },
+  { value: "director", labelKey: "jobs.form.seniority.director" },
+  { value: "vp", labelKey: "jobs.form.seniority.vp" },
+  { value: "c_level", labelKey: "jobs.form.seniority.cLevel" },
+];
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+function toHtmlList(items?: string[]): string {
+  if (!items?.length) return "";
+  return `<ul>${items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
+}
 
 interface FormData {
   title: string;
@@ -88,6 +113,10 @@ export function JobFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormData>(INITIAL);
+  // Seniority hint for the AI generator (generation-only, not persisted).
+  const [seniority, setSeniority] = useState("mid");
+  // Role-appropriate skills the AI suggested; click a chip to add it to the field.
+  const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
 
   const { data: existingJob, isLoading: loadingJob } = useQuery({
     queryKey: ["job", id],
@@ -183,6 +212,67 @@ export function JobFormPage() {
       }
     },
   });
+
+  // AI job-description generation: fills the description/requirements/benefits
+  // editors from the configured provider (falls back to a template server-side).
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const skills = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
+      const body: Record<string, any> = { title: form.title.trim(), seniority, skills };
+      if (form.department) body.department = form.department;
+      if (form.location) body.location = form.location;
+      if (form.employment_type) body.employment_type = form.employment_type;
+      const res = await apiPost<any>("/jobs/generate-description", body);
+      return res.data;
+    },
+    onSuccess: (jd: any) => {
+      const descHtml = `${jd?.overview ? `<p>${escapeHtml(jd.overview)}</p>` : ""}${toHtmlList(jd?.responsibilities)}`;
+      const reqHtml = `${toHtmlList(jd?.requirements)}${
+        jd?.nice_to_have?.length
+          ? `<p><strong>${t("jobs.form.niceToHave")}</strong></p>${toHtmlList(jd.nice_to_have)}`
+          : ""
+      }`;
+      const benHtml = toHtmlList(jd?.benefits);
+      setForm((p) => ({
+        ...p,
+        description: descHtml || p.description,
+        requirements: reqHtml || p.requirements,
+        benefits: benHtml || p.benefits,
+      }));
+      // Only suggest skills the field doesn't already contain.
+      const have = new Set(
+        form.skills.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+      );
+      setSuggestedSkills(
+        (Array.isArray(jd?.suggested_skills) ? jd.suggested_skills : []).filter(
+          (s: string) => s && !have.has(s.toLowerCase()),
+        ),
+      );
+      toast.success(jd?.source === "ai" ? t("jobs.form.aiGenerated") : t("jobs.form.aiGeneratedTemplate"));
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || t("jobs.form.aiGenerateFailed")),
+  });
+
+  function generateWithAi() {
+    const skills = form.skills.split(",").map((s) => s.trim()).filter(Boolean);
+    if (form.title.trim().length < 2 || skills.length === 0) {
+      toast.error(t("jobs.form.aiNeedsTitleSkills"));
+      return;
+    }
+    generateMutation.mutate();
+  }
+
+  // Append a suggested skill to the comma-separated skills field (dedup), and
+  // drop it from the suggestion chips.
+  function addSuggestedSkill(skill: string) {
+    setForm((p) => {
+      const existing = p.skills.split(",").map((s) => s.trim()).filter(Boolean);
+      if (existing.some((s) => s.toLowerCase() === skill.toLowerCase())) return p;
+      return { ...p, skills: [...existing, skill].join(", ") };
+    });
+    setSuggestedSkills((prev) => prev.filter((s) => s.toLowerCase() !== skill.toLowerCase()));
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -340,9 +430,40 @@ export function JobFormPage() {
           })}
 
           <div>
-            <label htmlFor="job-description" className="block text-sm font-medium text-gray-700 mb-1">
-              {t("jobs.form.description")} <span className="text-red-500">*</span>
-            </label>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <label htmlFor="job-description" className="block text-sm font-medium text-gray-700">
+                {t("jobs.form.description")} <span className="text-red-500">*</span>
+              </label>
+              {/* Generate the description/requirements/benefits with AI, using
+                  the title, chosen seniority, department, location and skills. */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={seniority}
+                  onChange={(e) => setSeniority(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
+                  title={t("jobs.form.seniorityLabel")}
+                >
+                  {SENIORITY_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {t(o.labelKey)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={generateWithAi}
+                  disabled={generateMutation.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+                >
+                  {generateMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {t("jobs.form.generateWithAi")}
+                </button>
+              </div>
+            </div>
             {/* #14 — backend enforces min length 10; handleSubmit measures the
                 editor's visible text so the user gets immediate feedback
                 instead of a confusing 400. */}
@@ -514,6 +635,24 @@ export function JobFormPage() {
           </div>
 
           {field(t("jobs.form.skillsLabel"), "skills", "text", { placeholder: t("jobs.form.skillsPlaceholder") })}
+          {suggestedSkills.length > 0 && (
+            <div className="-mt-2">
+              <p className="mb-1.5 text-xs font-medium text-gray-500">{t("jobs.form.suggestedSkills")}</p>
+              <div className="flex flex-wrap gap-2">
+                {suggestedSkills.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => addSuggestedSkill(s)}
+                    className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                  >
+                    <Plus className="h-3 w-3" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {/* #13 — can't pick a deadline in the past. Enforced client-side
               via the native min attribute; backend rejects Invalid dates too. */}
           <div>
@@ -552,6 +691,14 @@ export function JobFormPage() {
           </p>
         )}
       </form>
+
+      {/* Screening / knockout questions — managed separately, saved on their
+          own, and only available once the job exists (needs a job id). */}
+      {isEdit && id && (
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6">
+          <ScreeningQuestionsEditor jobId={id} />
+        </div>
+      )}
     </div>
   );
 }
