@@ -1,7 +1,7 @@
 // ============================================================================
 // i18n — app localization (react-i18next)
 // ============================================================================
-// Six languages, statically bundled. Language is detected from localStorage
+// Nine languages, statically bundled to match EMP Cloud. Language is detected from localStorage
 // then the browser, persisted to localStorage, and applied to <html lang/dir>
 // so Arabic renders right-to-left. Missing keys fall back to English.
 // ============================================================================
@@ -11,7 +11,10 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import en from "./locales/en.json";
 import es from "./locales/es.json";
-import id from "./locales/id.json";
+import hi from "./locales/hi.json";
+import de from "./locales/de.json";
+import ja from "./locales/ja.json";
+import zh from "./locales/zh.json";
 import fr from "./locales/fr.json";
 import ar from "./locales/ar.json";
 import pt from "./locales/pt.json";
@@ -21,15 +24,19 @@ export interface LanguageMeta {
   /** Endonym — the language's own name, shown in the switcher. */
   label: string;
   dir: "ltr" | "rtl";
+  flag: string;
 }
 
 export const LANGUAGES: LanguageMeta[] = [
-  { code: "en", label: "English", dir: "ltr" },
-  { code: "es", label: "Español", dir: "ltr" },
-  { code: "id", label: "Indonesia", dir: "ltr" },
-  { code: "fr", label: "Français", dir: "ltr" },
-  { code: "ar", label: "العربية", dir: "rtl" },
-  { code: "pt", label: "Português", dir: "ltr" },
+  { code: "en", label: "English", flag: "EN", dir: "ltr" },
+  { code: "hi", label: "\u0939\u093f\u0928\u094d\u0926\u0940", flag: "HI", dir: "ltr" },
+  { code: "es", label: "Espa\u00f1ol", flag: "ES", dir: "ltr" },
+  { code: "fr", label: "Fran\u00e7ais", flag: "FR", dir: "ltr" },
+  { code: "de", label: "Deutsch", flag: "DE", dir: "ltr" },
+  { code: "ar", label: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629", flag: "AR", dir: "rtl" },
+  { code: "pt", label: "Portugu\u00eas", flag: "PT", dir: "ltr" },
+  { code: "ja", label: "\u65e5\u672c\u8a9e", flag: "JA", dir: "ltr" },
+  { code: "zh", label: "\u4e2d\u6587", flag: "ZH", dir: "ltr" },
 ];
 
 const RTL_LANGS = new Set(LANGUAGES.filter((l) => l.dir === "rtl").map((l) => l.code));
@@ -49,10 +56,13 @@ i18n
     resources: {
       en: { translation: en },
       es: { translation: es },
-      id: { translation: id },
+      hi: { translation: hi },
       fr: { translation: fr },
       ar: { translation: ar },
       pt: { translation: pt },
+      de: { translation: de },
+      ja: { translation: ja },
+      zh: { translation: zh },
     },
     fallbackLng: "en",
     supportedLngs: LANGUAGES.map((l) => l.code),
@@ -61,8 +71,9 @@ i18n
     react: { useSuspense: false }, // resources are bundled synchronously
     detection: {
       order: ["localStorage", "navigator", "htmlTag"],
-      lookupLocalStorage: "lang",
+      lookupLocalStorage: "empcloud-language",
       caches: ["localStorage"],
+      convertDetectedLanguage: (lng: string) => lng.split("-")[0],
     },
   });
 

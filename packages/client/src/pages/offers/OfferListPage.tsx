@@ -107,8 +107,8 @@ export function OfferListPage() {
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="offers"
-            title="Offers"
-            subtitle={`${total} offer${total !== 1 ? "s" : ""}${activeTab !== "all" ? ` (${activeTab.replace("_", " ")})` : ""}`}
+            title={t("offers.list.title")}
+            subtitle={t("offers.list.subtitle")}
             columns={OFFER_COLUMNS}
             fetchRows={() =>
               fetchAllRows<EnrichedOffer>("/offers", {
@@ -193,7 +193,7 @@ export function OfferListPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colStatus")}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colCreated")}</th>
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("common.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -225,7 +225,7 @@ export function OfferListPage() {
                       to={`/offers/${offer.id}`}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
-                      <Eye className="h-4 w-4" /> View
+                      <Eye className="h-4 w-4" /> {t("common.view")}
                     </Link>
                   </td>
                 </tr>

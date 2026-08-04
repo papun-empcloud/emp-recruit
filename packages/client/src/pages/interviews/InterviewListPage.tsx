@@ -106,8 +106,8 @@ export function InterviewListPage() {
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="interviews"
-            title="Interviews"
-            subtitle={`${total} interview${total !== 1 ? "s" : ""}${statusFilter ? ` (${statusFilter.replace("_", " ")})` : ""}`}
+            title={t("interviews.list.title")}
+            subtitle={t("interviews.list.subtitle")}
             columns={INTERVIEW_COLUMNS}
             fetchRows={() => fetchAllRows<InterviewRow>("/interviews", { status: statusFilter, search })}
           />

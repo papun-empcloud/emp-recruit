@@ -1,6 +1,14 @@
 {
   "brand": "EMP Recruit",
   "nav": {
+    "groups": {
+      "overview": "Overview",
+      "jobs": "Jobs",
+      "people": "People",
+      "interviews": "Interviews",
+      "hiring": "Hiring",
+      "system": "System"
+    },
     "dashboard": "لوحة التحكم",
     "jobPostings": "إعلانات الوظائف",
     "candidates": "المرشحون",
@@ -19,6 +27,10 @@
     "changeLanguage": "تغيير اللغة",
     "applications": "الطلبات",
     "aiInterviews": "مقابلات الذكاء الاصطناعي",
+    "badges": {
+      "beta": "Beta",
+      "new": "New"
+    },
     "logoutConfirmTitle": "تسجيل الخروج؟",
     "logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك."
   },
@@ -54,7 +66,16 @@
     "optional": "اختياري",
     "select": "اختيار",
     "copy": "نسخ",
-    "copied": "تم النسخ"
+    "copied": "تم النسخ",
+    "export": "?????",
+    "exportCsv": "????? ????? CSV",
+    "exportPdf": "????? ????? PDF",
+    "switchLightMode": "??????? ??? ????? ??????",
+    "switchDarkMode": "??????? ??? ????? ??????",
+    "done": "??",
+    "nothingToExport": "?? ???? ?????? ???????.",
+    "exportFailed": "??? ???????. ???? ???????? ??? ????.",
+    "at": "??"
   },
   "candidates": {
     "list": {
@@ -128,6 +149,7 @@
       "addedSuccess": "تمت إضافة المرشح بنجاح",
       "addError": "فشل في إضافة المرشح",
       "expYearsNegative": "لا يمكن أن تكون سنوات الخبرة سالبة",
+      "expYearsMax": "Experience (years) can't exceed 50",
       "expMonthsRange": "يجب أن تكون أشهر الخبرة بين 0 و11",
       "phoneInvalid": "أدخل رقم هاتف صالحًا (من 7 إلى 15 رقمًا)",
       "updatedSuccess": "تم تحديث المرشح",
@@ -174,8 +196,8 @@
       "notesPlaceholder": "أي ملاحظات داخلية عن المرشح...",
       "cancel": "إلغاء",
       "saveChanges": "حفظ التغييرات",
-      "source_zero": "أخرى",
       "source_one": "أخرى",
+      "source_zero": "أخرى",
       "source_two": "أخرى",
       "source_few": "أخرى",
       "source_many": "أخرى"
@@ -212,7 +234,8 @@
       "recommendation_yes": "نعم",
       "recommendation_maybe": "ربما",
       "recommendation_no": "لا"
-    }
+    },
+    "singular": "????"
   },
   "careers": {
     "list": {
@@ -283,7 +306,9 @@
       "errorEmailInvalid": "يرجى إدخال بريد إلكتروني صالح.",
       "errorPhoneInvalid": "يرجى إدخال رقم هاتف صالح.",
       "errorYearsNegative": "لا يمكن أن تكون سنوات الخبرة سالبة.",
+      "errorYearsMax": "Years of experience can't exceed {{max}}.",
       "errorSalaryNegative": "لا يمكن أن يكون الراتب المتوقع سالبًا.",
+      "errorSalaryMax": "Please enter a realistic expected salary.",
       "errorNameEmailRequired": "يرجى إدخال اسمك وبريدك الإلكتروني.",
       "backToJob": "العودة إلى تفاصيل الوظيفة",
       "title": "التقديم لوظيفة {{title}}",
@@ -334,7 +359,9 @@
     "passwordLabel": "كلمة المرور",
     "signingIn": "جارٍ تسجيل الدخول...",
     "signIn": "تسجيل الدخول",
-    "ecosystemNote": "جزء من منظومة EMP HRMS"
+    "ecosystemNote": "جزء من منظومة EMP HRMS",
+    "ssoFailed": "??? ????? ?????? ??????. ???? ?????? ????? ?????? ??????.",
+    "goToLogin": "???????? ??? ????? ??????"
   },
   "analytics": {
     "offerAccepted": "مقبول",
@@ -637,6 +664,87 @@
       "importBtn_two": "استيراد {{count}} مرشحين",
       "importBtn_few": "استيراد {{count}} مرشحين",
       "importBtn_many": "استيراد {{count}} مرشحين"
+    },
+    "bulkImportJobs": {
+      "ariaLabel": "Bulk import jobs",
+      "title": "Bulk Import Jobs",
+      "close": "Close",
+      "errFileEmpty": "The file is empty.",
+      "errMissingColumns": "The Excel file must include title and description columns. Download the template for the expected format.",
+      "errReadFailed": "Could not read that file. Please upload an .xlsx file (use the template).",
+      "errMissingTitle": "Missing title",
+      "errTitleMarkup": "Title cannot contain the characters < or >",
+      "errDescriptionShort": "Description must be at least 10 characters",
+      "errBadNumber": "Experience and salary must be whole, non-negative numbers",
+      "errExpRange": "Min experience cannot be greater than max experience",
+      "errSalaryRange": "Min salary cannot be greater than max salary",
+      "resultCreated_one": "{{count}} job created as a draft",
+      "resultCreated_other": "{{count}} jobs created as drafts",
+      "failedCount": "{{count}} could not be imported",
+      "failedRows": "Failed rows",
+      "rowLabel": "Row {{row}}",
+      "columnsPrefix": "Upload an Excel file (.xlsx) with columns",
+      "columnsSuffix": "(required) plus optional department, location, employment_type, experience_min/max, salary_min/max, salary_currency, remote_policy and skills. Department, location, employment type, currency and remote policy are dropdowns in the template.",
+      "template": "Template",
+      "changeFile": "Click to choose a different file",
+      "selectFile": "Click to select a CSV file",
+      "fileHint": ".xlsx, up to 200 rows",
+      "previewReady_one": "Preview — {{valid}} of {{count}} row ready",
+      "previewReady_other": "Preview — {{valid}} of {{count}} rows ready",
+      "rowsSkipped": "{{count}} row(s) will be skipped",
+      "colTitle": "Title",
+      "colDepartment": "Department",
+      "colType": "Type",
+      "colStatus": "Status",
+      "ready": "Ready",
+      "importingCount_one": "Importing {{count}} job…",
+      "importingCount_other": "Importing {{count}} jobs…",
+      "done": "Done",
+      "cancel": "Cancel",
+      "importBtn_one": "Import {{count}} job",
+      "importBtn_other": "Import {{count}} jobs",
+      "unknownError": "Unknown error"
+    },
+    "bulkUpdateJobs": {
+      "ariaLabel": "Bulk update jobs",
+      "title": "Bulk Update Jobs",
+      "close": "Close",
+      "instructions": "Download your current jobs as an Excel file, edit any fields (department, location, employment type, remote policy and status are dropdowns; keep the id column), and re-upload. Empty cells are left unchanged.",
+      "currentJobs": "Current jobs",
+      "errFileEmpty": "The file is empty.",
+      "errMissingId": "The Excel file must include an id column. Download your current jobs for the expected format.",
+      "errReadFailed": "Could not read that file. Please upload the downloaded .xlsx template.",
+      "errBadId": "Invalid job id",
+      "errTitleMarkup": "Title cannot contain the characters < or >",
+      "errDescriptionShort": "Description must be at least 10 characters",
+      "errBadNumber": "Experience and salary must be whole, non-negative numbers",
+      "errExpRange": "Min experience cannot be greater than max experience",
+      "errSalaryRange": "Min salary cannot be greater than max salary",
+      "errBadStatus": "Status must be one of draft, open, paused, closed, filled",
+      "errNoChanges": "No fields to update",
+      "resultUpdated_one": "{{count}} job updated",
+      "resultUpdated_other": "{{count}} jobs updated",
+      "failedCount": "{{count}} could not be updated",
+      "failedRows": "Failed rows",
+      "rowLabel": "Row {{row}}",
+      "changeFile": "Click to choose a different file",
+      "selectFile": "Click to select a CSV file",
+      "fileHint": ".xlsx, up to 200 rows",
+      "previewReady_one": "Preview — {{valid}} of {{count}} row ready",
+      "previewReady_other": "Preview — {{valid}} of {{count}} rows ready",
+      "rowsSkipped": "{{count}} row(s) will be skipped",
+      "colId": "ID",
+      "colTitle": "Title",
+      "colStatus": "Status",
+      "colResult": "Result",
+      "ready": "Ready",
+      "updatingCount_one": "Updating {{count}} job…",
+      "updatingCount_other": "Updating {{count}} jobs…",
+      "done": "Done",
+      "cancel": "Cancel",
+      "updateBtn_one": "Update {{count}} job",
+      "updateBtn_other": "Update {{count}} jobs",
+      "unknownError": "Unknown error"
     }
   },
   "dashboard": {
@@ -647,6 +755,7 @@
       "totalCandidates": "إجمالي المرشحين",
       "totalApplications": "إجمالي الطلبات",
       "totalJobs": "إجمالي الوظائف",
+      "closedJobs": "Closed Jobs",
       "myReferrals": "ترشيحاتي",
       "inReview": "قيد المراجعة",
       "hired": "تم التوظيف",
@@ -655,6 +764,10 @@
     "pipelineDistribution": "توزيع المسار",
     "totalCount": "{{count}} إجمالاً",
     "recentApplications": "الطلبات الأخيرة",
+    "upcomingInterviews": "Upcoming Interviews",
+    "noUpcomingInterviews": "Your calendar is clear. Schedule an interview when you are ready to meet the next great candidate.",
+    "interviewsEmptyTitle": "Nothing on the calendar",
+    "interviewMinutes": "{{count}} min",
     "viewAll": "عرض الكل",
     "noApplications": "لا توجد طلبات بعد.",
     "welcome": "مرحبًا، {{name}}",
@@ -704,20 +817,36 @@
       "colReached": "وصلوا",
       "colOfApplied": "% من المتقدمين"
     },
+    "actionCenter": {
+      "title": "Action Center",
+      "awaitingScreening_one": "{{count}} candidate awaiting screening",
+      "awaitingScreening_other": "{{count}} candidates awaiting screening",
+      "screeningDescription": "Review and move candidates forward.",
+      "interviewsToday_one": "{{count}} interview today",
+      "interviewsToday_other": "{{count}} interviews today",
+      "interviewsDescription": "View today's interview schedule.",
+      "offersNeedApproval_one": "{{count}} offer needs approval",
+      "offersNeedApproval_other": "{{count}} offers need approval",
+      "offersDescription": "Review and approve pending offers.",
+      "viewAll": "View all tasks"
+    },
     "insights": {
       "title": "رؤى الذكاء الاصطناعي",
+      "subtitle": "Smart signals from your hiring activity",
+      "emptyTitle": "Insights are gathering",
+      "emptyDescription": "Insights will appear as your recruiting activity grows.",
       "viewAll": "عرض كل الرؤى",
       "dropOff": "أكبر انخفاض عند مرحلة {{stage}}: {{pct}}% من المتقدمين لا يتقدمون.",
       "topSource": "{{source}} هو المصدر الأفضل تحويلاً بنسبة توظيف {{pct}}%. واصل الاستثمار فيه!",
       "timeToHire": "متوسط وقت التوظيف لديك هو {{days}} يومًا.",
       "timeToHireBetter": "تحسّن وقت التوظيف لديك بنسبة {{pct}}% مقارنة بالشهر الماضي.",
       "timeToHireWorse": "وقت التوظيف لديك أبطأ بنسبة {{pct}}% مقارنة بالشهر الماضي.",
+      "pendingOffers_one": "{{count}} offer is pending. Consider sending a follow-up.",
+      "pendingOffers_other": "{{count}} عرض معلّق. فكّر في إرسال متابعة.",
       "pendingOffers_zero": "{{count}} عرض معلّق. فكّر في إرسال متابعة.",
-      "pendingOffers_one": "عرض واحد معلّق. فكّر في إرسال متابعة.",
       "pendingOffers_two": "عرضان معلّقان. فكّر في إرسال متابعة.",
       "pendingOffers_few": "{{count}} عروض معلّقة. فكّر في إرسال متابعة.",
-      "pendingOffers_many": "{{count}} عرضًا معلّقًا. فكّر في إرسال متابعة.",
-      "pendingOffers_other": "{{count}} عرض معلّق. فكّر في إرسال متابعة."
+      "pendingOffers_many": "{{count}} عرضًا معلّقًا. فكّر في إرسال متابعة."
     }
   },
   "interviews": {
@@ -763,8 +892,10 @@
       "errorDurationMin": "يجب أن تكون المدة 15 دقيقة على الأقل",
       "errorTimePast": "لا يمكن أن يكون وقت المقابلة في الماضي",
       "title": "جدولة مقابلة",
+      "subtitle": "Set up an interview for a candidate's application.",
       "selectApplication": "اختر طلبًا",
       "searchCandidatePlaceholder": "ابحث باسم المرشح...",
+      "noApplicationsTitle": "No applications found",
       "noApplications": "لا توجد طلبات بعد. تُجدوَل المقابلات لطلب مرشح لوظيفة محددة — أضف مرشحًا إلى إعلان وظيفة (أو انتظر طلبًا عامًا) أولاً.",
       "jobStage": "{{job}} - المرحلة: {{stage}}",
       "selectedLabel": "المُختار:",
@@ -783,7 +914,8 @@
       "meetingLinkLabel": "رابط الاجتماع",
       "notesLabel": "ملاحظات",
       "notesPlaceholder": "ملاحظات إضافية للمقابلة...",
-      "cancel": "إلغاء"
+      "cancel": "إلغاء",
+      "loadingApplications": "???? ????? ????????"
     },
     "feedback": {
       "recStrongYes": "نعم بقوة",
@@ -961,6 +1093,8 @@
       "totalCount_one": "{{count}} وظيفة إجمالاً",
       "totalCount_other": "{{count}} وظائف إجمالاً",
       "createJob": "إنشاء وظيفة",
+      "bulkImport": "Bulk Import",
+      "bulkUpdate": "Bulk Update",
       "searchPlaceholder": "ابحث بالعنوان أو القسم أو الموقع...",
       "emptyTitle": "لا توجد وظائف",
       "emptyDescription": "ابدأ بإنشاء إعلان وظيفة جديد.",
@@ -1060,6 +1194,12 @@
       "feedUrlCopied": "تم نسخ رابط الموجز",
       "copy": "نسخ",
       "remove": "إزالة",
+      "boardRequirements": {
+        "linkedin": "مباشر. يزحف LinkedIn إلى موجز XML العام لوظائف هذه المؤسسة (قوائم أساسية مجانية). أرسل رابط الموجز إلى LinkedIn مرة واحدة، ثم تظهر الوظائف المنشورة تلقائيًا.",
+        "indeed": "مباشر. يزحف Indeed إلى موجز XML العام لوظائف هذه المؤسسة (قوائم عضوية مجانية). أرسل رابط الموجز إلى Indeed مرة واحدة، ثم تظهر الوظائف المنشورة تلقائيًا.",
+        "naukri": "يتطلب اشتراك صاحب عمل/RMS في Naukri + مفتاح API لصاحب العمل. غير متصل بعد.",
+        "apna": "يتطلب حساب مؤسسة Apna + وصولاً إلى API صاحب العمل. غير متصل بعد."
+      },
       "batchScored_zero": "تم تقييم {{count}} مرشحين",
       "batchScored_two": "تم تقييم {{count}} مرشحين",
       "batchScored_few": "تم تقييم {{count}} مرشحين",
@@ -1068,12 +1208,14 @@
       "pipelineTitle_two": "مسار الطلبات ({{count}} متقدّمين)",
       "pipelineTitle_few": "مسار الطلبات ({{count}} متقدّمين)",
       "pipelineTitle_many": "مسار الطلبات ({{count}} متقدّمين)",
-      "boardRequirements": {
-        "linkedin": "مباشر. يزحف LinkedIn إلى موجز XML العام لوظائف هذه المؤسسة (قوائم أساسية مجانية). أرسل رابط الموجز إلى LinkedIn مرة واحدة، ثم تظهر الوظائف المنشورة تلقائيًا.",
-        "indeed": "مباشر. يزحف Indeed إلى موجز XML العام لوظائف هذه المؤسسة (قوائم عضوية مجانية). أرسل رابط الموجز إلى Indeed مرة واحدة، ثم تظهر الوظائف المنشورة تلقائيًا.",
-        "naukri": "يتطلب اشتراك صاحب عمل/RMS في Naukri + مفتاح API لصاحب العمل. غير متصل بعد.",
-        "apna": "يتطلب حساب مؤسسة Apna + وصولاً إلى API صاحب العمل. غير متصل بعد."
-      }
+      "candidateAdded": "??? ????? {{name}} ??? ??? ???????",
+      "addCandidateError": "????? ????? ??????? ??? ???? ?????? ??? ??? ??????? ??????.",
+      "addCandidateModalTitle": "????? ????",
+      "addCandidateModalDescription": "??? ?????? ??????? ??? ??? ??????? ?? ???? ?????? ??????.",
+      "searchCandidatesPlaceholder": "????? ?? ???????? ?????? ?? ?????? ?????????? ?? ???????",
+      "noMatchingCandidates": "?? ???? ?????? ???????.",
+      "noAvailableCandidates": "?? ???? ?????? ?????? ???????.",
+      "createNewCandidate": "????? ???? ????"
     },
     "form": {
       "employmentType": {
@@ -1244,6 +1386,7 @@
       "default": "افتراضي",
       "generating": "جارٍ الإنشاء...",
       "generateLetter": "إنشاء الخطاب",
+      "manageTemplates": "Manage / edit templates",
       "offerLetterPreview": "معاينة خطاب العرض",
       "approvalWorkflow": "سير عمل الموافقة",
       "approvalTerminalNotice": "كان هذا العرض {{status}} — لم يعد سير عمل الموافقة ساريًا.",
@@ -1273,7 +1416,7 @@
       "errSalaryNegativeShort": "لا يمكن أن يكون الراتب سالبًا",
       "errJoiningPast": "لا يمكن أن يكون تاريخ الالتحاق في الماضي",
       "errExpiryPast": "لا يمكن أن يكون تاريخ انتهاء الصلاحية في الماضي",
-      "errExpiryAfterJoining": "يجب أن يكون تاريخ انتهاء صلاحية العرض في تاريخ الالتحاق أو قبله",
+      "errExpiryBeforeJoining": "Offer expiry date must be on or after the joining date",
       "errSelectJoining": "يرجى اختيار تاريخ الالتحاق",
       "errSelectExpiry": "يرجى اختيار تاريخ انتهاء صلاحية العرض",
       "errEnterJobTitle": "يرجى إدخال مسمى وظيفي",
@@ -1315,7 +1458,8 @@
       "jobTitleShort": "المسمى الوظيفي",
       "expiryDate": "تاريخ انتهاء الصلاحية",
       "notes": "ملاحظات",
-      "saveChanges": "حفظ التغييرات"
+      "saveChanges": "حفظ التغييرات",
+      "errExpiryAfterJoining": "يجب أن يكون تاريخ انتهاء صلاحية العرض في تاريخ الالتحاق أو قبله"
     },
     "template": {
       "toastUpdated": "تم تحديث القالب",
@@ -1442,7 +1586,11 @@
       "taskCount_zero": "{{count}} مهام",
       "taskCount_two": "{{count}} مهام",
       "taskCount_few": "{{count}} مهام",
-      "taskCount_many": "{{count}} مهام"
+      "taskCount_many": "{{count}} مهام",
+      "createFailed": "???? ????? ??????",
+      "updateFailed": "???? ????? ??????",
+      "addTaskFailed": "????? ????? ??????",
+      "updateTaskFailed": "???? ????? ??????"
     }
   },
   "scoring": {
@@ -1502,6 +1650,13 @@
       "skillsAnalysis": "تحليل المهارات",
       "matchedSkills": "المهارات المتطابقة ({{num}})",
       "missingSkills": "المهارات الناقصة ({{num}})",
+      "noRequiredSkills": "Skills not assessed — this job has no required skills configured, so the score can't measure skill fit. Add required skills to the job for a meaningful match, or configure an AI provider for content-based scoring.",
+      "retryAiScoring": "Retry AI scoring",
+      "retrySuccess": "Re-scored the candidate.",
+      "retryFailed": "Could not re-score. Please try again.",
+      "methodAi": "AI evaluation · {{model}}",
+      "methodHeuristic": "Rule-based score (no AI provider configured)",
+      "reviewDisclaimer": "AI-generated scores are guidance only — always review before making hiring decisions.",
       "scoredAt": "تم التقييم في: {{date}}",
       "strongMatchDesc": "هذا المرشح مناسب تمامًا لهذه الوظيفة.",
       "goodMatchDesc": "هذا المرشح مناسب بشكل جيد مع تلبية معظم المتطلبات.",
@@ -1668,6 +1823,9 @@
       "concerns": "المخاوف",
       "heuristicNote": "درجة إكمال آلية (لم يتم تكوين مزود ذكاء اصطناعي).",
       "evaluatedBy": "تم التقييم بواسطة {{provider}}.",
+      "methodAi": "AI evaluation · {{model}}",
+      "methodCompletion": "Completion score only — this reflects how fully the questions were answered, not answer correctness or quality. It is not an AI content assessment; configure an AI provider for a real evaluation.",
+      "completionScoreLabel": "Completion score",
       "completedAt": " اكتملت {{date}}.",
       "voiceTranscript": "النص الصوتي",
       "questions": "الأسئلة",
@@ -1708,6 +1866,7 @@
       "canHearYou": "أستطيع سماعك",
       "mute": "كتم الصوت",
       "unmute": "إلغاء الكتم",
+      "tapToAnswer": "Tap to answer now",
       "finishInterview": "إنهاء المقابلة",
       "nextQuestion": "السؤال التالي",
       "leaveInterview": "مغادرة المقابلة",
@@ -1720,7 +1879,8 @@
       "voiceTitle": "مقابلة صوتية بالذكاء الاصطناعي",
       "voiceIntroBody": "مرحبًا {{name}}. ستجري محادثة صوتية قصيرة مع مُقابِلنا بالذكاء الاصطناعي — يطرح الأسئلة وتجيب بصوت عالٍ، تمامًا مثل مقابلة حقيقية. يرجى السماح بالوصول إلى الميكروفون عند المطالبة.",
       "connecting": "جارٍ الاتصال…",
-      "startVoiceInterview": "بدء المقابلة الصوتية"
+      "startVoiceInterview": "بدء المقابلة الصوتية",
+      "audioRecordingNotice": "???? ????? ???? ???????? ?? ???? ???????."
     }
   },
   "settings": {

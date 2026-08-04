@@ -656,7 +656,7 @@ export function AiInterviewPage() {
             />
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            Your audio will be recorded and shared with the hiring team.
+            {t("aiInterview.session.audioRecordingNotice")}
           </p>
           <button
             onClick={() => {

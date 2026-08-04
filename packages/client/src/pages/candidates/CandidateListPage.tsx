@@ -76,8 +76,8 @@ export function CandidateListPage() {
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="candidates"
-            title="Candidates"
-            subtitle={searchTerm ? `Search: "${searchTerm}"` : `${total} candidates`}
+            title={t("candidates.list.title")}
+            subtitle={t("candidates.list.subtitle", { count: total })}
             columns={CANDIDATE_COLUMNS}
             fetchRows={() => fetchAllRows<Candidate>("/candidates", { search: searchTerm })}
           />

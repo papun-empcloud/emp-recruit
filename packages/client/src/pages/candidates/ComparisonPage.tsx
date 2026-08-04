@@ -189,7 +189,7 @@ export function ComparisonPage() {
                 {c.current_title && c.current_company && (
                   <p className="mt-1 text-xs text-gray-500 flex items-center gap-1">
                     <Briefcase className="h-3 w-3" />
-                    {c.current_title} at {c.current_company}
+                    {c.current_title} {t("common.at")} {c.current_company}
                   </p>
                 )}
                 <span className={cn(

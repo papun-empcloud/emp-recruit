@@ -101,8 +101,8 @@ export function JobListPage() {
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="jobs"
-            title="Job Postings"
-            subtitle={`${total} job${total !== 1 ? "s" : ""}${statusFilter ? ` (${statusFilter})` : ""}`}
+            title={t("jobs.list.title")}
+            subtitle={t("jobs.list.totalCount", { count: total })}
             columns={JOB_COLUMNS}
             fetchRows={() => fetchAllRows<JobPosting>("/jobs", { status: statusFilter, search: searchTerm })}
           />

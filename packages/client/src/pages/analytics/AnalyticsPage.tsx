@@ -83,12 +83,12 @@ function weekLabel(iso: string): string {
 // Theme-aware chart tooltip. Recharts' default tooltip uses inline styles (a
 // hardcoded white box) that the dark theme can't remap, so its text was almost
 // invisible in dark mode. Using Tailwind classes lets the theme recolor it.
-function ChartTooltip({ active, payload, label }: any) {
+function ChartTooltip({ active, payload, label, t }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-sm">
-      <p className="font-medium text-gray-700">Week of {label}</p>
-      <p className="mt-0.5 text-brand-600">Applications: {payload[0].value}</p>
+      <p className="font-medium text-gray-700">{t("analytics.weekOf", { week: label })}</p>
+      <p className="mt-0.5 text-brand-600">{t("analytics.applications")}: {payload[0].value}</p>
     </div>
   );
 }
@@ -261,7 +261,7 @@ export function AnalyticsPage() {
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip cursor={{ fill: "rgba(99,102,241,0.06)" }} content={<ChartTooltip />} />
+                  <Tooltip cursor={{ fill: "rgba(99,102,241,0.06)" }} content={<ChartTooltip t={t} />} />
                   <Bar dataKey="count" fill="#6366F1" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 </BarChart>
               </ResponsiveContainer>
