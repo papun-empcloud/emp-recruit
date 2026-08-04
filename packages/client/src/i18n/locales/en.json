@@ -67,7 +67,16 @@
     "optional": "Optional",
     "select": "Select",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "export": "Export",
+    "exportCsv": "Export as CSV",
+    "exportPdf": "Export as PDF",
+    "switchLightMode": "Switch to light mode",
+    "switchDarkMode": "Switch to dark mode",
+    "done": "Done",
+    "nothingToExport": "Nothing to export.",
+    "exportFailed": "Export failed. Please try again.",
+    "at": "at"
   },
   "candidates": {
     "list": {
@@ -210,7 +219,8 @@
       "recommendation_yes": "Yes",
       "recommendation_maybe": "Maybe",
       "recommendation_no": "No"
-    }
+    },
+    "singular": "Candidate"
   },
   "careers": {
     "list": {
@@ -328,7 +338,9 @@
     "passwordLabel": "Password",
     "signingIn": "Signing in...",
     "signIn": "Sign in",
-    "ecosystemNote": "Part of the EMP HRMS ecosystem"
+    "ecosystemNote": "Part of the EMP HRMS ecosystem",
+    "ssoFailed": "SSO login failed. Please try logging in manually.",
+    "goToLogin": "Go to login"
   },
   "analytics": {
     "offerAccepted": "Accepted",
@@ -872,7 +884,8 @@
       "meetingLinkLabel": "Meeting Link",
       "notesLabel": "Notes",
       "notesPlaceholder": "Additional notes for the interview...",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "loadingApplications": "Loading applications?"
     },
     "feedback": {
       "recStrongYes": "Strong Yes",
@@ -1153,7 +1166,15 @@
         "indeed": "Live. Indeed crawls this org's public XML job feed (free organic listings). Submit the feed URL below to Indeed once, then published jobs appear automatically.",
         "naukri": "Requires a Naukri employer/RMS subscription + employer API key. Not yet connected.",
         "apna": "Requires an Apna enterprise account + employer API access. Not yet connected."
-      }
+      },
+      "candidateAdded": "{{name}} added to this job",
+      "addCandidateError": "Could not add the candidate ? they may already be on this job.",
+      "addCandidateModalTitle": "Add a Candidate",
+      "addCandidateModalDescription": "Add an existing candidate to this job, or create a new one.",
+      "searchCandidatesPlaceholder": "Search candidates by name, email, or company?",
+      "noMatchingCandidates": "No matching candidates.",
+      "noAvailableCandidates": "No available candidates to add.",
+      "createNewCandidate": "Create a new candidate"
     },
     "form": {
       "employmentType": {
@@ -1577,7 +1598,11 @@
       "assigneeRoleLabel": "Assignee Role",
       "assigneeRolePlaceholder": "e.g., hr_admin",
       "requiredTask": "Required task",
-      "addTask": "Add Task"
+      "addTask": "Add Task",
+      "createFailed": "Failed to create template",
+      "updateFailed": "Failed to update template",
+      "addTaskFailed": "Failed to add task",
+      "updateTaskFailed": "Failed to update task"
     }
   },
   "screening": {
@@ -1886,7 +1911,8 @@
       "voiceTitle": "AI Voice Interview",
       "voiceIntroBody": "Hi {{name}}. You'll have a short spoken conversation with our AI interviewer — it asks questions and you answer out loud, just like a real interview. Please allow microphone access when prompted.",
       "connecting": "Connecting…",
-      "startVoiceInterview": "Start voice interview"
+      "startVoiceInterview": "Start voice interview",
+      "audioRecordingNotice": "Your audio will be recorded and shared with the hiring team."
     }
   },
   "settings": {

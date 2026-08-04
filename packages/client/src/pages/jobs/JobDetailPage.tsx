@@ -804,8 +804,8 @@ export function JobDetailPage() {
                 {rankings.length > 0 && (
                   <ExportButtons
                     baseName="job-rankings"
-                    title="AI Score Rankings"
-                    subtitle={job?.title ? `Job: ${job.title}` : undefined}
+                    title={t("jobs.detail.aiScoreRankings")}
+                    subtitle={job?.title}
                     columns={RANKING_COLUMNS}
                     fetchRows={() => rankings}
                   />
@@ -1000,6 +1000,7 @@ function AddCandidateModal({
   onClose: () => void;
   onAdded: () => void;
 }) {
+  const { t } = useTranslation();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
@@ -1023,13 +1024,13 @@ function AddCandidateModal({
       apiPost("/applications", { job_id: jobId, candidate_id: candidateId, source: "direct" }),
     onSuccess: (_res, candidateId) => {
       const c = candidates.find((x) => x.id === candidateId);
-      toast.success(`${c ? `${c.first_name} ${c.last_name}` : "Candidate"} added to this job`);
+      toast.success(t("jobs.detail.candidateAdded", { name: c ? `${c.first_name} ${c.last_name}` : t("candidates.singular") }));
       onAdded();
     },
     onError: (err: any) =>
       toast.error(
         err?.response?.data?.error?.message ||
-          "Couldn't add the candidate — they may already be on this job.",
+          t("jobs.detail.addCandidateError"),
       ),
   });
 
@@ -1040,13 +1041,13 @@ function AddCandidateModal({
     >
       <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Add a Candidate</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+          <h3 className="text-lg font-semibold text-gray-900">{t("jobs.detail.addCandidateModalTitle")}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label={t("common.close")}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="mb-3 text-sm text-gray-500">Add an existing candidate to this job, or create a new one.</p>
+        <p className="mb-3 text-sm text-gray-500">{t("jobs.detail.addCandidateModalDescription")}</p>
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -1055,7 +1056,7 @@ function AddCandidateModal({
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search candidates by name, email, or company…"
+            placeholder={t("jobs.detail.searchCandidatesPlaceholder")}
             className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
@@ -1067,7 +1068,7 @@ function AddCandidateModal({
             </div>
           ) : candidates.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-gray-400">
-              {search ? "No matching candidates." : "No available candidates to add."}
+              {search ? t("jobs.detail.noMatchingCandidates") : t("jobs.detail.noAvailableCandidates")}
             </p>
           ) : (
             candidates.map((c) => (
@@ -1098,13 +1099,13 @@ function AddCandidateModal({
             to={`/candidates/new?job_id=${jobId}`}
             className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
           >
-            <Plus className="h-4 w-4" /> Create a new candidate
+            <Plus className="h-4 w-4" /> {t("jobs.detail.createNewCandidate")}
           </Link>
           <button
             onClick={onClose}
             className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Done
+            {t("common.done")}
           </button>
         </div>
       </div>

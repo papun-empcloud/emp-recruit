@@ -235,8 +235,8 @@ export function ReferralListPage() {
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="referrals"
-            title="Referrals"
-            subtitle={`${refTotal} referral${refTotal !== 1 ? "s" : ""}${statusFilter ? ` (${formatStatusFilter(statusFilter)})` : ""}`}
+            title={t("referrals.title")}
+            subtitle={t(statusFilter ? "referrals.countMatch" : "referrals.count", { count: refTotal })}
             columns={REFERRAL_COLUMNS}
             fetchRows={() => fetchAllRows<ReferralRow>("/referrals", { status: statusFilter, search: listSearch })}
           />

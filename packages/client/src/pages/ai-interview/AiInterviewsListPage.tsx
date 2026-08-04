@@ -84,8 +84,8 @@ export function AiInterviewsListPage() {
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="ai-interviews"
-            title="AI Interviews"
-            subtitle={`${total} AI interview${total !== 1 ? "s" : ""}`}
+            title={t("aiInterview.list.title")}
+            subtitle={t("aiInterview.list.subtitle")}
             columns={SESSION_COLUMNS}
             fetchRows={() => fetchAllRows<SessionRow>("/ai-interviews", {})}
           />

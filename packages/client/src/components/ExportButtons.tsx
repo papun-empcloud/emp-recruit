@@ -2,6 +2,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { ExportMenu } from "./ExportMenu";
 import { downloadCsv, printTableReport, type ExportColumn } from "@/lib/export";
+import { useTranslation } from "react-i18next";
 
 interface ExportButtonsProps<T> {
   /** File base name, e.g. "candidates" -> candidates_2026-07-15_1420.csv */
@@ -33,6 +34,7 @@ export function ExportButtons<T>({
   disabled,
   className,
 }: ExportButtonsProps<T>) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState<null | "csv" | "pdf">(null);
 
   async function run(kind: "csv" | "pdf") {
@@ -40,13 +42,13 @@ export function ExportButtons<T>({
     try {
       const rows = await fetchRows();
       if (!rows || rows.length === 0) {
-        toast.error("Nothing to export.");
+        toast.error(t("common.nothingToExport"));
         return;
       }
       if (kind === "csv") downloadCsv(baseName, columns, rows);
       else printTableReport({ title, subtitle, columns, rows });
     } catch {
-      toast.error("Export failed. Please try again.");
+      toast.error(t("common.exportFailed"));
     } finally {
       setBusy(null);
     }

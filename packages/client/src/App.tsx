@@ -95,6 +95,7 @@ function NotFoundPage() {
 }
 
 function SSOGate({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
   const [ssoToken] = useState(() => extractSSOToken());
   const [ready, setReady] = useState(!ssoToken); // ready immediately if no SSO token
@@ -126,13 +127,13 @@ function SSOGate({ children }: { children: React.ReactNode }) {
       } catch (err: any) {
         if (cancelled) return;
         console.error("SSO exchange failed:", err);
-        setError("SSO login failed. Please try logging in manually.");
+        setError(t("auth.ssoFailed"));
         setReady(true);
       }
     })();
 
     return () => { cancelled = true; };
-  }, [ssoToken, login]);
+  }, [ssoToken, login, t]);
 
   if (!ready) return <PageLoader />;
   if (error) {
@@ -140,7 +141,7 @@ function SSOGate({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
-          <a href="/login" className="text-brand-600 underline">Go to login</a>
+          <a href="/login" className="text-brand-600 underline">{t("auth.goToLogin")}</a>
         </div>
       </div>
     );

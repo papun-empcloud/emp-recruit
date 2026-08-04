@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Languages, Check } from "lucide-react";
+import { Globe, Check } from "lucide-react";
 import { LANGUAGES } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * localStorage; Arabic flips the layout to RTL).
  */
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -38,21 +38,21 @@ export function LanguageSwitcher() {
     setOpen(false);
   }
 
-  const activeLabel = LANGUAGES.find((l) => l.code === active)?.label ?? "English";
+  const activeLanguage = LANGUAGES.find((l) => l.code === active) ?? LANGUAGES[0];
 
   return (
     <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        title="Change language"
-        aria-label="Change language"
+        title={t("nav.changeLanguage")}
+        aria-label={t("nav.changeLanguage")}
         aria-haspopup="listbox"
         aria-expanded={open}
         className="inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
       >
-        <Languages className="h-5 w-5" />
-        <span className="hidden sm:inline">{activeLabel}</span>
+        <Globe className="h-4 w-4" />
+        <span className="hidden text-xs font-medium sm:inline">{activeLanguage.flag}</span>
       </button>
 
       {open && (
@@ -73,10 +73,8 @@ export function LanguageSwitcher() {
                   active === lng.code && "bg-brand-50 font-semibold text-brand-700",
                 )}
               >
-                <span className="flex items-center gap-3">
-                  <span className="w-6 text-xs font-semibold uppercase text-gray-400">{lng.code}</span>
-                  <span>{lng.label}</span>
-                </span>
+                <span className="w-6 text-center text-xs font-bold text-gray-400">{lng.flag}</span>
+                <span className="flex-1 text-start">{lng.label}</span>
                 {active === lng.code && <Check className="h-4 w-4 text-brand-600" />}
               </button>
             </li>

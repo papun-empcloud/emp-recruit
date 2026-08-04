@@ -22,14 +22,18 @@
     "logoutConfirmTitle": "تسجيل الخروج؟",
     "logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى حسابك.",
     "groups": {
-      "overview": "نظرة عامة",
-      "jobs": "الوظائف",
-      "people": "الأشخاص",
-      "interviews": "المقابلات",
-      "hiring": "التوظيف",
-      "system": "النظام"
+      "overview": "Overview",
+      "jobs": "Jobs",
+      "people": "People",
+      "interviews": "Interviews",
+      "hiring": "Hiring",
+      "system": "System"
     },
-    "myApprovals": "موافقاتي"
+    "myApprovals": "موافقاتي",
+    "badges": {
+      "beta": "Beta",
+      "new": "New"
+    }
   },
   "common": {
     "save": "حفظ",
@@ -63,7 +67,16 @@
     "optional": "اختياري",
     "select": "اختيار",
     "copy": "نسخ",
-    "copied": "تم النسخ"
+    "copied": "تم النسخ",
+    "export": "?????",
+    "exportCsv": "????? ????? CSV",
+    "exportPdf": "????? ????? PDF",
+    "switchLightMode": "??????? ??? ????? ??????",
+    "switchDarkMode": "??????? ??? ????? ??????",
+    "done": "??",
+    "nothingToExport": "?? ???? ?????? ???????.",
+    "exportFailed": "??? ???????. ???? ???????? ??? ????.",
+    "at": "??"
   },
   "candidates": {
     "list": {
@@ -188,7 +201,7 @@
       "source_two": "أخرى",
       "source_few": "أخرى",
       "source_many": "أخرى",
-      "expYearsMax": "لا يمكن أن تتجاوز الخبرة (بالسنوات) 50"
+      "expYearsMax": "Experience (years) can't exceed 50"
     },
     "compare": {
       "stageUpdated": "تم تحديث المرحلة",
@@ -222,7 +235,8 @@
       "recommendation_yes": "نعم",
       "recommendation_maybe": "ربما",
       "recommendation_no": "لا"
-    }
+    },
+    "singular": "????"
   },
   "careers": {
     "list": {
@@ -316,8 +330,8 @@
       "errorMonthsRange": "يجب أن تكون الأشهر بين 0 و11",
       "skillsLabel": "المهارات (مفصولة بفواصل)",
       "skillsPlaceholder": "React, Python, SQL",
-      "errorYearsMax": "لا يمكن أن تتجاوز سنوات الخبرة {{max}}.",
-      "errorSalaryMax": "يرجى إدخال راتب متوقع واقعي.",
+      "errorYearsMax": "Years of experience can't exceed {{max}}.",
+      "errorSalaryMax": "Please enter a realistic expected salary.",
       "screeningTitle": "أسئلة التصفية",
       "screeningSelect": "اختر…",
       "screeningRequired": "هذا السؤال مطلوب",
@@ -352,7 +366,9 @@
     "passwordLabel": "كلمة المرور",
     "signingIn": "جارٍ تسجيل الدخول...",
     "signIn": "تسجيل الدخول",
-    "ecosystemNote": "جزء من منظومة EMP HRMS"
+    "ecosystemNote": "جزء من منظومة EMP HRMS",
+    "ssoFailed": "??? ????? ?????? ??????. ???? ?????? ????? ?????? ??????.",
+    "goToLogin": "???????? ??? ????? ??????"
   },
   "analytics": {
     "offerAccepted": "مقبول",
@@ -692,85 +708,85 @@
       "importBtn_many": "استيراد {{count}} مرشحين"
     },
     "bulkImportJobs": {
-      "ariaLabel": "استيراد جماعي للوظائف",
-      "title": "استيراد جماعي للوظائف",
-      "close": "إغلاق",
-      "errFileEmpty": "الملف فارغ.",
-      "errMissingColumns": "يجب أن يتضمن ملف Excel عمودَي العنوان والوصف. نزّل القالب للاطلاع على التنسيق المتوقع.",
-      "errReadFailed": "تعذّر قراءة هذا الملف. يرجى رفع ملف .xlsx (استخدم القالب).",
-      "errMissingTitle": "العنوان مفقود",
-      "errTitleMarkup": "لا يمكن أن يحتوي العنوان على الحرفين < أو >",
-      "errDescriptionShort": "يجب أن يكون الوصف 10 أحرف على الأقل",
-      "errBadNumber": "يجب أن تكون الخبرة والراتب أرقامًا صحيحة غير سالبة",
-      "errExpRange": "لا يمكن أن يكون الحد الأدنى للخبرة أكبر من الحد الأقصى للخبرة",
-      "errSalaryRange": "لا يمكن أن يكون الحد الأدنى للراتب أكبر من الحد الأقصى للراتب",
-      "resultCreated_one": "تم إنشاء {{count}} وظيفة كمسودة",
-      "resultCreated_other": "تم إنشاء {{count}} وظائف كمسودات",
-      "failedCount": "{{count}} تعذّر استيرادها",
-      "failedRows": "الصفوف الفاشلة",
-      "rowLabel": "الصف {{row}}",
-      "columnsPrefix": "ارفع ملف Excel ‏(.xlsx) يحتوي على الأعمدة",
-      "columnsSuffix": "(إلزامية) بالإضافة إلى الحقول الاختيارية department وlocation وemployment_type وexperience_min/max وsalary_min/max وsalary_currency وremote_policy وskills. القسم والموقع ونوع التوظيف والعملة وسياسة العمل عن بُعد هي قوائم منسدلة في القالب.",
-      "template": "القالب",
-      "changeFile": "انقر لاختيار ملف مختلف",
-      "selectFile": "انقر لاختيار ملف CSV",
-      "fileHint": ".xlsx، حتى 200 صف",
-      "previewReady_one": "معاينة — {{valid}} من {{count}} صف جاهز",
-      "previewReady_other": "معاينة — {{valid}} من {{count}} صفوف جاهزة",
-      "rowsSkipped": "سيتم تخطي {{count}} صف",
-      "colTitle": "العنوان",
-      "colDepartment": "القسم",
-      "colType": "النوع",
-      "colStatus": "الحالة",
-      "ready": "جاهز",
-      "importingCount_one": "جارٍ استيراد {{count}} وظيفة…",
-      "importingCount_other": "جارٍ استيراد {{count}} وظائف…",
-      "done": "تم",
-      "cancel": "إلغاء",
-      "importBtn_one": "استيراد {{count}} وظيفة",
-      "importBtn_other": "استيراد {{count}} وظائف",
-      "unknownError": "خطأ غير معروف"
+      "ariaLabel": "Bulk import jobs",
+      "title": "Bulk Import Jobs",
+      "close": "Close",
+      "errFileEmpty": "The file is empty.",
+      "errMissingColumns": "The Excel file must include title and description columns. Download the template for the expected format.",
+      "errReadFailed": "Could not read that file. Please upload an .xlsx file (use the template).",
+      "errMissingTitle": "Missing title",
+      "errTitleMarkup": "Title cannot contain the characters < or >",
+      "errDescriptionShort": "Description must be at least 10 characters",
+      "errBadNumber": "Experience and salary must be whole, non-negative numbers",
+      "errExpRange": "Min experience cannot be greater than max experience",
+      "errSalaryRange": "Min salary cannot be greater than max salary",
+      "resultCreated_one": "{{count}} job created as a draft",
+      "resultCreated_other": "{{count}} jobs created as drafts",
+      "failedCount": "{{count}} could not be imported",
+      "failedRows": "Failed rows",
+      "rowLabel": "Row {{row}}",
+      "columnsPrefix": "Upload an Excel file (.xlsx) with columns",
+      "columnsSuffix": "(required) plus optional department, location, employment_type, experience_min/max, salary_min/max, salary_currency, remote_policy and skills. Department, location, employment type, currency and remote policy are dropdowns in the template.",
+      "template": "Template",
+      "changeFile": "Click to choose a different file",
+      "selectFile": "Click to select a CSV file",
+      "fileHint": ".xlsx, up to 200 rows",
+      "previewReady_one": "Preview — {{valid}} of {{count}} row ready",
+      "previewReady_other": "Preview — {{valid}} of {{count}} rows ready",
+      "rowsSkipped": "{{count}} row(s) will be skipped",
+      "colTitle": "Title",
+      "colDepartment": "Department",
+      "colType": "Type",
+      "colStatus": "Status",
+      "ready": "Ready",
+      "importingCount_one": "Importing {{count}} job…",
+      "importingCount_other": "Importing {{count}} jobs…",
+      "done": "Done",
+      "cancel": "Cancel",
+      "importBtn_one": "Import {{count}} job",
+      "importBtn_other": "Import {{count}} jobs",
+      "unknownError": "Unknown error"
     },
     "bulkUpdateJobs": {
-      "ariaLabel": "تحديث جماعي للوظائف",
-      "title": "تحديث جماعي للوظائف",
-      "close": "إغلاق",
-      "instructions": "نزّل وظائفك الحالية كملف Excel، وعدّل أي حقول (القسم والموقع ونوع التوظيف وسياسة العمل عن بُعد والحالة هي قوائم منسدلة؛ أبقِ عمود id)، ثم أعِد الرفع. تُترك الخلايا الفارغة دون تغيير.",
-      "currentJobs": "الوظائف الحالية",
-      "errFileEmpty": "الملف فارغ.",
-      "errMissingId": "يجب أن يتضمن ملف Excel عمود id. نزّل وظائفك الحالية للاطلاع على التنسيق المتوقع.",
-      "errReadFailed": "تعذّر قراءة هذا الملف. يرجى رفع قالب .xlsx الذي نزّلته.",
-      "errBadId": "معرّف وظيفة غير صالح",
-      "errTitleMarkup": "لا يمكن أن يحتوي العنوان على الحرفين < أو >",
-      "errDescriptionShort": "يجب أن يكون الوصف 10 أحرف على الأقل",
-      "errBadNumber": "يجب أن تكون الخبرة والراتب أرقامًا صحيحة غير سالبة",
-      "errExpRange": "لا يمكن أن يكون الحد الأدنى للخبرة أكبر من الحد الأقصى للخبرة",
-      "errSalaryRange": "لا يمكن أن يكون الحد الأدنى للراتب أكبر من الحد الأقصى للراتب",
-      "errBadStatus": "يجب أن تكون الحالة إحدى القيم draft أو open أو paused أو closed أو filled",
-      "errNoChanges": "لا توجد حقول لتحديثها",
-      "resultUpdated_one": "تم تحديث {{count}} وظيفة",
-      "resultUpdated_other": "تم تحديث {{count}} وظائف",
-      "failedCount": "{{count}} تعذّر تحديثها",
-      "failedRows": "الصفوف الفاشلة",
-      "rowLabel": "الصف {{row}}",
-      "changeFile": "انقر لاختيار ملف مختلف",
-      "selectFile": "انقر لاختيار ملف CSV",
-      "fileHint": ".xlsx، حتى 200 صف",
-      "previewReady_one": "معاينة — {{valid}} من {{count}} صف جاهز",
-      "previewReady_other": "معاينة — {{valid}} من {{count}} صفوف جاهزة",
-      "rowsSkipped": "سيتم تخطي {{count}} صف",
-      "colId": "المعرّف",
-      "colTitle": "العنوان",
-      "colStatus": "الحالة",
-      "colResult": "النتيجة",
-      "ready": "جاهز",
-      "updatingCount_one": "جارٍ تحديث {{count}} وظيفة…",
-      "updatingCount_other": "جارٍ تحديث {{count}} وظائف…",
-      "done": "تم",
-      "cancel": "إلغاء",
-      "updateBtn_one": "تحديث {{count}} وظيفة",
-      "updateBtn_other": "تحديث {{count}} وظائف",
-      "unknownError": "خطأ غير معروف"
+      "ariaLabel": "Bulk update jobs",
+      "title": "Bulk Update Jobs",
+      "close": "Close",
+      "instructions": "Download your current jobs as an Excel file, edit any fields (department, location, employment type, remote policy and status are dropdowns; keep the id column), and re-upload. Empty cells are left unchanged.",
+      "currentJobs": "Current jobs",
+      "errFileEmpty": "The file is empty.",
+      "errMissingId": "The Excel file must include an id column. Download your current jobs for the expected format.",
+      "errReadFailed": "Could not read that file. Please upload the downloaded .xlsx template.",
+      "errBadId": "Invalid job id",
+      "errTitleMarkup": "Title cannot contain the characters < or >",
+      "errDescriptionShort": "Description must be at least 10 characters",
+      "errBadNumber": "Experience and salary must be whole, non-negative numbers",
+      "errExpRange": "Min experience cannot be greater than max experience",
+      "errSalaryRange": "Min salary cannot be greater than max salary",
+      "errBadStatus": "Status must be one of draft, open, paused, closed, filled",
+      "errNoChanges": "No fields to update",
+      "resultUpdated_one": "{{count}} job updated",
+      "resultUpdated_other": "{{count}} jobs updated",
+      "failedCount": "{{count}} could not be updated",
+      "failedRows": "Failed rows",
+      "rowLabel": "Row {{row}}",
+      "changeFile": "Click to choose a different file",
+      "selectFile": "Click to select a CSV file",
+      "fileHint": ".xlsx, up to 200 rows",
+      "previewReady_one": "Preview — {{valid}} of {{count}} row ready",
+      "previewReady_other": "Preview — {{valid}} of {{count}} rows ready",
+      "rowsSkipped": "{{count}} row(s) will be skipped",
+      "colId": "ID",
+      "colTitle": "Title",
+      "colStatus": "Status",
+      "colResult": "Result",
+      "ready": "Ready",
+      "updatingCount_one": "Updating {{count}} job…",
+      "updatingCount_other": "Updating {{count}} jobs…",
+      "done": "Done",
+      "cancel": "Cancel",
+      "updateBtn_one": "Update {{count}} job",
+      "updateBtn_other": "Update {{count}} jobs",
+      "unknownError": "Unknown error"
     }
   },
   "dashboard": {
@@ -784,7 +800,8 @@
       "myReferrals": "ترشيحاتي",
       "inReview": "قيد المراجعة",
       "hired": "تم التوظيف",
-      "bonus": "المكافأة"
+      "bonus": "المكافأة",
+      "closedJobs": "Closed Jobs"
     },
     "pipelineDistribution": "توزيع المسار",
     "totalCount": "{{count}} إجمالاً",
@@ -847,11 +864,31 @@
       "timeToHireBetter": "تحسّن وقت التوظيف لديك بنسبة {{pct}}% مقارنة بالشهر الماضي.",
       "timeToHireWorse": "وقت التوظيف لديك أبطأ بنسبة {{pct}}% مقارنة بالشهر الماضي.",
       "pendingOffers_zero": "{{count}} عرض معلّق. فكّر في إرسال متابعة.",
-      "pendingOffers_one": "عرض واحد معلّق. فكّر في إرسال متابعة.",
+      "pendingOffers_one": "{{count}} offer is pending. Consider sending a follow-up.",
       "pendingOffers_two": "عرضان معلّقان. فكّر في إرسال متابعة.",
       "pendingOffers_few": "{{count}} عروض معلّقة. فكّر في إرسال متابعة.",
       "pendingOffers_many": "{{count}} عرضًا معلّقًا. فكّر في إرسال متابعة.",
-      "pendingOffers_other": "{{count}} عرض معلّق. فكّر في إرسال متابعة."
+      "pendingOffers_other": "{{count}} عرض معلّق. فكّر في إرسال متابعة.",
+      "subtitle": "Smart signals from your hiring activity",
+      "emptyTitle": "Insights are gathering",
+      "emptyDescription": "Insights will appear as your recruiting activity grows."
+    },
+    "upcomingInterviews": "Upcoming Interviews",
+    "noUpcomingInterviews": "Your calendar is clear. Schedule an interview when you are ready to meet the next great candidate.",
+    "interviewsEmptyTitle": "Nothing on the calendar",
+    "interviewMinutes": "{{count}} min",
+    "actionCenter": {
+      "title": "Action Center",
+      "awaitingScreening_one": "{{count}} candidate awaiting screening",
+      "awaitingScreening_other": "{{count}} candidates awaiting screening",
+      "screeningDescription": "Review and move candidates forward.",
+      "interviewsToday_one": "{{count}} interview today",
+      "interviewsToday_other": "{{count}} interviews today",
+      "interviewsDescription": "View today's interview schedule.",
+      "offersNeedApproval_one": "{{count}} offer needs approval",
+      "offersNeedApproval_other": "{{count}} offers need approval",
+      "offersDescription": "Review and approve pending offers.",
+      "viewAll": "View all tasks"
     }
   },
   "interviews": {
@@ -918,8 +955,9 @@
       "notesLabel": "ملاحظات",
       "notesPlaceholder": "ملاحظات إضافية للمقابلة...",
       "cancel": "إلغاء",
-      "subtitle": "جدوِل مقابلة لطلب مرشح.",
-      "noApplicationsTitle": "لا توجد طلبات"
+      "subtitle": "Set up an interview for a candidate's application.",
+      "noApplicationsTitle": "No applications found",
+      "loadingApplications": "???? ????? ????????"
     },
     "feedback": {
       "recStrongYes": "نعم بقوة",
@@ -1114,8 +1152,8 @@
       "totalCount_two": "{{count}} وظائف إجمالاً",
       "totalCount_few": "{{count}} وظائف إجمالاً",
       "totalCount_many": "{{count}} وظائف إجمالاً",
-      "bulkImport": "استيراد جماعي",
-      "bulkUpdate": "تحديث جماعي"
+      "bulkImport": "Bulk Import",
+      "bulkUpdate": "Bulk Update"
     },
     "detail": {
       "statusUpdated": "تم تحديث حالة الوظيفة",
@@ -1212,7 +1250,15 @@
         "naukri": "يتطلب اشتراك صاحب عمل/RMS في Naukri + مفتاح API لصاحب العمل. غير متصل بعد.",
         "apna": "يتطلب حساب مؤسسة Apna + وصولاً إلى API صاحب العمل. غير متصل بعد."
       },
-      "workflowBoard": "سير العمل"
+      "workflowBoard": "سير العمل",
+      "candidateAdded": "??? ????? {{name}} ??? ??? ???????",
+      "addCandidateError": "????? ????? ??????? ??? ???? ?????? ??? ??? ??????? ??????.",
+      "addCandidateModalTitle": "????? ????",
+      "addCandidateModalDescription": "??? ?????? ??????? ??? ??? ??????? ?? ???? ?????? ??????.",
+      "searchCandidatesPlaceholder": "????? ?? ???????? ?????? ?? ?????? ?????????? ?? ???????",
+      "noMatchingCandidates": "?? ???? ?????? ???????.",
+      "noAvailableCandidates": "?? ???? ?????? ?????? ???????.",
+      "createNewCandidate": "????? ???? ????"
     },
     "form": {
       "employmentType": {
@@ -1447,7 +1493,7 @@
       "cancel": "إلغاء",
       "submitting": "جارٍ الإرسال...",
       "submit": "إرسال",
-      "manageTemplates": "إدارة / تعديل القوالب"
+      "manageTemplates": "Manage / edit templates"
     },
     "form": {
       "toastCreated": "تم إنشاء العرض بنجاح",
@@ -1503,7 +1549,7 @@
       "expiryDate": "تاريخ انتهاء الصلاحية",
       "notes": "ملاحظات",
       "saveChanges": "حفظ التغييرات",
-      "errExpiryBeforeJoining": "يجب أن يكون تاريخ انتهاء صلاحية العرض في تاريخ الالتحاق أو بعده"
+      "errExpiryBeforeJoining": "Offer expiry date must be on or after the joining date"
     },
     "template": {
       "toastUpdated": "تم تحديث القالب",
@@ -1641,7 +1687,11 @@
       "taskCount_zero": "{{count}} مهام",
       "taskCount_two": "{{count}} مهام",
       "taskCount_few": "{{count}} مهام",
-      "taskCount_many": "{{count}} مهام"
+      "taskCount_many": "{{count}} مهام",
+      "createFailed": "???? ????? ??????",
+      "updateFailed": "???? ????? ??????",
+      "addTaskFailed": "????? ????? ??????",
+      "updateTaskFailed": "???? ????? ??????"
     }
   },
   "scoring": {
@@ -1706,13 +1756,13 @@
       "goodMatchDesc": "هذا المرشح مناسب بشكل جيد مع تلبية معظم المتطلبات.",
       "partialMatchDesc": "يلبي هذا المرشح بعض المتطلبات ولكن لديه فجوات.",
       "weakMatchDesc": "لا يلبي هذا المرشح معظم المتطلبات.",
-      "noRequiredSkills": "لم يتم تقييم المهارات — لا توجد مهارات مطلوبة مُهيأة لهذه الوظيفة، لذا لا يمكن للدرجة قياس مدى تطابق المهارات. أضف مهارات مطلوبة للوظيفة للحصول على تطابق ذي مغزى، أو كوّن مزود ذكاء اصطناعي للتقييم المستند إلى المحتوى.",
-      "retryAiScoring": "إعادة محاولة التقييم بالذكاء الاصطناعي",
-      "retrySuccess": "تمت إعادة تقييم المرشح.",
-      "retryFailed": "تعذّرت إعادة التقييم. يرجى المحاولة مرة أخرى.",
-      "methodAi": "تقييم بالذكاء الاصطناعي · {{model}}",
-      "methodHeuristic": "درجة قائمة على القواعد (لم يتم تكوين مزود ذكاء اصطناعي)",
-      "reviewDisclaimer": "الدرجات المُنشأة بالذكاء الاصطناعي إرشادية فقط — راجعها دائمًا قبل اتخاذ قرارات التوظيف."
+      "noRequiredSkills": "Skills not assessed — this job has no required skills configured, so the score can't measure skill fit. Add required skills to the job for a meaningful match, or configure an AI provider for content-based scoring.",
+      "retryAiScoring": "Retry AI scoring",
+      "retrySuccess": "Re-scored the candidate.",
+      "retryFailed": "Could not re-score. Please try again.",
+      "methodAi": "AI evaluation · {{model}}",
+      "methodHeuristic": "Rule-based score (no AI provider configured)",
+      "reviewDisclaimer": "AI-generated scores are guidance only — always review before making hiring decisions."
     }
   },
   "portal": {
@@ -1880,9 +1930,9 @@
       "transcript": "النص",
       "questionNumber": "س{{num}}.",
       "noAnswer": "لا توجد إجابة",
-      "methodAi": "تقييم بالذكاء الاصطناعي · {{model}}",
-      "methodCompletion": "درجة الإكمال فقط — تعكس مدى اكتمال الإجابة على الأسئلة، وليس صحة الإجابات أو جودتها. إنها ليست تقييمًا للمحتوى بالذكاء الاصطناعي؛ كوّن مزود ذكاء اصطناعي للحصول على تقييم حقيقي.",
-      "completionScoreLabel": "درجة الإكمال"
+      "methodAi": "AI evaluation · {{model}}",
+      "methodCompletion": "Completion score only — this reflects how fully the questions were answered, not answer correctness or quality. It is not an AI content assessment; configure an AI provider for a real evaluation.",
+      "completionScoreLabel": "Completion score"
     },
     "session": {
       "leaveConfirm": "مغادرة المقابلة؟ لن تتمكن من استئنافها.",
@@ -1930,11 +1980,12 @@
       "voiceIntroBody": "مرحبًا {{name}}. ستجري محادثة صوتية قصيرة مع مُقابِلنا بالذكاء الاصطناعي — يطرح الأسئلة وتجيب بصوت عالٍ، تمامًا مثل مقابلة حقيقية. يرجى السماح بالوصول إلى الميكروفون عند المطالبة.",
       "connecting": "جارٍ الاتصال…",
       "startVoiceInterview": "بدء المقابلة الصوتية",
-      "tapToAnswer": "انقر للإجابة الآن",
+      "tapToAnswer": "Tap to answer now",
       "noSpeechDetected": "لم نلتقط إجابة. تحدّث الآن وستظهر هنا — أو انقر على «التالي» مرة أخرى لتخطّي هذا السؤال.",
       "typeAnswer": "الكتابة بدلاً من ذلك",
       "useVoice": "استخدام الصوت",
-      "typeAnswerPlaceholder": "اكتب إجابتك هنا…"
+      "typeAnswerPlaceholder": "اكتب إجابتك هنا…",
+      "audioRecordingNotice": "???? ????? ???? ???????? ?? ???? ???????."
     }
   },
   "settings": {

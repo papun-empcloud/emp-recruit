@@ -92,7 +92,7 @@ export function OnboardingTemplatesPage() {
       setShowForm(false);
       setFormData(EMPTY_TEMPLATE);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to create template"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("onboarding.templates.createFailed")),
   });
 
   const updateTemplate = useMutation({
@@ -104,7 +104,7 @@ export function OnboardingTemplatesPage() {
       setEditingTemplate(null);
       setFormData(EMPTY_TEMPLATE);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to update template"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("onboarding.templates.updateFailed")),
   });
 
   const addTask = useMutation({
@@ -116,7 +116,7 @@ export function OnboardingTemplatesPage() {
       setShowTaskForm(null);
       setTaskFormData(EMPTY_TASK);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to add task"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("onboarding.templates.addTaskFailed")),
   });
 
   const updateTask = useMutation({
@@ -129,7 +129,7 @@ export function OnboardingTemplatesPage() {
       setEditingTask(null);
       setTaskFormData(EMPTY_TASK);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Failed to update task"),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("onboarding.templates.updateTaskFailed")),
   });
 
   const removeTask = useMutation({

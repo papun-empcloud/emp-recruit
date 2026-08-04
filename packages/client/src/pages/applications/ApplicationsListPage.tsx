@@ -149,8 +149,8 @@ export function ApplicationsListPage() {
         </div>
         <ExportButtons
           baseName="applications"
-          title="Applications"
-          subtitle={`${total} application${total !== 1 ? "s" : ""}${filtersActive ? " (filtered)" : ""}`}
+          title={t("applications.title")}
+          subtitle={t(filtersActive ? "applications.countMatch" : "applications.count", { count: total })}
           columns={APPLICATION_COLUMNS}
           fetchRows={() =>
             fetchAllRows<AppRow>("/applications", {
