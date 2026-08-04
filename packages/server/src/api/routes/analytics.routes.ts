@@ -67,6 +67,37 @@ router.get("/metrics", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
+// GET /conversion-funnel — cumulative reach per stage (funnel chart). Distinct
+// from /pipeline, which returns current per-stage occupancy.
+router.get("/conversion-funnel", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await analyticsService.getConversionFunnel(req.user!.empcloudOrgId);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /stat-cards — dashboard KPI row: each tile's total + week-over-week change
+router.get("/stat-cards", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await analyticsService.getStatCards(req.user!.empcloudOrgId);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /insights — dashboard insight strip: kind + values, wording is the client's
+router.get("/insights", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await analyticsService.getInsights(req.user!.empcloudOrgId);
+    sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /trend — weekly application volume
 router.get("/trend", async (req: Request, res: Response, next: NextFunction) => {
   try {

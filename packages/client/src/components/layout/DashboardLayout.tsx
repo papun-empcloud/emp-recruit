@@ -34,6 +34,7 @@ interface NavItem {
   labelKey: string;
   icon: any;
   adminOnly?: boolean;
+  badge?: "beta" | "new";
 }
 
 interface NavGroup {
@@ -68,8 +69,8 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: "nav.groups.interviews",
     items: [
       { to: "/interviews", labelKey: "nav.interviews", icon: Calendar, adminOnly: true },
-      { to: "/ai-interviews", labelKey: "nav.aiInterviews", icon: Mic, adminOnly: true },
-      { to: "/scoring", labelKey: "nav.aiScoring", icon: Brain, adminOnly: true },
+      { to: "/ai-interviews", labelKey: "nav.aiInterviews", icon: Mic, adminOnly: true, badge: "new" },
+      { to: "/scoring", labelKey: "nav.aiScoring", icon: Brain, adminOnly: true, badge: "beta" },
     ],
   },
   {
@@ -142,8 +143,18 @@ export function DashboardLayout() {
                       )
                     }
                   >
-                    <item.icon className="h-5 w-5" />
-                    {t(item.labelKey)}
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span>
+                    {item.badge && (
+                      <span
+                        className={cn(
+                          "ml-auto inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset",
+                          "bg-violet-100 text-violet-600 ring-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:ring-violet-400/30",
+                        )}
+                      >
+                        {t(`nav.badges.${item.badge}`)}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </div>
