@@ -131,8 +131,8 @@ export function ReferralListPage() {
   const jobsQuery = useQuery({
     queryKey: ["jobs-for-referral"],
     queryFn: async () => {
-      const res = await apiGet<PaginatedResponse<JobPosting>>("/jobs", { status: "open", limit: 100 });
-      return res.data?.data || [];
+      const res = await apiGet<JobPosting[]>("/referrals/jobs");
+      return res.data || [];
     },
   });
   const openJobs: JobPosting[] = jobsQuery.data || [];

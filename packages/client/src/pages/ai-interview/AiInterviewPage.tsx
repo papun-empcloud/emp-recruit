@@ -57,6 +57,9 @@ export function AiInterviewPage() {
   const committedRef = useRef("");
   // Always-current answer, so startListening() can read it without stale closures.
   const answerRef = useRef("");
+  // Preserve the latest interim segment: Chrome may not emit a final result
+  // before the candidate clicks Next or the question timer expires.
+  const interimRef = useRef("");
   // True when WE stopped recognition (mute / next question) — tells onend not to
   // auto-restart. (#4/#5)
   const manualStopRef = useRef(false);
@@ -423,10 +426,24 @@ export function AiInterviewPage() {
   }
 
   function stopListening() {
-    // We are intentionally stopping — don't let onend auto-restart. (#4/#5)
+    // Preserve words still marked interim. Chrome often ends recognition before
+    // promoting the final phrase when Next is clicked or the timer expires.
+    const pending = interimRef.current.trim();
+    if (pending) {
+      const combined = `${answerRef.current} ${pending}`.replace(/\s+/g, " ").trim();
+      answerRef.current = combined;
+      committedRef.current = combined;
+      setAnswer(combined);
+    }
+    interimRef.current = "";
+
+    // Abort this recognition instance after preserving its interim text. Ignore
+    // late events from it so that the same phrase is not appended twice.
     manualStopRef.current = true;
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
     try {
-      recognitionRef.current?.stop();
+      recognition?.abort?.();
     } catch {
       /* ignore */
     }
@@ -463,6 +480,8 @@ export function AiInterviewPage() {
           if (r.isFinal) runFinal += r[0].transcript + " ";
           else interimText += r[0].transcript;
         }
+        if (recognitionRef.current !== rec) return;
+        interimRef.current = interimText.trim();
         const combined = `${committedRef.current} ${runFinal}`.replace(/\s+/g, " ").trim();
         answerRef.current = combined;
         setAnswer(combined);
@@ -527,12 +546,14 @@ export function AiInterviewPage() {
     stopListening();
     setSubmitting(true);
     try {
-      const { data } = await axios.post(`${PUBLIC_API}/${token}/answer`, { answer });
+      const capturedAnswer = answerRef.current;
+      const { data } = await axios.post(`${PUBLIC_API}/${token}/answer`, { answer: capturedAnswer });
       const next = data.data;
       // Reset the transcript AND its refs so the next question starts clean.
       setAnswer("");
       answerRef.current = "";
       committedRef.current = "";
+      interimRef.current = "";
       if (next.done) {
         await axios.post(`${PUBLIC_API}/${token}/complete`);
         // Upload the recorded audio so it appears on the recruiter's view.
