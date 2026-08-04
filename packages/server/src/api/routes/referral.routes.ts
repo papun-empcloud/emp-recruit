@@ -1,5 +1,6 @@
-// ============================================================================
+﻿// ============================================================================
 // REFERRAL ROUTES
+
 // GET / — list referrals
 // POST / — submit referral
 // PATCH /:id/status — update referral status
@@ -45,6 +46,16 @@ const statusSchema = z.object({
   bonus_amount: z.number().optional(),
 });
 
+// GET /jobs � open internal jobs available for employee referrals.
+// This must not use the HR-only /jobs route: regular employees can access referrals.
+router.get("/jobs", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const jobs = await referralService.listInternalOpenJobs(req.user!.empcloudOrgId);
+    sendSuccess(res, jobs);
+  } catch (err) {
+    next(err);
+  }
+});
 // GET /
 router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {

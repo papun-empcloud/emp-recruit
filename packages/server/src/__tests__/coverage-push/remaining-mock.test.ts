@@ -514,6 +514,23 @@ describe("Career Page Service", () => {
 import * as referralService from "../../services/referral/referral.service";
 
 describe("Referral Service", () => {
+  it("lists only open internal jobs for employee referrals", async () => {
+    mockDB.findMany.mockResolvedValueOnce({
+      data: [{ id: "j-1", title: "Internal Developer" }],
+      total: 1,
+      page: 1,
+      limit: 100,
+      totalPages: 1,
+    });
+
+    const result = await referralService.listInternalOpenJobs(ORG);
+
+    expect(result).toEqual([{ id: "j-1", title: "Internal Developer" }]);
+    expect(mockDB.findMany).toHaveBeenCalledWith("job_postings", expect.objectContaining({
+      filters: { organization_id: ORG, status: "open", is_internal: true },
+    }));
+  });
+
   describe("submitReferral", () => {
     it("creates referral with new candidate", async () => {
       mockDB.findOne.mockResolvedValueOnce({ id: "j-1", title: "Dev" }); // job
