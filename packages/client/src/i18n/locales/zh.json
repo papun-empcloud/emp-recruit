@@ -14,6 +14,7 @@
     "candidates": "候选人",
     "interviews": "面谈",
     "offers": "提议",
+    "myApprovals": "我的审批",
     "onboarding": "入职",
     "aiScoring": "AI 分数",
     "referrals": "移交",
@@ -27,12 +28,12 @@
     "changeLanguage": "更改语言",
     "applications": "应用程序",
     "aiInterviews": "AI 访谈",
+    "logoutConfirmTitle": "签字?",
+    "logoutConfirmMessage": "你得再签字才能进入你的账户",
     "badges": {
       "beta": "贝塔",
       "new": "全新"
-    },
-    "logoutConfirmTitle": "签字?",
-    "logoutConfirmMessage": "你得再签字才能进入你的账户"
+    }
   },
   "common": {
     "save": "保存",
@@ -281,6 +282,10 @@
       "errorYearsMax": "多年的经验不能超过{{max}}.",
       "errorSalaryNegative": "预期薪金不能为负数。",
       "errorSalaryMax": "请输入现实的预期工资。",
+      "screeningTitle": "筛选问题",
+      "screeningSelect": "选择…",
+      "screeningRequired": "此问题为必填项",
+      "screeningRequiredToast": "请回答所有必填的筛选问题。",
       "errorNameEmailRequired": "请填写您的姓名和电子邮件 。",
       "backToJob": "回到工作细节",
       "title": "申请{{title}}",
@@ -302,7 +307,9 @@
       "monthsLabel": "几个月",
       "errorMonthsRange": "在0到11个月份之间",
       "skillsLabel": "技能(离职)",
-      "skillsPlaceholder": "反应,Python,SQL"
+      "skillsPlaceholder": "反应,Python,SQL",
+      "screeningLoadError": "无法加载申请表单。请重试。",
+      "retry": "重试"
     },
     "success": {
       "title": "谢谢你的应用!",
@@ -432,6 +439,41 @@
   "applications": {
     "title": "应用程序",
     "subtitle": "所有你公开角色的应用",
+    "stage": {
+      "applied": "已申请",
+      "screened": "已筛选",
+      "interview": "面试",
+      "offer": "录用通知",
+      "hired": "已录用",
+      "rejected": "已拒绝",
+      "withdrawn": "已撤回"
+    },
+    "detail": {
+      "back": "返回",
+      "notFound": "未找到申请。",
+      "viewCandidate": "查看候选人",
+      "stage": "阶段",
+      "ownership": "负责人与 SLA",
+      "assignee": "负责招聘人员",
+      "unassigned": "未分配",
+      "slaDate": "SLA 截止日期",
+      "save": "保存",
+      "screeningAnswers": "筛选答案",
+      "knockoutFailed": "淘汰项未通过",
+      "activity": "动态",
+      "noActivity": "暂无动态。",
+      "assignmentSaved": "分配已更新。",
+      "assignmentFailed": "无法更新分配。",
+      "stageMoved": "阶段已更新。",
+      "stageFailed": "无法更改阶段。"
+    },
+    "bulk": {
+      "selected": "已选择 {{count}} 项",
+      "moveTo": "移至…",
+      "moved": "已移动 {{count}} 份申请。",
+      "moveFailed": "无法移动所选申请。",
+      "clear": "清除"
+    },
     "searchLabel": "搜索",
     "searchPlaceholder": "候选人姓名,电子邮件或工作...",
     "jobRole": "职务",
@@ -687,19 +729,15 @@
       "totalCandidates": "候选人共计",
       "totalApplications": "申请总数",
       "totalJobs": "工作总数",
-      "closedJobs": "已关闭的工作",
       "myReferrals": "我的推荐",
       "inReview": "评估中",
       "hired": "受雇",
-      "bonus": "奖金"
+      "bonus": "奖金",
+      "closedJobs": "已关闭的工作"
     },
     "pipelineDistribution": "管道分布",
     "totalCount": "{{count}}共计",
     "recentApplications": "最近申请",
-    "upcomingInterviews": "即将进行的访谈",
-    "noUpcomingInterviews": "历法相明. 准备好迎接下一个伟大的候选人时安排面试",
-    "interviewsEmptyTitle": "日历上什么都没有",
-    "interviewMinutes": "{{count}} 分钟",
     "viewAll": "查看全部",
     "noApplications": "暂无申请。",
     "welcome": "欢迎{{name}}",
@@ -736,6 +774,10 @@
       "toastRejected": "拒绝报价",
       "toastActionFailed": "操作失败"
     },
+    "upcomingInterviews": "即将进行的访谈",
+    "noUpcomingInterviews": "历法相明. 准备好迎接下一个伟大的候选人时安排面试",
+    "interviewsEmptyTitle": "日历上什么都没有",
+    "interviewMinutes": "{{count}} 分钟",
     "trend": {
       "period": "上个礼拜"
     },
@@ -1057,6 +1099,7 @@
       "close": "关闭",
       "resume": "继续",
       "edit": "编辑",
+      "workflowBoard": "工作流",
       "delete": "删除",
       "description": "描述",
       "requirements": "任职要求",
@@ -1168,6 +1211,24 @@
       "descriptionAria": "职务说明",
       "descriptionPlaceholder": "描述角色,责任,以及成功的样子......",
       "descriptionHint": "工具栏的格式。 最小十个字符。",
+      "generateWithAi": "用 AI 生成",
+      "seniorityLabel": "级别",
+      "seniority": {
+        "intern": "实习生",
+        "junior": "初级",
+        "mid": "中级",
+        "senior": "高级",
+        "lead": "主管",
+        "director": "总监",
+        "vp": "副总裁",
+        "cLevel": "高管"
+      },
+      "niceToHave": "加分项",
+      "suggestedSkills": "推荐技能 — 点击添加",
+      "aiGenerated": "由 AI 生成。请根据需要审阅和编辑。",
+      "aiGeneratedTemplate": "由模板生成（未配置 AI 提供商）。请审阅和编辑。",
+      "aiGenerateFailed": "无法生成描述。请重试。",
+      "aiNeedsTitleSkills": "请先添加职位名称和至少一项技能。",
       "department": "部门",
       "selectDepartment": "选择部门",
       "departmentPlaceholder": "例如,工程学",
@@ -1203,9 +1264,49 @@
     "pipeline": {
       "title": "雇用管道",
       "subtitle": "Kanban 逐个阶段对申请人的董事会看法。"
+    },
+    "workflow": {
+      "title": "工作流看板",
+      "backToJob": "返回职位",
+      "pipeline": "流程",
+      "hiringTeam": "招聘团队",
+      "addMember": "添加",
+      "selectUser": "选择一个用户…",
+      "noMembers": "招聘团队中还没有成员。",
+      "remove": "移除",
+      "memberAdded": "已添加团队成员。",
+      "memberRemoved": "已移除团队成员。",
+      "memberFailed": "无法更新招聘团队。",
+      "tasks": "任务",
+      "addTask": "添加",
+      "taskTitlePlaceholder": "添加一项任务…",
+      "noTasks": "暂无任务。",
+      "unassigned": "未分配",
+      "delete": "删除",
+      "toggleDone": "切换完成状态",
+      "taskAdded": "已添加任务。",
+      "taskDeleted": "已删除任务。",
+      "taskFailed": "无法更新任务。",
+      "roles": {
+        "recruiter": "招聘人员",
+        "hiring_manager": "招聘经理",
+        "interviewer": "面试官",
+        "coordinator": "协调员"
+      }
     }
   },
   "offers": {
+    "approvals": {
+      "title": "我的审批",
+      "subtitle": "等待您审批的录用通知",
+      "empty": "您没有等待审批的录用通知。",
+      "submitted": "提交于 {{date}}",
+      "approve": "批准",
+      "reject": "拒绝",
+      "approved": "录用通知已批准",
+      "rejected": "录用通知已拒绝",
+      "actionFailed": "无法更新录用通知"
+    },
     "status": {
       "all": "全部",
       "draft": "草稿",
@@ -1504,6 +1605,30 @@
       "updateTaskFailed": "??????"
     }
   },
+  "screening": {
+    "type": {
+      "text": "短文本",
+      "number": "数字",
+      "yes_no": "是 / 否",
+      "single_choice": "单选"
+    },
+    "editor": {
+      "title": "筛选问题",
+      "subtitle": "在申请中提出职位相关的问题。将某个问题标记为淘汰项，可自动拒绝给出淘汰答案的申请人。",
+      "empty": "暂无筛选问题。",
+      "questionPlaceholder": "例如：您有多少年 Selenium 使用经验？",
+      "remove": "移除问题",
+      "required": "必填",
+      "knockout": "淘汰项",
+      "optionsPlaceholder": "以逗号分隔的选项，例如：是, 否, 也许",
+      "knockoutValue": "淘汰答案",
+      "knockoutValuePlaceholder": "触发自动拒绝的答案，例如：否",
+      "addQuestion": "添加问题",
+      "save": "保存问题",
+      "saved": "筛选问题已保存。",
+      "saveFailed": "无法保存筛选问题。"
+    }
+  },
   "scoring": {
     "recommendation": {
       "strongMatch": "强烈匹配",
@@ -1766,6 +1891,10 @@
       "replayQuestion": "重放问题",
       "listeningHint": "听... 开始说出你的答案。",
       "tapMicHint": "点击麦克风大声回答。",
+      "noSpeechDetected": "我们没有听到答案。请现在说话，内容会显示在这里——或再次点击“下一题”跳过此题。",
+      "typeAnswer": "改为打字",
+      "useVoice": "使用语音",
+      "typeAnswerPlaceholder": "在此输入您的答案…",
       "canHearYou": "我听见了",
       "mute": "静音",
       "unmute": "释出",

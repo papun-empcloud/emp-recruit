@@ -14,6 +14,7 @@
     "candidates": "उम्मीदवार",
     "interviews": "साक्षात्कार",
     "offers": "प्रस्ताव",
+    "myApprovals": "मेरी स्वीकृतियाँ",
     "onboarding": "ऑनबोर्डिंग",
     "aiScoring": "AI स्कोरिंग",
     "referrals": "रेफरल",
@@ -27,12 +28,12 @@
     "changeLanguage": "भाषा बदलें",
     "applications": "अनुप्रयोग",
     "aiInterviews": "एआई साक्षात्कार",
+    "logoutConfirmTitle": "साइन आउट?",
+    "logoutConfirmMessage": "आपको अपने खाते तक पहुंचने के लिए फिर से साइन इन करना होगा।",
     "badges": {
       "beta": "बीटा",
       "new": "नया"
-    },
-    "logoutConfirmTitle": "साइन आउट?",
-    "logoutConfirmMessage": "आपको अपने खाते तक पहुंचने के लिए फिर से साइन इन करना होगा।"
+    }
   },
   "common": {
     "save": "सहेजें",
@@ -281,6 +282,10 @@
       "errorYearsMax": "अनुभव के वर्षों से अधिक नहीं हो सकता{{max}}.",
       "errorSalaryNegative": "अपेक्षित वेतन नकारात्मक नहीं हो सकता है।",
       "errorSalaryMax": "कृपया एक यथार्थवादी उम्मीद वेतन दर्ज करें।",
+      "screeningTitle": "स्क्रीनिंग प्रश्न",
+      "screeningSelect": "चुनें…",
+      "screeningRequired": "यह प्रश्न आवश्यक है",
+      "screeningRequiredToast": "कृपया सभी आवश्यक स्क्रीनिंग प्रश्नों का उत्तर दें।",
       "errorNameEmailRequired": "कृपया अपना नाम और ईमेल भरें।",
       "backToJob": "नौकरी विवरण वापस",
       "title": "के लिए आवेदन{{title}}",
@@ -302,7 +307,9 @@
       "monthsLabel": "महीने",
       "errorMonthsRange": "0 से 11 के बीच होना चाहिए",
       "skillsLabel": "कौशल (कोमा अलग)",
-      "skillsPlaceholder": "React, पायथन,SQL"
+      "skillsPlaceholder": "React, पायथन,SQL",
+      "screeningLoadError": "आवेदन फ़ॉर्म लोड नहीं हो सका। कृपया पुनः प्रयास करें।",
+      "retry": "पुनः प्रयास करें"
     },
     "success": {
       "title": "धन्यवाद!",
@@ -432,6 +439,41 @@
   "applications": {
     "title": "अनुप्रयोग",
     "subtitle": "आपकी खुली भूमिकाओं में प्रत्येक अनुप्रयोग।",
+    "stage": {
+      "applied": "आवेदित",
+      "screened": "स्क्रीन किया गया",
+      "interview": "साक्षात्कार",
+      "offer": "ऑफ़र",
+      "hired": "नियुक्त",
+      "rejected": "अस्वीकृत",
+      "withdrawn": "वापस लिया गया"
+    },
+    "detail": {
+      "back": "वापस",
+      "notFound": "आवेदन नहीं मिला।",
+      "viewCandidate": "उम्मीदवार देखें",
+      "stage": "चरण",
+      "ownership": "स्वामित्व और SLA",
+      "assignee": "ज़िम्मेदार भर्तीकर्ता",
+      "unassigned": "अनिर्दिष्ट",
+      "slaDate": "SLA नियत तारीख",
+      "save": "सहेजें",
+      "screeningAnswers": "स्क्रीनिंग उत्तर",
+      "knockoutFailed": "नॉकआउट विफल",
+      "activity": "गतिविधि",
+      "noActivity": "अभी तक कोई गतिविधि नहीं।",
+      "assignmentSaved": "असाइनमेंट अपडेट किया गया।",
+      "assignmentFailed": "असाइनमेंट अपडेट नहीं किया जा सका।",
+      "stageMoved": "चरण अपडेट किया गया।",
+      "stageFailed": "चरण बदला नहीं जा सका।"
+    },
+    "bulk": {
+      "selected": "{{count}} चयनित",
+      "moveTo": "यहाँ ले जाएँ…",
+      "moved": "{{count}} आवेदन स्थानांतरित किए गए।",
+      "moveFailed": "चयनित आवेदन स्थानांतरित नहीं किए जा सके।",
+      "clear": "साफ़ करें"
+    },
     "searchLabel": "खोजें",
     "searchPlaceholder": "उम्मीदवार का नाम, ईमेल या नौकरी ...",
     "jobRole": "नौकरी की भूमिका",
@@ -687,19 +729,15 @@
       "totalCandidates": "उम्मीदवारों",
       "totalApplications": "कुल अनुप्रयोग",
       "totalJobs": "कुल नौकरियां",
-      "closedJobs": "बंद नौकरियां",
       "myReferrals": "मेरा रेफरल",
       "inReview": "समीक्षाधीन",
       "hired": "किराया",
-      "bonus": "बोनस"
+      "bonus": "बोनस",
+      "closedJobs": "बंद नौकरियां"
     },
     "pipelineDistribution": "पाइपलाइन वितरण",
     "totalCount": "{{count}}कुल",
     "recentApplications": "हाल के आवेदन",
-    "upcomingInterviews": "आगामी साक्षात्कार",
-    "noUpcomingInterviews": "आपका कैलेंडर स्पष्ट है। जब आप अगले महान उम्मीदवार से मिलने के लिए तैयार हैं तो साक्षात्कार अनुसूची करें।",
-    "interviewsEmptyTitle": "कैलेंडर पर कुछ नहीं",
-    "interviewMinutes": "{{count}} मिनट",
     "viewAll": "सभी देखें",
     "noApplications": "अभी तक कोई आवेदन नहीं।",
     "welcome": "स्वागत{{name}}",
@@ -736,6 +774,10 @@
       "toastRejected": "प्रस्ताव खारिज",
       "toastActionFailed": "कार्रवाई विफल"
     },
+    "upcomingInterviews": "आगामी साक्षात्कार",
+    "noUpcomingInterviews": "आपका कैलेंडर स्पष्ट है। जब आप अगले महान उम्मीदवार से मिलने के लिए तैयार हैं तो साक्षात्कार अनुसूची करें।",
+    "interviewsEmptyTitle": "कैलेंडर पर कुछ नहीं",
+    "interviewMinutes": "{{count}} मिनट",
     "trend": {
       "period": "पिछले सप्ताह"
     },
@@ -1057,6 +1099,7 @@
       "close": "बंद करें",
       "resume": "फिर से शुरू",
       "edit": "संपादित करें",
+      "workflowBoard": "वर्कफ़्लो",
       "delete": "हटाएं",
       "description": "विवरण",
       "requirements": "आवश्यकताएँ",
@@ -1168,6 +1211,24 @@
       "descriptionAria": "नौकरी विवरण",
       "descriptionPlaceholder": "भूमिका, जिम्मेदारियों का वर्णन करें और क्या सफलता की तरह लग रहा है ...",
       "descriptionHint": "टूलबार के साथ प्रारूप। न्यूनतम 10 वर्ण",
+      "generateWithAi": "AI से जनरेट करें",
+      "seniorityLabel": "वरिष्ठता",
+      "seniority": {
+        "intern": "इंटर्न",
+        "junior": "जूनियर",
+        "mid": "मध्य-स्तर",
+        "senior": "सीनियर",
+        "lead": "लीड",
+        "director": "निदेशक",
+        "vp": "VP",
+        "cLevel": "C-स्तर"
+      },
+      "niceToHave": "होना अच्छा रहेगा",
+      "suggestedSkills": "सुझाए गए कौशल — जोड़ने के लिए क्लिक करें",
+      "aiGenerated": "AI से जनरेट किया गया। आवश्यकतानुसार समीक्षा और संपादन करें।",
+      "aiGeneratedTemplate": "एक टेम्प्लेट से जनरेट किया गया (कोई AI प्रदाता कॉन्फ़िगर नहीं है)। समीक्षा और संपादन करें।",
+      "aiGenerateFailed": "विवरण जनरेट नहीं किया जा सका। कृपया पुनः प्रयास करें।",
+      "aiNeedsTitleSkills": "पहले एक नौकरी शीर्षक और कम से कम एक कौशल जोड़ें।",
       "department": "विभाग",
       "selectDepartment": "विभाग चुनें",
       "departmentPlaceholder": "इंजीनियरिंग",
@@ -1203,9 +1264,49 @@
     "pipeline": {
       "title": "हेरिंग पाइपलाइन",
       "subtitle": "मंच पर आवेदकों की काबन बोर्ड दृश्य।"
+    },
+    "workflow": {
+      "title": "वर्कफ़्लो बोर्ड",
+      "backToJob": "नौकरी पर वापस जाएँ",
+      "pipeline": "पाइपलाइन",
+      "hiringTeam": "नियुक्ति टीम",
+      "addMember": "जोड़ें",
+      "selectUser": "एक उपयोगकर्ता चुनें…",
+      "noMembers": "अभी तक नियुक्ति टीम में कोई नहीं है।",
+      "remove": "हटाएँ",
+      "memberAdded": "टीम सदस्य जोड़ा गया।",
+      "memberRemoved": "टीम सदस्य हटाया गया।",
+      "memberFailed": "नियुक्ति टीम अपडेट नहीं की जा सकी।",
+      "tasks": "कार्य",
+      "addTask": "जोड़ें",
+      "taskTitlePlaceholder": "एक कार्य जोड़ें…",
+      "noTasks": "अभी तक कोई कार्य नहीं।",
+      "unassigned": "अनिर्दिष्ट",
+      "delete": "हटाएँ",
+      "toggleDone": "पूर्ण टॉगल करें",
+      "taskAdded": "कार्य जोड़ा गया।",
+      "taskDeleted": "कार्य हटाया गया।",
+      "taskFailed": "कार्य अपडेट नहीं किया जा सका।",
+      "roles": {
+        "recruiter": "भर्तीकर्ता",
+        "hiring_manager": "नियुक्ति प्रबंधक",
+        "interviewer": "साक्षात्कारकर्ता",
+        "coordinator": "समन्वयक"
+      }
     }
   },
   "offers": {
+    "approvals": {
+      "title": "मेरी स्वीकृतियाँ",
+      "subtitle": "आपकी स्वीकृति की प्रतीक्षा कर रहे ऑफ़र",
+      "empty": "आपके पास स्वीकृति की प्रतीक्षा में कोई ऑफ़र नहीं है।",
+      "submitted": "{{date}} को सबमिट किया गया",
+      "approve": "स्वीकृत करें",
+      "reject": "अस्वीकार करें",
+      "approved": "ऑफ़र स्वीकृत किया गया",
+      "rejected": "ऑफ़र अस्वीकृत किया गया",
+      "actionFailed": "ऑफ़र अपडेट नहीं किया जा सका"
+    },
     "status": {
       "all": "सभी",
       "draft": "ड्राफ़्ट",
@@ -1504,6 +1605,30 @@
       "updateTaskFailed": "????? ????? ???? ???? ?? ???"
     }
   },
+  "screening": {
+    "type": {
+      "text": "छोटा टेक्स्ट",
+      "number": "संख्या",
+      "yes_no": "हाँ / नहीं",
+      "single_choice": "एकल विकल्प"
+    },
+    "editor": {
+      "title": "स्क्रीनिंग प्रश्न",
+      "subtitle": "आवेदन पर नौकरी-विशिष्ट प्रश्न पूछें। किसी प्रश्न को नॉकआउट के रूप में चिह्नित करें ताकि अयोग्य करने वाला उत्तर देने वाले आवेदकों को स्वतः अस्वीकार किया जा सके।",
+      "empty": "अभी तक कोई स्क्रीनिंग प्रश्न नहीं।",
+      "questionPlaceholder": "जैसे, आपके पास Selenium का कितने वर्षों का अनुभव है?",
+      "remove": "प्रश्न हटाएँ",
+      "required": "आवश्यक",
+      "knockout": "नॉकआउट",
+      "optionsPlaceholder": "अल्पविराम से अलग किए गए विकल्प, जैसे हाँ, नहीं, शायद",
+      "knockoutValue": "अयोग्य करने वाला उत्तर",
+      "knockoutValuePlaceholder": "वह उत्तर जो स्वतः अस्वीकार करता है, जैसे नहीं",
+      "addQuestion": "प्रश्न जोड़ें",
+      "save": "प्रश्न सहेजें",
+      "saved": "स्क्रीनिंग प्रश्न सहेजे गए।",
+      "saveFailed": "स्क्रीनिंग प्रश्न सहेजे नहीं जा सके।"
+    }
+  },
   "scoring": {
     "recommendation": {
       "strongMatch": "मजबूत मैच",
@@ -1766,6 +1891,10 @@
       "replayQuestion": "प्रश्न खेलना",
       "listeningHint": "सुनो... अपने उत्तर को बोलना शुरू करो।",
       "tapMicHint": "mic को जोर से जवाब देने के लिए टैप करें।",
+      "noSpeechDetected": "हमें कोई उत्तर नहीं मिला। अभी बोलें और यह यहाँ दिखाई देगा — या इस प्रश्न को छोड़ने के लिए फिर से अगला टैप करें।",
+      "typeAnswer": "इसके बजाय टाइप करें",
+      "useVoice": "आवाज़ का उपयोग करें",
+      "typeAnswerPlaceholder": "अपना उत्तर यहाँ टाइप करें…",
       "canHearYou": "मैं तुम्हें सुन सकता हूँ",
       "mute": "म्यूट",
       "unmute": "????? ???? ????",

@@ -14,6 +14,7 @@
     "candidates": "Kandidaten",
     "interviews": "Vorstellungsgespräche",
     "offers": "Angebote",
+    "myApprovals": "Meine Genehmigungen",
     "onboarding": "Onboarding",
     "aiScoring": "KI-Bewertung",
     "referrals": "Empfehlungen",
@@ -27,12 +28,12 @@
     "changeLanguage": "Sprache ändern",
     "applications": "Anwendungen",
     "aiInterviews": "KI-Interviews",
+    "logoutConfirmTitle": "Abmelden?",
+    "logoutConfirmMessage": "Sie müssen sich erneut anmelden, um auf Ihr Konto zuzugreifen.",
     "badges": {
       "beta": "Beta",
       "new": "Neu"
-    },
-    "logoutConfirmTitle": "Abmelden?",
-    "logoutConfirmMessage": "Sie müssen sich erneut anmelden, um auf Ihr Konto zuzugreifen."
+    }
   },
   "common": {
     "save": "Speichern",
@@ -281,6 +282,10 @@
       "errorYearsMax": "Jahre Erfahrung dürfen {{max}} nicht überschreiten.",
       "errorSalaryNegative": "Das erwartete Gehalt darf nicht negativ sein.",
       "errorSalaryMax": "Bitte geben Sie eine realistische Gehaltsvorstellung ein.",
+      "screeningTitle": "Fragen zur Vorauswahl",
+      "screeningSelect": "Auswählen…",
+      "screeningRequired": "Diese Frage ist erforderlich",
+      "screeningRequiredToast": "Bitte beantworten Sie alle erforderlichen Fragen zur Vorauswahl.",
       "errorNameEmailRequired": "Bitte geben Sie Ihren Namen und Ihre E-Mail-Adresse ein.",
       "backToJob": "Zurück zu den Jobdetails",
       "title": "Bewerben Sie sich für {{title}}",
@@ -302,7 +307,9 @@
       "monthsLabel": "Monate",
       "errorMonthsRange": "Monate müssen zwischen 0 und 11 liegen",
       "skillsLabel": "Fähigkeiten (durch Kommas getrennt)",
-      "skillsPlaceholder": "React, Python, SQL"
+      "skillsPlaceholder": "React, Python, SQL",
+      "screeningLoadError": "Das Bewerbungsformular konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "retry": "Erneut versuchen"
     },
     "success": {
       "title": "Vielen Dank für Ihre Bewerbung!",
@@ -432,6 +439,41 @@
   "applications": {
     "title": "Bewerbungen",
     "subtitle": "Jede Bewerbung in Ihren offenen Rollen.",
+    "stage": {
+      "applied": "Beworben",
+      "screened": "Vorausgewählt",
+      "interview": "Interview",
+      "offer": "Angebot",
+      "hired": "Eingestellt",
+      "rejected": "Abgelehnt",
+      "withdrawn": "Zurückgezogen"
+    },
+    "detail": {
+      "back": "Zurück",
+      "notFound": "Bewerbung nicht gefunden.",
+      "viewCandidate": "Kandidat ansehen",
+      "stage": "Phase",
+      "ownership": "Zuständigkeit & SLA",
+      "assignee": "Zuständiger Recruiter",
+      "unassigned": "Nicht zugewiesen",
+      "slaDate": "SLA-Fälligkeitsdatum",
+      "save": "Speichern",
+      "screeningAnswers": "Antworten zur Vorauswahl",
+      "knockoutFailed": "Ausschlusskriterium nicht erfüllt",
+      "activity": "Aktivität",
+      "noActivity": "Noch keine Aktivität.",
+      "assignmentSaved": "Zuweisung aktualisiert.",
+      "assignmentFailed": "Zuweisung konnte nicht aktualisiert werden.",
+      "stageMoved": "Phase aktualisiert.",
+      "stageFailed": "Phase konnte nicht geändert werden."
+    },
+    "bulk": {
+      "selected": "{{count}} ausgewählt",
+      "moveTo": "Verschieben nach…",
+      "moved": "{{count}} Bewerbung(en) verschoben.",
+      "moveFailed": "Die ausgewählten Bewerbungen konnten nicht verschoben werden.",
+      "clear": "Zurücksetzen"
+    },
     "searchLabel": "Suche",
     "searchPlaceholder": "Name, E-Mail-Adresse oder Stelle des Kandidaten…",
     "jobRole": "Stellenrolle",
@@ -687,19 +729,15 @@
       "totalCandidates": "Kandidaten insgesamt",
       "totalApplications": "Bewerbungen insgesamt",
       "totalJobs": "Stellen insgesamt",
-      "closedJobs": "Geschlossene Stellen",
       "myReferrals": "Meine Empfehlungen",
       "inReview": "Im Test",
       "hired": "Angestellt",
-      "bonus": "Bonus"
+      "bonus": "Bonus",
+      "closedJobs": "Geschlossene Stellen"
     },
     "pipelineDistribution": "Pipeline-Verteilung",
     "totalCount": "{{count}} insgesamt",
     "recentApplications": "Aktuelle Bewerbungen",
-    "upcomingInterviews": "Bevorstehende Vorstellungsgespräche",
-    "noUpcomingInterviews": "Ihr Kalender ist übersichtlich. Vereinbaren Sie ein Vorstellungsgespräch, wenn Sie bereit sind, den nächsten großartigen Kandidaten kennenzulernen.",
-    "interviewsEmptyTitle": "Nichts im Kalender",
-    "interviewMinutes": "{{count}} min",
     "viewAll": "Alle anzeigen",
     "noApplications": "Noch keine Bewerbungen.",
     "welcome": "Willkommen, {{name}}",
@@ -736,6 +774,10 @@
       "toastRejected": "Angebot abgelehnt",
       "toastActionFailed": "Aktion fehlgeschlagen"
     },
+    "upcomingInterviews": "Bevorstehende Vorstellungsgespräche",
+    "noUpcomingInterviews": "Ihr Kalender ist übersichtlich. Vereinbaren Sie ein Vorstellungsgespräch, wenn Sie bereit sind, den nächsten großartigen Kandidaten kennenzulernen.",
+    "interviewsEmptyTitle": "Nichts im Kalender",
+    "interviewMinutes": "{{count}} min",
     "trend": {
       "period": "im Vergleich zur letzten Woche"
     },
@@ -1057,6 +1099,7 @@
       "close": "Schließen",
       "resume": "Fortsetzen",
       "edit": "Bearbeiten",
+      "workflowBoard": "Workflow",
       "delete": "Löschen",
       "description": "Beschreibung",
       "requirements": "Anforderungen",
@@ -1168,6 +1211,24 @@
       "descriptionAria": "Stellenbeschreibung",
       "descriptionPlaceholder": "Beschreiben Sie die Rolle, Verantwortlichkeiten und wie Erfolg aussieht ...",
       "descriptionHint": "Formatieren Sie mit der Symbolleiste. Mindestens 10 Zeichen.",
+      "generateWithAi": "Mit KI generieren",
+      "seniorityLabel": "Erfahrungsstufe",
+      "seniority": {
+        "intern": "Praktikant",
+        "junior": "Junior",
+        "mid": "Mittleres Level",
+        "senior": "Senior",
+        "lead": "Lead",
+        "director": "Director",
+        "vp": "VP",
+        "cLevel": "C-Level"
+      },
+      "niceToHave": "Wünschenswert",
+      "suggestedSkills": "Vorgeschlagene Kenntnisse — zum Hinzufügen klicken",
+      "aiGenerated": "Mit KI generiert. Bei Bedarf prüfen und bearbeiten.",
+      "aiGeneratedTemplate": "Aus einer Vorlage generiert (kein KI-Anbieter konfiguriert). Prüfen und bearbeiten.",
+      "aiGenerateFailed": "Die Beschreibung konnte nicht generiert werden. Bitte versuchen Sie es erneut.",
+      "aiNeedsTitleSkills": "Fügen Sie zunächst eine Stellenbezeichnung und mindestens eine Kompetenz hinzu.",
       "department": "Abteilung",
       "selectDepartment": "Abteilung auswählen",
       "departmentPlaceholder": "z.B. Engineering",
@@ -1203,9 +1264,49 @@
     "pipeline": {
       "title": "Einstellungspipeline",
       "subtitle": "Kanban-Board-Ansicht der Bewerber nach Phase."
+    },
+    "workflow": {
+      "title": "Workflow-Board",
+      "backToJob": "Zurück zur Stelle",
+      "pipeline": "Pipeline",
+      "hiringTeam": "Einstellungsteam",
+      "addMember": "Hinzufügen",
+      "selectUser": "Einen Benutzer auswählen…",
+      "noMembers": "Es ist noch niemand im Einstellungsteam.",
+      "remove": "Entfernen",
+      "memberAdded": "Teammitglied hinzugefügt.",
+      "memberRemoved": "Teammitglied entfernt.",
+      "memberFailed": "Das Einstellungsteam konnte nicht aktualisiert werden.",
+      "tasks": "Aufgaben",
+      "addTask": "Hinzufügen",
+      "taskTitlePlaceholder": "Eine Aufgabe hinzufügen…",
+      "noTasks": "Noch keine Aufgaben.",
+      "unassigned": "Nicht zugewiesen",
+      "delete": "Löschen",
+      "toggleDone": "Als erledigt umschalten",
+      "taskAdded": "Aufgabe hinzugefügt.",
+      "taskDeleted": "Aufgabe gelöscht.",
+      "taskFailed": "Die Aufgabe konnte nicht aktualisiert werden.",
+      "roles": {
+        "recruiter": "Recruiter",
+        "hiring_manager": "Einstellungsmanager",
+        "interviewer": "Interviewer",
+        "coordinator": "Koordinator"
+      }
     }
   },
   "offers": {
+    "approvals": {
+      "title": "Meine Freigaben",
+      "subtitle": "Angebote, die auf Ihre Freigabe warten",
+      "empty": "Sie haben keine Angebote, die auf Freigabe warten.",
+      "submitted": "Eingereicht am {{date}}",
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "approved": "Angebot freigegeben",
+      "rejected": "Angebot abgelehnt",
+      "actionFailed": "Das Angebot konnte nicht aktualisiert werden"
+    },
     "status": {
       "all": "Alle",
       "draft": "Entwurf",
@@ -1504,6 +1605,30 @@
       "updateTaskFailed": "Aufgabe konnte nicht aktualisiert werden"
     }
   },
+  "screening": {
+    "type": {
+      "text": "Kurztext",
+      "number": "Zahl",
+      "yes_no": "Ja / Nein",
+      "single_choice": "Einzelauswahl"
+    },
+    "editor": {
+      "title": "Vorauswahl-Fragen",
+      "subtitle": "Stellen Sie stellenspezifische Fragen in der Bewerbung. Markieren Sie eine Frage als K.-o.-Kriterium, um Bewerber mit der disqualifizierenden Antwort automatisch abzulehnen.",
+      "empty": "Noch keine Vorauswahl-Fragen.",
+      "questionPlaceholder": "z. B. Wie viele Jahre Erfahrung mit Selenium haben Sie?",
+      "remove": "Frage entfernen",
+      "required": "Erforderlich",
+      "knockout": "K.-o.-Kriterium",
+      "optionsPlaceholder": "Kommagetrennte Auswahlmöglichkeiten, z. B. Ja, Nein, Vielleicht",
+      "knockoutValue": "Disqualifizierende Antwort",
+      "knockoutValuePlaceholder": "Antwort, die automatisch ablehnt, z. B. Nein",
+      "addQuestion": "Frage hinzufügen",
+      "save": "Fragen speichern",
+      "saved": "Vorauswahl-Fragen gespeichert.",
+      "saveFailed": "Vorauswahl-Fragen konnten nicht gespeichert werden."
+    }
+  },
   "scoring": {
     "recommendation": {
       "strongMatch": "Starke Übereinstimmung",
@@ -1766,6 +1891,10 @@
       "replayQuestion": "Wiederholen Sie die Frage",
       "listeningHint": "Zuhören… fangen Sie an, Ihr Wort zu sprechen Antwort.",
       "tapMicHint": "Tippen Sie auf das Mikrofon, um laut zu antworten.",
+      "noSpeechDetected": "Wir haben keine Antwort erfasst. Sprechen Sie jetzt, und sie erscheint hier – oder tippen Sie erneut auf „Weiter“, um diese Frage zu überspringen.",
+      "typeAnswer": "Stattdessen tippen",
+      "useVoice": "Sprache verwenden",
+      "typeAnswerPlaceholder": "Geben Sie Ihre Antwort hier ein …",
       "canHearYou": "Ich kann dich hören",
       "mute": "Stumm",
       "unmute": "Stummschaltung aufheben",

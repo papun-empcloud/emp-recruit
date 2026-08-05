@@ -58,6 +58,19 @@ export enum OnboardingStatus {
   COMPLETED = "completed",
 }
 
+export enum HiringTeamRole {
+  RECRUITER = "recruiter",
+  HIRING_MANAGER = "hiring_manager",
+  INTERVIEWER = "interviewer",
+  COORDINATOR = "coordinator",
+}
+
+export enum RecruitmentTaskStatus {
+  TODO = "todo",
+  IN_PROGRESS = "in_progress",
+  DONE = "done",
+}
+
 export enum ReferralStatus {
   SUBMITTED = "submitted",
   UNDER_REVIEW = "under_review",
@@ -181,9 +194,22 @@ export interface Application {
   rating: number | null;
   notes: string | null;
   rejection_reason: string | null;
+  // Workflow (030): responsible recruiter (EmpCloud user id) + SLA target date.
+  assigned_to: number | null;
+  sla_due_date: string | null;
   applied_at: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ApplicationActivity {
+  id: string;
+  organization_id: number;
+  application_id: string;
+  actor_id: number | null;
+  type: "created" | "stage_change" | "note" | "assigned" | "sla_set" | "screening";
+  message: string;
+  created_at: string;
 }
 
 export interface ApplicationStageHistory {
@@ -550,4 +576,69 @@ export interface AssessmentResponse {
   is_correct: boolean | null;
   time_taken_seconds: number | null;
   created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Screening / Knockout Questions (029) — job-specific application questions.
+// ---------------------------------------------------------------------------
+
+export type ScreeningQuestionType = "text" | "number" | "yes_no" | "single_choice";
+
+export interface JobScreeningQuestion {
+  id: string;
+  organization_id: number;
+  job_id: string;
+  question: string;
+  type: ScreeningQuestionType;
+  options: string[] | null; // for single_choice
+  required: boolean;
+  is_knockout: boolean;
+  knockout_value: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicationScreeningAnswer {
+  id: string;
+  organization_id: number;
+  application_id: string;
+  question_id: string;
+  question_text: string;
+  answer: string | null;
+  knockout_failed: boolean;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Hiring team & recruitment tasks (031)
+// ---------------------------------------------------------------------------
+
+export interface JobHiringTeamMember {
+  id: string;
+  organization_id: number;
+  job_id: string;
+  user_id: number; // EmpCloud user
+  role: HiringTeamRole;
+  created_at: string;
+  // Resolved for display (from the EmpCloud master DB).
+  user_name?: string | null;
+  user_email?: string | null;
+}
+
+export interface RecruitmentTask {
+  id: string;
+  organization_id: number;
+  job_id: string | null;
+  application_id: string | null;
+  title: string;
+  description: string | null;
+  assigned_to: number | null; // EmpCloud user
+  due_date: string | null; // YYYY-MM-DD
+  status: RecruitmentTaskStatus;
+  created_by: number | null;
+  created_at: string;
+  updated_at: string;
+  // Resolved for display.
+  assignee_name?: string | null;
 }

@@ -15,6 +15,14 @@ import type { JobPosting } from "@emp-recruit/shared";
 
 const PUBLIC_API = "/api/v1/public";
 
+interface PublicScreeningQuestion {
+  id: string;
+  question: string;
+  type: "text" | "number" | "yes_no" | "single_choice";
+  options: string[] | null;
+  required: boolean;
+}
+
 // Upper bounds for the optional numeric fields (BUG-10). Negatives were already
 // rejected; these cap unrealistic values like 999 years / 999,999,999 salary.
 const MAX_EXPERIENCE_YEARS = 50;
@@ -41,6 +49,8 @@ export function CareerApplyPage() {
   const [resume, setResume] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Answers to the job's screening questions, keyed by question id.
+  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const jobQuery = useQuery({
     queryKey: ["public-job", slug, jobId],
@@ -49,6 +59,17 @@ export function CareerApplyPage() {
       return data.data as JobPosting;
     },
   });
+
+  const screeningQuery = useQuery({
+    queryKey: ["public-screening", slug, jobId],
+    queryFn: async () => {
+      const { data } = await axios.get(
+        `${PUBLIC_API}/careers/${slug}/jobs/${jobId}/screening-questions`,
+      );
+      return (data.data ?? []) as PublicScreeningQuestion[];
+    },
+  });
+  const questions = screeningQuery.data ?? [];
 
   const applyMutation = useMutation({
     mutationFn: async () => {
@@ -69,6 +90,12 @@ export function CareerApplyPage() {
       }
       if (form.expected_salary) formData.append("expected_salary", form.expected_salary);
       if (form.skills.trim()) formData.append("skills", form.skills.trim());
+      if (questions.length) {
+        formData.append(
+          "screening_answers",
+          JSON.stringify(questions.map((q) => ({ question_id: q.id, answer: answers[q.id] ?? "" }))),
+        );
+      }
       if (resume) formData.append("resume", resume);
 
       const { data } = await axios.post(`${PUBLIC_API}/careers/${slug}/apply`, formData, {
@@ -180,6 +207,9 @@ export function CareerApplyPage() {
     if (monthsOutOfRange) next.experience_months = t("careers.apply.errorMonthsRange");
     if (salaryNegative) next.expected_salary = t("careers.apply.errorSalaryNegative");
     else if (salaryTooHigh) next.expected_salary = t("careers.apply.errorSalaryMax");
+    // Required screening questions must be answered.
+    const missingScreening = questions.filter((q) => q.required && (answers[q.id] ?? "").trim() === "");
+    for (const q of missingScreening) next[`screening_${q.id}`] = t("careers.apply.screeningRequired");
     setErrors(next);
 
     // Keep the exact toast messages/priority the QA verified (CHK-01/02/03).
@@ -219,14 +249,38 @@ export function CareerApplyPage() {
       toast.error(t("careers.apply.errorSalaryMax"));
       return;
     }
+    if (missingScreening.length > 0) {
+      toast.error(t("careers.apply.screeningRequiredToast"));
+      return;
+    }
     setSubmitError(null);
     applyMutation.mutate();
   }
 
-  if (jobQuery.isLoading) {
+  // Wait for BOTH the job and its screening questions before showing the form:
+  // rendering with a failed screening fetch would let the applicant submit with
+  // no required answers and hit an unfixable server rejection.
+  if (jobQuery.isLoading || screeningQuery.isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
+      </div>
+    );
+  }
+
+  if (screeningQuery.isError) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-gray-700">{t("careers.apply.screeningLoadError")}</p>
+          <button
+            type="button"
+            onClick={() => screeningQuery.refetch()}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            {t("careers.apply.retry")}
+          </button>
+        </div>
       </div>
     );
   }
@@ -322,6 +376,58 @@ export function CareerApplyPage() {
             />
             {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
           </div>
+
+          {/* Screening questions (job-specific) */}
+          {questions.length > 0 && (
+            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">{t("careers.apply.screeningTitle")}</h3>
+              {questions.map((q) => {
+                const val = answers[q.id] ?? "";
+                const set = (v: string) => setAnswers((a) => ({ ...a, [q.id]: v }));
+                const key = `screening_${q.id}`;
+                return (
+                  <div key={q.id}>
+                    <label className="block text-sm font-medium text-gray-700">
+                      {q.question} {q.required && <span className="text-red-500">*</span>}
+                    </label>
+                    {q.type === "yes_no" ? (
+                      <div className="mt-1 flex gap-4">
+                        {["Yes", "No"].map((opt) => (
+                          <label key={opt} className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+                            <input
+                              type="radio"
+                              name={key}
+                              checked={val === opt}
+                              onChange={() => set(opt)}
+                            />
+                            {opt}
+                          </label>
+                        ))}
+                      </div>
+                    ) : q.type === "single_choice" ? (
+                      <select value={val} onChange={(e) => set(e.target.value)} className={fieldClass(key)}>
+                        <option value="">{t("careers.apply.screeningSelect")}</option>
+                        {(q.options ?? []).map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type={q.type === "number" ? "number" : "text"}
+                        value={val}
+                        maxLength={2000}
+                        onChange={(e) => set(e.target.value)}
+                        className={fieldClass(key)}
+                      />
+                    )}
+                    {errors[key] && <p className="mt-1 text-xs text-red-600">{errors[key]}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Resume upload */}
           <div>

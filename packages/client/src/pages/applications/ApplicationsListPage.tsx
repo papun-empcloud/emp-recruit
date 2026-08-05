@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, FileText, Calendar, Search, X } from "lucide-react";
-import { apiGet } from "@/api/client";
+import { apiGet, apiPost } from "@/api/client";
+import toast from "react-hot-toast";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination, DEFAULT_PAGE_SIZE } from "@/components/Pagination";
 import { ExportButtons } from "@/components/ExportButtons";
@@ -99,6 +100,29 @@ export function ApplicationsListPage() {
   const filtersActive = Boolean(
     stage || jobId || department || location || dateFrom || dateTo || search,
   );
+
+  // Bulk stage updates: select rows, then move them all to a stage at once.
+  const queryClient = useQueryClient();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  const bulkMutation = useMutation({
+    mutationFn: (targetStage: string) =>
+      apiPost("/applications/bulk-stage", { application_ids: [...selected], stage: targetStage }),
+    onSuccess: (res: any) => {
+      toast.success(t("applications.bulk.moved", { count: res?.data?.moved ?? selected.size }));
+      setSelected(new Set());
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || t("applications.bulk.moveFailed")),
+  });
 
   // Change a filter and reset to page 1.
   function setFilter(setter: (v: string) => void) {
@@ -283,12 +307,49 @@ export function ApplicationsListPage() {
         </div>
       ) : (
         <div className="space-y-3">
+          {selected.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2">
+              <span className="text-sm font-medium text-brand-800">
+                {t("applications.bulk.selected", { count: selected.size })}
+              </span>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) bulkMutation.mutate(e.target.value);
+                }}
+                disabled={bulkMutation.isPending}
+                className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none disabled:opacity-50"
+              >
+                <option value="">{t("applications.bulk.moveTo")}</option>
+                {STAGES.map((s) => (
+                  <option key={s} value={s}>
+                    {t(`applications.stage.${s}`, s)}
+                  </option>
+                ))}
+              </select>
+              {bulkMutation.isPending && <Loader2 className="h-4 w-4 animate-spin text-brand-600" />}
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                {t("applications.bulk.clear")}
+              </button>
+            </div>
+          )}
           {rows.map((app) => (
-            <Link
-              key={app.id}
-              to={app.candidate_id ? `/candidates/${app.candidate_id}` : `/jobs/${app.job_id}`}
-              className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-brand-200 hover:bg-gray-50"
-            >
+            <div key={app.id} className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={selected.has(app.id)}
+                onChange={() => toggleSelected(app.id)}
+                className="h-4 w-4 flex-shrink-0 rounded border-gray-300"
+                aria-label={t("applications.bulk.selected", { count: 1 })}
+              />
+              <Link
+                to={`/applications/${app.id}`}
+                className="flex flex-1 items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-brand-200 hover:bg-gray-50"
+              >
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700">
                   {getInitials(`${app.candidate_first_name} ${app.candidate_last_name}`)}
@@ -317,7 +378,8 @@ export function ApplicationsListPage() {
                   {formatDate(app.applied_at)}
                 </span>
               </div>
-            </Link>
+              </Link>
+            </div>
           ))}
 
           {/* Pagination */}

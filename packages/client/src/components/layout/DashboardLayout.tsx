@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   ClipboardList,
+  ClipboardCheck,
   Brain,
   Mic,
   Globe,
@@ -77,6 +78,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: "nav.groups.hiring",
     items: [
       { to: "/offers", labelKey: "nav.offers", icon: FileText, adminOnly: true },
+      { to: "/offers/my-approvals", labelKey: "nav.myApprovals", icon: ClipboardCheck, adminOnly: true },
       { to: "/onboarding", labelKey: "nav.onboarding", icon: ClipboardList, adminOnly: true },
     ],
   },

@@ -28,6 +28,9 @@ export interface GeneratedJD {
   requirements: string[];
   nice_to_have: string[];
   benefits: string[];
+  // Role-appropriate skills the recruiter can add with one click — never the
+  // ones they already provided. Not part of full_description (UI hint only).
+  suggested_skills: string[];
   full_description: string;
 }
 
@@ -172,6 +175,29 @@ const ROLE_RESPONSIBILITIES: Record<string, string[]> = {
   ],
 };
 
+// Common, role-appropriate skills per category — offered as one-click "suggested
+// skills" in the job form. Deliberately generic and non-technical for
+// non-technical roles (never suggest engineering tools for Sales/HR/etc.).
+const ROLE_SKILLS: Record<string, string[]> = {
+  engineer: ["JavaScript", "TypeScript", "React", "Node.js", "Python", "SQL", "Git", "Docker", "AWS", "REST APIs", "CI/CD", "Unit Testing"],
+  designer: ["Figma", "Sketch", "Adobe XD", "Prototyping", "User Research", "Wireframing", "Design Systems", "Usability Testing"],
+  product: ["Roadmapping", "User Stories", "Agile", "Jira", "Product Analytics", "A/B Testing", "Stakeholder Management", "Market Research"],
+  marketing: ["SEO", "Content Marketing", "Google Analytics", "Social Media", "Email Marketing", "Campaign Management", "Copywriting", "Brand Strategy"],
+  sales: ["CRM", "Salesforce", "Negotiation", "Lead Generation", "Pipeline Management", "Cold Outreach", "Account Management", "Forecasting"],
+  hr: ["Recruitment", "Onboarding", "Employee Relations", "HRIS", "Performance Management", "Compensation & Benefits", "Labor Law", "Employee Engagement"],
+  finance: ["Financial Modeling", "Excel", "Budgeting", "Forecasting", "Accounting", "Financial Reporting", "GAAP", "Auditing"],
+  operations: ["Process Optimization", "Project Management", "Vendor Management", "KPIs", "Supply Chain", "SOPs", "Logistics", "Continuous Improvement"],
+  data: ["Python", "SQL", "Pandas", "Machine Learning", "Data Visualization", "Tableau", "ETL", "Statistics"],
+  default: ["Communication", "Project Management", "Problem Solving", "Collaboration", "Time Management", "Analytical Skills"],
+};
+
+// Skills for the detected role that the recruiter hasn't already listed.
+function suggestSkills(title: string, provided: string[]): string[] {
+  const pool = ROLE_SKILLS[detectRoleCategory(title)] || ROLE_SKILLS.default;
+  const have = new Set(provided.map((s) => s.toLowerCase().trim()));
+  return pool.filter((s) => !have.has(s.toLowerCase())).slice(0, 8);
+}
+
 const STANDARD_BENEFITS = [
   "Competitive salary and equity package",
   "Comprehensive health, dental, and vision insurance",
@@ -287,6 +313,7 @@ function generateFromTemplate(input: JDInput): GeneratedJD {
     requirements,
     nice_to_have: niceToHave,
     benefits,
+    suggested_skills: suggestSkills(input.title, input.skills),
   };
   return { ...jd, full_description: buildFullDescription(jd) };
 }
@@ -353,7 +380,8 @@ Return ONLY a JSON object with exactly these fields:
   "responsibilities": ["6-8 items"],
   "requirements": ["5-7 must-haves"],
   "nice_to_have": ["3-5 items"],
-  "benefits": ["5-7 items"]
+  "benefits": ["5-7 items"],
+  "suggested_skills": ["6-10 short skill/tool names a real ${input.title} would use, EXCLUDING any the recruiter already provided; single words or short phrases, not sentences"]
 }`;
 
   return { system, prompt };
@@ -382,12 +410,17 @@ async function generateWithLLM(input: JDInput): Promise<GeneratedJD | null> {
     }
 
     const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+    // Drop any suggested skill the recruiter already provided (case-insensitive);
+    // fall back to the role-based suggestions when the model omits them.
+    const have = new Set(input.skills.map((s) => s.toLowerCase().trim()));
+    const llmSkills = coerceStringArray(parsed.suggested_skills).filter((s) => !have.has(s.toLowerCase()));
     const jd = {
       overview: String(parsed.overview ?? "").trim(),
       responsibilities: coerceStringArray(parsed.responsibilities),
       requirements: coerceStringArray(parsed.requirements),
       nice_to_have: coerceStringArray(parsed.nice_to_have),
       benefits: coerceStringArray(parsed.benefits),
+      suggested_skills: (llmSkills.length ? llmSkills : suggestSkills(input.title, input.skills)).slice(0, 10),
     };
 
     // If the model returned something unusable, signal a template fallback.

@@ -12,6 +12,9 @@ import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import * as careerPageService from "../../services/career-page/career-page.service";
 import * as feedService from "../../services/job-board/feed.service";
+import * as screeningService from "../../services/screening/screening.service";
+import { screeningAnswersSchema } from "@emp-recruit/shared";
+import { getDB } from "../../db/adapters";
 import { sendSuccess } from "../../utils/response";
 import { ValidationError } from "../../utils/errors";
 
@@ -213,6 +216,20 @@ router.post(
         throw new ValidationError("Resume is required", { resume: ["Resume is required"] });
       }
 
+      // Screening answers arrive as a JSON string field in the multipart form.
+      // Validate required questions BEFORE creating the application (so a missing
+      // answer doesn't leave an orphan) and compute knockout results.
+      let rawAnswers: unknown = [];
+      if (req.body.screening_answers) {
+        try {
+          rawAnswers = JSON.parse(req.body.screening_answers);
+        } catch {
+          throw new ValidationError("Invalid screening answers");
+        }
+      }
+      const answers = screeningAnswersSchema.parse(rawAnswers);
+      const prepared = await screeningService.prepareAnswers(jobId as string, answers);
+
       const resumePath = `/uploads/resumes/${req.file.filename}`;
 
       const result = await careerPageService.submitPublicApplication(
@@ -222,7 +239,43 @@ router.post(
         resumePath,
       );
 
+      // Persist answers, and auto-reject on a failed knockout question.
+      await screeningService.storeAnswers(
+        result.application.organization_id,
+        result.application.id,
+        prepared.rows,
+      );
+      if (prepared.knockoutFailed) {
+        await getDB().update("applications", result.application.id, {
+          stage: "rejected",
+          rejection_reason: "Did not meet a required screening criterion.",
+        } as any);
+      }
+
       sendSuccess(res, result, 201);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GET /careers/:slug/jobs/:jobId/screening-questions — questions for the apply
+// form (public; never exposes the knockout flag or disqualifying value).
+// ---------------------------------------------------------------------------
+router.get(
+  "/careers/:slug/jobs/:jobId/screening-questions",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Scope to the career page's org + public visibility (open, not internal,
+      // shown on the page). Throws 404 for any job that isn't publicly listed
+      // on this slug — same guard the job-detail/apply endpoints enforce.
+      const job = await careerPageService.getPublicJobDetail(
+        String(req.params.slug),
+        String(req.params.jobId),
+      );
+      const questions = await screeningService.getPublicJobQuestions(job.id);
+      sendSuccess(res, questions);
     } catch (err) {
       next(err);
     }

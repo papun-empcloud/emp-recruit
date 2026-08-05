@@ -60,6 +60,9 @@ const CareerPage = lazyWithRetry(() =>
 const ApplicationsListPage = lazyWithRetry(() =>
   import("@/pages/applications/ApplicationsListPage").then((m) => ({ default: m.ApplicationsListPage })),
 );
+const ApplicationDetailPage = lazyWithRetry(() =>
+  import("@/pages/applications/ApplicationDetailPage").then((m) => ({ default: m.ApplicationDetailPage })),
+);
 function PageLoader() {
   return (
     <div className="flex h-64 items-center justify-center">
@@ -188,6 +191,7 @@ export default function App() {
 
             {/* All applications */}
             <Route path="/applications" element={<ApplicationsListPage />} />
+            <Route path="/applications/:id" element={<ApplicationDetailPage />} />
 
             {/* Analytics */}
             <Route path="/analytics" element={<AnalyticsPage />} />
