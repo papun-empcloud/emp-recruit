@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   FileText,
   Plus,
@@ -75,7 +75,11 @@ const OFFER_COLUMNS: ExportColumn<EnrichedOffer>[] = [
 
 export function OfferListPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const requested = searchParams.get("status") ?? "all";
+    return STATUS_TABS.some((tab) => tab.value === requested) ? requested : "all";
+  });
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -183,8 +187,8 @@ export function OfferListPage() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm -mx-4 lg:mx-0">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[900px] divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colCandidate")}</th>
@@ -192,14 +196,14 @@ export function OfferListPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colSalary")}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colStatus")}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">{t("offers.list.colCreated")}</th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="sticky right-0 z-10 min-w-28 bg-gray-50 px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                   <span className="sr-only">{t("common.actions")}</span>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {offers.map((offer) => (
-                <tr key={offer.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={offer.id} className="group hover:bg-gray-50 transition-colors">
                   <td className="whitespace-nowrap px-6 py-4">
                     <Link to={`/offers/${offer.id}`} className="font-medium text-gray-900 hover:text-brand-600">
                       {offer.candidate_name}
@@ -220,7 +224,7 @@ export function OfferListPage() {
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {formatDate(offer.created_at)}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                  <td className="sticky right-0 z-10 whitespace-nowrap bg-white px-4 py-4 text-right group-hover:bg-gray-50">
                     <Link
                       to={`/offers/${offer.id}`}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"

@@ -137,14 +137,14 @@ export function StatCard({
        */
       style={{ borderLeftColor: "var(--accent)" }}
     >
-      <Link to={to} className="block p-5 focus:outline-none">
-        <div className="flex items-stretch justify-between gap-4">
+      <Link to={to} className="block min-h-[150px] p-5 focus:outline-none">
+        <div className="flex items-stretch justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3.5">
             <span className={cn("inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", tone.chip)}>
               <Icon className="h-6 w-6" aria-hidden="true" />
             </span>
             <div className="min-w-0 pt-0.5">
-              <span className="block truncate text-sm font-medium text-gray-500">{label}</span>
+              <span className="block min-h-10 whitespace-normal break-words text-sm font-medium leading-5 text-gray-500">{label}</span>
               {isLoading ? (
                 <Skeleton className="mt-2 h-8 w-16" />
               ) : (

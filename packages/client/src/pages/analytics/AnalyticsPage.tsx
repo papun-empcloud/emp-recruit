@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import { apiGet } from "@/api/client";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { enumLabel } from "@/lib/enums";
 import { activeLocale } from "@/lib/utils";
 import { ExportMenu } from "@/components/ExportMenu";
@@ -225,6 +226,7 @@ export function AnalyticsPage() {
             value={metrics.hired}
             sub={t("analytics.candidatesHired")}
             accent="purple"
+            to="/applications?stage=hired"
           />
           <StatCard
             icon={Send}
@@ -232,6 +234,7 @@ export function AnalyticsPage() {
             value={metrics.offers.pending}
             sub={t("analytics.awaitingResponse")}
             accent="amber"
+            to="/offers?status=pending_approval"
           />
         </div>
       ) : null}
@@ -435,16 +438,18 @@ function StatCard({
   value,
   sub,
   accent,
+  to,
 }: {
   icon: any;
   label: string;
   value: number | string;
   sub?: string;
   accent: keyof typeof ACCENTS;
+  to?: string;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+  const content = (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all group-hover:-translate-y-0.5 group-hover:border-brand-300 group-hover:shadow-md">
       <div className="flex items-center gap-3">
         <div className={`rounded-lg p-2.5 ${a.bg}`}>
           <Icon className={`h-5 w-5 ${a.color}`} />
@@ -457,4 +462,9 @@ function StatCard({
       {sub && <p className="mt-3 truncate text-xs text-gray-400">{sub}</p>}
     </div>
   );
+  return to ? (
+    <Link to={to} className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+      {content}
+    </Link>
+  ) : content;
 }
