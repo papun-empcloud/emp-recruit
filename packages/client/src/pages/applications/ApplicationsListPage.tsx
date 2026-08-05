@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, FileText, Calendar, Search, X } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
@@ -48,7 +48,11 @@ const APPLICATION_COLUMNS: ExportColumn<AppRow>[] = [
 
 export function ApplicationsListPage() {
   const { t } = useTranslation();
-  const [stage, setStage] = useState("");
+  const [searchParams] = useSearchParams();
+  const [stage, setStage] = useState(() => {
+    const requested = searchParams.get("stage") ?? "";
+    return STAGES.includes(requested) ? requested : "";
+  });
   const [jobId, setJobId] = useState("");
   const [department, setDepartment] = useState("");
   const [location, setLocation] = useState("");

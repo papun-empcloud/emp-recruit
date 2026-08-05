@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -368,6 +368,8 @@ export function CareerApplyPage() {
               id="phone"
               name="phone"
               type="tel"
+              inputMode="tel"
+              maxLength={MAX_PHONE_DIGITS}
               value={form.phone}
               onChange={handleChange}
               className={fieldClass("phone")}

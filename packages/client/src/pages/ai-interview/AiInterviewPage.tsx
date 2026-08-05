@@ -70,7 +70,7 @@ function correctTranscript(text: string): string {
 }
 
 export function AiInterviewPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const [state, setState] = useState<InterviewState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -515,8 +515,9 @@ export function AiInterviewPage() {
     }
     try {
       const rec = new SpeechRecognitionCtor();
-      rec.lang = "en-US";
+      rec.lang = ({ en: "en-US", hi: "hi-IN", es: "es-ES", fr: "fr-FR", de: "de-DE", ar: "ar-SA", pt: "pt-PT", ja: "ja-JP", zh: "zh-CN" } as Record<string, string>)[i18n.resolvedLanguage ?? i18n.language] ?? navigator.language ?? "en-US";
       rec.continuous = true;
+      rec.maxAlternatives = 3;
       rec.interimResults = true;
       // Everything already captured becomes this run's committed base; the run's
       // own results are rebuilt from scratch each event so a repeated final
@@ -530,8 +531,12 @@ export function AiInterviewPage() {
         let interimText = "";
         for (let i = 0; i < e.results.length; i++) {
           const r = e.results[i];
-          if (r.isFinal) runFinal += r[0].transcript + " ";
-          else interimText += r[0].transcript;
+          let best = r[0];
+          for (let alternative = 1; alternative < r.length; alternative++) {
+            if ((r[alternative].confidence ?? 0) > (best.confidence ?? 0)) best = r[alternative];
+          }
+          if (r.isFinal) runFinal += best.transcript + " ";
+          else interimText += best.transcript;
         }
         if (recognitionRef.current !== rec) return;
         interimRef.current = interimText.trim();
@@ -548,6 +553,16 @@ export function AiInterviewPage() {
         // we stopped on purpose, commit what we have and restart so the mic keeps
         // listening and the "Listening" badge stays accurate. (#4/#5)
         if (!manualStopRef.current) {
+          // Chrome can end a recognition run while its last phrase is still
+          // interim. Preserve that phrase before restarting or words disappear.
+          const pending = interimRef.current.trim();
+          if (pending) {
+            const combined = `${answerRef.current} ${pending}`.replace(/\s+/g, " ").trim();
+            answerRef.current = combined;
+            setAnswer(combined);
+            interimRef.current = "";
+            setInterim("");
+          }
           committedRef.current = answerRef.current;
           try {
             rec.start();

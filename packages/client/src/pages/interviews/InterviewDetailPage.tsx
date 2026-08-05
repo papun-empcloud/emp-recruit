@@ -346,7 +346,7 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
           }),
         );
       }
-      setInvitationSent(true);
+      setInvitationSent(failed.length === 0);
       setTimeout(() => setInvitationSent(false), 5000);
     },
     onError: (err: any) =>
@@ -387,8 +387,24 @@ function MeetingLinkSection({ interview }: { interview: InterviewDetail }) {
             <LinkIcon className="h-4 w-4" />
             {generateMeetMutation.isPending ? t("interviews.detail.generating") : t("interviews.detail.generateMeetingLink")}
           </button>
+          <button
+            onClick={() => sendInvitationMutation.mutate()}
+            disabled={sendInvitationMutation.isPending}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Mail className="h-4 w-4" />
+            {sendInvitationMutation.isPending ? t("interviews.detail.sending") : t("interviews.detail.sendInvitation")}
+          </button>
           {generateMeetMutation.isError && (
             <p className="text-sm text-red-600">{t("interviews.detail.generateLinkError")}</p>
+          )}
+          {invitationSent && (
+            <p className="text-sm text-green-700">{t("interviews.detail.invitationSent")}</p>
+          )}
+          {sendInvitationMutation.isError && (
+            <p className="text-sm text-red-600">
+              {(sendInvitationMutation.error as any)?.response?.data?.error?.message || t("interviews.detail.sendInvitationError")}
+            </p>
           )}
         </div>
       ) : (
