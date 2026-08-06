@@ -45,7 +45,9 @@ export async function parseResumeText(filePath: string): Promise<string> {
   // (file-not-found), so career-page / public résumés never parsed on the server
   // and those resume-only applicants scored 0. Strip leading separators and always
   // resolve against the server's working directory.
-  const absolutePath = path.join(process.cwd(), filePath.replace(/^[/\\]+/, ""));
+  const absolutePath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(process.cwd(), filePath.replace(/^[/\\]+/, ""));
 
   try {
     await fs.access(absolutePath);

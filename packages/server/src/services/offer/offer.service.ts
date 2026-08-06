@@ -9,6 +9,7 @@ import { NotFoundError, ValidationError, AppError } from "../../utils/errors";
 import { toMysqlDateTime } from "../../utils/date";
 import { logger } from "../../utils/logger";
 import * as onboardingService from "../onboarding/onboarding.service";
+import { dispatchAutomationEvent } from "../recruitment-ops/recruitment-ops.service";
 import {
   expiryOnOrAfterJoining,
   OFFER_DATE_ORDER_MESSAGE,
@@ -163,6 +164,18 @@ export async function updateOffer(orgId: number, id: string, data: UpdateOfferDa
   }
 
   return db.update<Offer>("offers", id, data);
+}
+
+export async function deleteDraftOffer(orgId: number, id: string): Promise<void> {
+  const db = getDB();
+  const offer = await db.findOne<Offer>("offers", { id, organization_id: orgId });
+  if (!offer) throw new NotFoundError("Offer", id);
+  if (offer.status !== "draft") throw new ValidationError("Only draft offers can be deleted");
+  await db.transaction(async (tx) => {
+    await tx.deleteMany("offer_approvers", { offer_id: id });
+    await tx.deleteMany("generated_offer_letters", { offer_id: id, organization_id: orgId }).catch(() => 0);
+    await tx.delete("offers", id);
+  });
 }
 
 export async function getOffer(
@@ -544,6 +557,11 @@ export async function acceptOffer(orgId: number, id: string, notes?: string): Pr
     }
     return upd;
   });
+
+  await Promise.all([
+    dispatchAutomationEvent(orgId, { trigger: "offer_accepted", value: "accepted", applicationId: offer.application_id }),
+    dispatchAutomationEvent(orgId, { trigger: "application_stage_changed", value: "hired", applicationId: offer.application_id }),
+  ]).catch((error) => logger.error(`Offer ${id} accepted but automation dispatch failed`, error));
 
   // Auto-generate the onboarding checklist for the new hire (the offer-to-
   // onboarding handoff the UI advertises). Best-effort — a missing default

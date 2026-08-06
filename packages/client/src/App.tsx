@@ -17,7 +17,7 @@ import { ADMIN_ROLES } from "@/lib/roles";
 // Route config imports
 import { jobRoutes } from "./routes/jobs.routes";
 import { candidateRoutes } from "./routes/candidates.routes";
-import { interviewRoutes } from "./routes/interviews.routes";
+import { adminInterviewRoutes, panelistInterviewRoutes } from "./routes/interviews.routes";
 import { offerRoutes } from "./routes/offers.routes";
 import { onboardingRoutes } from "./routes/onboarding.routes";
 import { portalRoutes } from "./routes/portal.routes";
@@ -62,6 +62,9 @@ const ApplicationsListPage = lazyWithRetry(() =>
 );
 const ApplicationDetailPage = lazyWithRetry(() =>
   import("@/pages/applications/ApplicationDetailPage").then((m) => ({ default: m.ApplicationDetailPage })),
+);
+const RecruitmentOperationsPage = lazyWithRetry(() =>
+  import("@/pages/operations/RecruitmentOperationsPage").then((m) => ({ default: m.RecruitmentOperationsPage })),
 );
 function PageLoader() {
   return (
@@ -167,6 +170,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           {/* Referrals */}
           <Route path="/referrals" element={<ReferralListPage />} />
+          {panelistInterviewRoutes}
 
           {/* Staff-only workspace — employees are redirected to /dashboard.
               Mirrors the server's authorize() role checks so admin pages can't
@@ -174,7 +178,7 @@ export default function App() {
           <Route element={<RequireRole roles={ADMIN_ROLES} />}>
             {jobRoutes}
             {candidateRoutes}
-            {interviewRoutes}
+            {adminInterviewRoutes}
             {offerRoutes}
             {onboardingRoutes}
 
@@ -198,6 +202,7 @@ export default function App() {
 
             {/* Settings */}
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/recruitment-operations" element={<RecruitmentOperationsPage />} />
           </Route>
 
           {/* Unknown routes for a signed-in user render a styled 404 inside the

@@ -13,10 +13,12 @@ import { z } from "zod";
 import * as careerPageService from "../../services/career-page/career-page.service";
 import * as feedService from "../../services/job-board/feed.service";
 import * as screeningService from "../../services/screening/screening.service";
+import * as recruitmentOps from "../../services/recruitment-ops/recruitment-ops.service";
 import { screeningAnswersSchema } from "@emp-recruit/shared";
 import { getDB } from "../../db/adapters";
 import { sendSuccess } from "../../utils/response";
 import { ValidationError } from "../../utils/errors";
+import { logger } from "../../utils/logger";
 
 const router = Router();
 
@@ -230,27 +232,48 @@ router.post(
       const answers = screeningAnswersSchema.parse(rawAnswers);
       const prepared = await screeningService.prepareAnswers(jobId as string, answers);
 
+      let rawCustomValues: Record<string, unknown> = {};
+      if (req.body.custom_form_values) {
+        try { rawCustomValues = JSON.parse(req.body.custom_form_values); }
+        catch { throw new ValidationError("Invalid custom application fields"); }
+      }
+      const publicJob = await careerPageService.getPublicJobDetail(String(req.params.slug), String(jobId));
+      const preparedCustom = await recruitmentOps.prepareFormValues(publicJob.organization_id, String(jobId), rawCustomValues);
+
       const resumePath = `/uploads/resumes/${req.file.filename}`;
 
-      const result = await careerPageService.submitPublicApplication(
-        String(req.params.slug),
-        jobId as string,
-        parsed.data,
-        resumePath,
-      );
+      const knockoutFailed = prepared.knockoutFailed || preparedCustom.knockoutFailed;
+      const result = await getDB().transaction(async (tx) => {
+        const submitted = await careerPageService.submitPublicApplication(
+          String(req.params.slug), jobId as string, parsed.data, resumePath, tx,
+        );
+        await screeningService.storeAnswers(submitted.application.organization_id, submitted.application.id, prepared.rows, tx);
+        await recruitmentOps.storeFormValues(submitted.application.organization_id, submitted.application.id, preparedCustom.rows, tx);
+        if (knockoutFailed) {
+          await tx.update("applications", submitted.application.id, {
+            stage: "rejected",
+            rejection_reason: "Did not meet a required screening criterion.",
+          } as any);
+          await tx.create("application_stage_history", {
+            application_id: submitted.application.id,
+            from_stage: "applied",
+            to_stage: "rejected",
+            changed_by: 0,
+            notes: "Automatically rejected by a knockout screening criterion",
+          });
+          submitted.application.stage = "rejected" as any;
+        }
+        return submitted;
+      });
 
-      // Persist answers, and auto-reject on a failed knockout question.
-      await screeningService.storeAnswers(
-        result.application.organization_id,
-        result.application.id,
-        prepared.rows,
-      );
-      if (prepared.knockoutFailed) {
-        await getDB().update("applications", result.application.id, {
-          stage: "rejected",
-          rejection_reason: "Did not meet a required screening criterion.",
-        } as any);
-      }
+      // Dispatch only after the transaction commits so automation never sees a
+      // partially persisted application or sends mail for a rolled-back one.
+      await recruitmentOps.dispatchAutomationEvent(result.application.organization_id, {
+        trigger: "application_created", value: "applied", applicationId: result.application.id,
+      }).catch((error) => logger.error(`Public application ${result.application.id} created but automation dispatch failed`, error));
+      if (knockoutFailed) await recruitmentOps.dispatchAutomationEvent(result.application.organization_id, {
+        trigger: "application_stage_changed", value: "rejected", applicationId: result.application.id,
+      }).catch((error) => logger.error(`Public application ${result.application.id} rejected but automation dispatch failed`, error));
 
       sendSuccess(res, result, 201);
     } catch (err) {
@@ -281,6 +304,14 @@ router.get(
     }
   },
 );
+
+router.get("/careers/:slug/jobs/:jobId/form-fields", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const job = await careerPageService.getPublicJobDetail(String(req.params.slug), String(req.params.jobId));
+    const fields = await recruitmentOps.listFormFields(job.organization_id, job.id);
+    sendSuccess(res, fields.map(({ is_knockout: _a, knockout_value: _b, organization_id: _c, ...field }) => field));
+  } catch (err) { next(err); }
+});
 
 // ---------------------------------------------------------------------------
 // Job feed — crawlable by external boards (Indeed, Google Jobs, …).

@@ -24,11 +24,12 @@ router.use(authenticate);
 // ---------------------------------------------------------------------------
 // GET / — List interviews (HR/admin only)
 // ---------------------------------------------------------------------------
-router.get("/", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/", authorize("org_admin", "hr_admin", "hr_manager", "employee"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
     const { page, limit, application_id, status, search, sort_field, sort_order } = req.query;
 
+    const viewerScope = interviewService.interviewViewerScope({ role: req.user!.role, userId: req.user!.empcloudUserId });
     const result = await interviewService.listInterviews(orgId, {
       page: page ? parsePage(page) : undefined,
       limit: limit ? parseLimit(limit) : undefined,
@@ -37,6 +38,7 @@ router.get("/", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Re
       search: search as string | undefined,
       sort_field: sort_field as string | undefined,
       sort_order: sort_order as "asc" | "desc" | undefined,
+      panelist_user_id: viewerScope.panelistUserId,
     });
 
     return sendPaginated(res, result.data, result.total, result.page, result.perPage);
@@ -137,10 +139,11 @@ router.put(
 // ---------------------------------------------------------------------------
 // GET /:id — Get interview detail with panelists + feedback (HR/admin only)
 // ---------------------------------------------------------------------------
-router.get("/:id", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", authorize("org_admin", "hr_admin", "hr_manager", "employee"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
-    const interview = await interviewService.getInterview(orgId, String(req.params.id));
+    await interviewService.assertInterviewViewer(orgId, String(req.params.id), { role: req.user!.role, userId: req.user!.empcloudUserId });
+    const interview = await interviewService.getInterview(orgId, String(req.params.id), req.user!.role === "employee" ? req.user!.empcloudUserId : undefined);
     return sendSuccess(res, interview);
   } catch (err) {
     next(err);
@@ -150,9 +153,10 @@ router.get("/:id", authorize("org_admin", "hr_admin", "hr_manager"), async (req:
 // ---------------------------------------------------------------------------
 // GET /:id/calendar-links — Get calendar URLs (Google, Outlook, Office 365)
 // ---------------------------------------------------------------------------
-router.get("/:id/calendar-links", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id/calendar-links", authorize("org_admin", "hr_admin", "hr_manager", "employee"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
+    await interviewService.assertInterviewViewer(orgId, String(req.params.id), { role: req.user!.role, userId: req.user!.empcloudUserId });
     const links = await interviewService.getCalendarLinks(orgId, String(req.params.id));
     return sendSuccess(res, links);
   } catch (err) {
@@ -163,9 +167,10 @@ router.get("/:id/calendar-links", authorize("org_admin", "hr_admin", "hr_manager
 // ---------------------------------------------------------------------------
 // GET /:id/calendar.ics — Download ICS file for the interview
 // ---------------------------------------------------------------------------
-router.get("/:id/calendar.ics", authorize("org_admin", "hr_admin", "hr_manager"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id/calendar.ics", authorize("org_admin", "hr_admin", "hr_manager", "employee"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
+    await interviewService.assertInterviewViewer(orgId, String(req.params.id), { role: req.user!.role, userId: req.user!.empcloudUserId });
     const icsContent = await interviewService.generateICSFile(orgId, String(req.params.id));
     res.setHeader("Content-Type", "text/calendar; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="interview-${req.params.id}.ics"`);
@@ -314,7 +319,8 @@ router.post("/:id/feedback", async (req: Request, res: Response, next: NextFunct
 router.get("/:id/feedback", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
-    const feedback = await interviewService.getFeedback(orgId, String(req.params.id));
+    await interviewService.assertInterviewViewer(orgId, String(req.params.id), { role: req.user!.role, userId: req.user!.empcloudUserId });
+    const feedback = await interviewService.getFeedback(orgId, String(req.params.id), req.user!.role === "employee" ? req.user!.empcloudUserId : undefined);
     return sendSuccess(res, feedback);
   } catch (err) {
     next(err);
@@ -348,11 +354,12 @@ router.post(
 // ---------------------------------------------------------------------------
 router.post(
   "/:id/meeting-token",
-  authorize("org_admin", "hr_admin", "hr_manager"),
+  authorize("org_admin", "hr_admin", "hr_manager", "employee"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
       const u = req.user!;
+      await interviewService.assertInterviewViewer(orgId, String(req.params.id), { role: u.role, userId: u.empcloudUserId });
       const token = await interviewService.getInterviewRoomToken(orgId, String(req.params.id), {
         userId: u.empcloudUserId,
         name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email,

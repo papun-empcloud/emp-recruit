@@ -19,6 +19,7 @@ import {
   Mic,
   Globe,
   Inbox,
+  Workflow,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { isLoggedIn, getUser, useAuthStore } from "@/lib/auth-store";
@@ -69,7 +70,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     titleKey: "nav.groups.interviews",
     items: [
-      { to: "/interviews", labelKey: "nav.interviews", icon: Calendar, adminOnly: true },
+      { to: "/interviews", labelKey: "nav.interviews", icon: Calendar },
       { to: "/ai-interviews", labelKey: "nav.aiInterviews", icon: Mic, adminOnly: true, badge: "new" },
       { to: "/scoring", labelKey: "nav.aiScoring", icon: Brain, adminOnly: true, badge: "beta" },
     ],
@@ -84,7 +85,10 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     titleKey: "nav.groups.system",
-    items: [{ to: "/settings", labelKey: "nav.settings", icon: Settings, adminOnly: true }],
+    items: [
+      { to: "/recruitment-operations", labelKey: "nav.operations", icon: Workflow, adminOnly: true },
+      { to: "/settings", labelKey: "nav.settings", icon: Settings, adminOnly: true },
+    ],
   },
 ];
 
@@ -109,7 +113,7 @@ export function DashboardLayout() {
 
   function SidebarContent() {
     return (
-      <div className="flex h-full w-64 flex-col bg-white border-r border-gray-200">
+      <div className="flex h-full min-h-0 w-[min(18rem,88vw)] flex-col border-r border-gray-200 bg-white lg:w-64">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-6 border-b border-gray-100">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600">
@@ -119,7 +123,7 @@ export function DashboardLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-5">
+        <nav className="min-h-0 flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-5">
           {NAV_GROUPS.map((group) => {
             const items = group.items.filter(
               (item) => !(item.adminOnly && !canAccessRecruit(user)),
@@ -175,8 +179,10 @@ export function DashboardLayout() {
               <p className="text-xs text-gray-500">{roleLabel}</p>
             </div>
             <button
+              type="button"
               onClick={() => setConfirmLogout(true)}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label={t("nav.logout")}
+              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               title={t("nav.logout")}
             >
               <LogOut className="h-4 w-4" />
@@ -188,7 +194,7 @@ export function DashboardLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="fixed inset-0 flex min-h-0 overflow-hidden bg-gray-50">
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <SidebarContent />
@@ -197,28 +203,29 @@ export function DashboardLayout() {
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <button type="button" aria-label="Close navigation" className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="fixed left-0 top-0 z-50 h-full">
             <SidebarContent />
           </div>
         </div>
       )}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 lg:px-8">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 sm:px-4 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 lg:hidden"
+            aria-label="Open navigation"
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>
           <BackToDashboard />
           <div className="flex-1" />
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+            <div className="hidden min-[400px]:block"><LanguageSwitcher /></div>
             <ThemeToggle />
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-brand-700 text-xs font-semibold">
+            <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 min-[430px]:flex">
               {getInitials(displayName)}
             </div>
             <span className="hidden md:block text-sm font-medium text-gray-700">{displayName}</span>
@@ -228,7 +235,7 @@ export function DashboardLayout() {
         {/* Page content. The ErrorBoundary is keyed on the path so a crash on one
             page is isolated (sidebar stays usable) and clears when the user
             navigates elsewhere, instead of blanking the whole app. */}
-        <main className="flex-1 overflow-y-auto scrollbar-thin p-4 lg:p-8">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 sm:p-5 lg:p-8">
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>

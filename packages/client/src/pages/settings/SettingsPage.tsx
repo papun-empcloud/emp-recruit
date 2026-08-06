@@ -6,18 +6,20 @@ import {
   Save,
   Plus,
   Pencil,
+  Trash2,
   Eye,
   Mail,
   X,
   GitBranch,
   Share2,
 } from "lucide-react";
-import { apiGet, apiPost, apiPut } from "@/api/client";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { EmailTemplate } from "@emp-recruit/shared";
 import { PipelineSettingsPage } from "./PipelineSettingsPage";
 import { JobBoardSettings } from "./JobBoardSettings";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -81,6 +83,8 @@ function EmailTemplateSettings() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewSubject, setPreviewSubject] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -128,10 +132,23 @@ function EmailTemplateSettings() {
   const previewMutation = useMutation({
     mutationFn: (id: string) => apiPost<{ subject: string; body: string }>(`/email-templates/${id}/preview`, {}),
     onSuccess: (res) => {
+      setPreviewSubject(res.data?.subject || "");
       setPreviewHtml(res.data?.body || "");
     },
     onError: () => {
       toast.error(t("settings.email.previewFailed"));
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiDelete(`/email-templates/${id}`),
+    onSuccess: () => {
+      toast.success(t("settings.email.templateDeleted"));
+      queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+      setDeleteId(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error?.message || t("settings.email.deleteFailed"));
     },
   });
 
@@ -175,6 +192,7 @@ function EmailTemplateSettings() {
               <X className="h-5 w-5" />
             </button>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t("settings.email.emailPreview")}</h3>
+            {previewSubject && <p className="mb-4 border-b border-gray-200 pb-3 text-sm font-semibold text-gray-900">{previewSubject}</p>}
             <div
               className="prose prose-sm max-w-none border border-gray-200 rounded-lg p-4"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewHtml) }}
@@ -353,11 +371,28 @@ function EmailTemplateSettings() {
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
+                <button
+                  onClick={() => setDeleteId(tpl.id)}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                  title={t("settings.email.delete")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        title={t("settings.email.deleteTitle")}
+        message={t("settings.email.deleteMessage")}
+        confirmLabel={t("settings.email.delete")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

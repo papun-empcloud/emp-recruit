@@ -394,19 +394,21 @@ export function JobDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[1500px] space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
           <button
             onClick={() => navigate("/jobs")}
-            className="mt-1 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Back to Job Postings"
+            className="mt-0.5 shrink-0 rounded-xl border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="min-w-0 break-words text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{job.title}</h1>
               <span
                 className={cn(
                   "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
@@ -416,7 +418,7 @@ export function JobDetailPage() {
                 {enumLabel(t, "jobStatus", job.status)}
               </span>
             </div>
-            <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-500">
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-500">
               {job.department && (
                 <span className="inline-flex items-center gap-1">
                   <Briefcase className="h-4 w-4" /> {job.department}
@@ -455,11 +457,11 @@ export function JobDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 xl:max-w-[38rem] xl:justify-end">
           {job.status === "draft" && (
             <button
               onClick={() => statusMutation.mutate("open")}
-              className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+              className="min-h-10 rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
             >
               {t("jobs.detail.publish")}
             </button>
@@ -468,13 +470,13 @@ export function JobDetailPage() {
             <>
               <button
                 onClick={() => statusMutation.mutate("paused")}
-                className="rounded-lg bg-yellow-600 px-3 py-2 text-sm font-medium text-white hover:bg-yellow-700"
+                className="min-h-10 rounded-xl bg-yellow-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-yellow-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2"
               >
                 {t("jobs.detail.pause")}
               </button>
               <button
                 onClick={handleClose}
-                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                className="min-h-10 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
               >
                 {t("jobs.detail.close")}
               </button>
@@ -484,13 +486,13 @@ export function JobDetailPage() {
             <>
               <button
                 onClick={() => statusMutation.mutate("open")}
-                className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                className="min-h-10 rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
               >
                 {t("jobs.detail.resume")}
               </button>
               <button
                 onClick={handleClose}
-                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700"
+                className="min-h-10 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
               >
                 {t("jobs.detail.close")}
               </button>
@@ -498,48 +500,49 @@ export function JobDetailPage() {
           )}
           <Link
             to={`/jobs/${job.id}/workflow`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <Users className="h-4 w-4" />
             {t("jobs.detail.workflowBoard")}
           </Link>
           <Link
             to={`/jobs/${job.id}/edit`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <Edit className="h-4 w-4" />
             {t("jobs.detail.edit")}
           </Link>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
             <Trash2 className="h-4 w-4" />
             {t("jobs.detail.delete")}
           </button>
         </div>
       </div>
+      </section>
 
       {/* Job details card */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-        <div>
-          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.description")}</h2>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+        <div className="border-b border-gray-100 pb-6">
+          <h2 className="text-lg font-bold text-gray-900">{t("jobs.detail.description")}</h2>
           <div
-            className="rte-content mt-2 text-gray-700"
+            className="rte-content mt-3 max-w-none text-sm leading-7 text-gray-700 sm:text-base"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.description || "") }}
           />
         </div>
         {job.requirements && (
-          <div>
-            <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.requirements")}</h2>
+          <div className="border-b border-gray-100 py-6">
+            <h2 className="text-lg font-bold text-gray-900">{t("jobs.detail.requirements")}</h2>
             <div
-              className="rte-content mt-2 text-gray-700"
+              className="rte-content mt-3 max-w-none text-sm leading-7 text-gray-700 sm:text-base"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.requirements || "") }}
             />
           </div>
         )}
         {skills.length > 0 && (
-          <div>
+          <div className="border-b border-gray-100 py-6">
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.skills")}</h2>
             <div className="mt-2 flex flex-wrap gap-2">
               {skills.map((skill: string) => (
@@ -554,19 +557,19 @@ export function JobDetailPage() {
           </div>
         )}
         {(job.experience_min !== null || job.experience_max !== null) && (
-          <div>
+          <div className="border-b border-gray-100 py-6">
             <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{t("jobs.detail.experience")}</h2>
             <p className="mt-2 text-gray-700">
               {t("jobs.detail.experienceRange", { min: job.experience_min ?? 0, max: job.experience_max ?? t("jobs.detail.experienceAny") })}
             </p>
           </div>
         )}
-        <div className="flex gap-6 text-sm text-gray-500">
+        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-5 text-sm text-gray-500">
           <span>{t("jobs.detail.createdOn", { date: formatDate(job.created_at) })}</span>
           {job.published_at && <span>{t("jobs.detail.publishedOn", { date: formatDate(job.published_at) })}</span>}
           {job.closes_at && <span>{t("jobs.detail.closesOn", { date: formatDate(job.closes_at) })}</span>}
         </div>
-      </div>
+      </section>
 
       {/* Job boards — publishing status per board */}
       {id && <JobBoardsCard jobId={id} />}
@@ -576,7 +579,7 @@ export function JobDetailPage() {
 
       {/* Kanban Pipeline */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
               {t("jobs.detail.pipelineTitle", { count: applications.length })}
@@ -586,7 +589,7 @@ export function JobDetailPage() {
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowAddCandidate(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50"

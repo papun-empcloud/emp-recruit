@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Brain, Plus, X, Search, Copy, Loader2, ChevronRight, ArrowLeft, Sparkles, Trash2 } from "lucide-react";
-import { apiGet, apiPost, apiPut } from "@/api/client";
+import { Brain, Plus, X, Search, Copy, Loader2, ChevronRight, ArrowLeft, Sparkles, Trash2, Briefcase, CalendarDays, UserRound } from "lucide-react";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/api/client";
 import { formatDate } from "@/lib/utils";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import { Pagination } from "@/components/Pagination";
@@ -11,6 +11,7 @@ import { ExportButtons } from "@/components/ExportButtons";
 import { fetchAllRows, type ExportColumn } from "@/lib/export";
 import type { PaginatedResponse } from "@emp-recruit/shared";
 import toast from "react-hot-toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface SessionRow {
   id: string;
@@ -61,6 +62,7 @@ export function AiInterviewsListPage() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { rows: sessions, total, perPage, isLoading } = usePaginatedList<SessionRow>(
     ["ai-interviews"],
@@ -69,19 +71,26 @@ export function AiInterviewsListPage() {
     page,
   );
 
+  const deleteMutation = useMutation({
+    mutationFn: (sessionId: string) => apiDelete(`/ai-interviews/${sessionId}`),
+    onSuccess: () => { toast.success("Draft AI interview deleted"); setDeleteId(null); queryClient.invalidateQueries({ queryKey: ["ai-interviews"] }); },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Could not delete draft AI interview"),
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Brain className="h-7 w-7 text-purple-600" />
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700"><Brain className="h-6 w-6" aria-hidden="true" /></span>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t("aiInterview.list.title")}</h1>
+            <div className="flex flex-wrap items-center gap-2"><h1 className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{t("aiInterview.list.title")}</h1><span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700">AI Powered</span></div>
             <p className="mt-1 text-sm text-gray-500">
               {t("aiInterview.list.subtitle")}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ExportButtons
             baseName="ai-interviews"
             title={t("aiInterview.list.title")}
@@ -91,25 +100,39 @@ export function AiInterviewsListPage() {
           />
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 sm:flex-none"
           >
-            <Plus className="h-4 w-4" /> {t("aiInterview.list.newInterview")}
+            <Plus className="h-4 w-4" aria-hidden="true" /> {t("aiInterview.list.newInterview")}
           </button>
         </div>
       </div>
+      </section>
 
       {isLoading ? (
         <div className="flex h-40 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
         </div>
       ) : sessions.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center">
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-16 text-center shadow-sm">
           <Brain className="mx-auto h-10 w-10 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">{t("aiInterview.list.empty")}</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
+        <>
+        <div className="space-y-3 md:hidden">
+          {sessions.map((s) => (
+            <article key={s.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-bold text-gray-900">{s.candidate_name}</h2><p className="mt-1 truncate text-sm text-gray-500">{s.job_title || "No role assigned"}</p></div><span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE[s.status]}`}>{t(`aiInterview.status.${s.status}`)}</span></div>
+              <div className="mt-4 grid gap-2 text-sm text-gray-500 min-[430px]:grid-cols-2">
+                <span className="inline-flex min-w-0 items-center gap-2"><UserRound className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" /><span className="truncate">{s.total_questions} questions</span></span>
+                <span className="inline-flex min-w-0 items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" /><span className="truncate">{formatDate(s.created_at)}</span></span>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-3"><span className="text-sm font-semibold tabular-nums text-gray-700">{s.overall_score != null ? `${s.overall_score}/100` : "Not scored"}</span><div className="flex items-center gap-2">{(s.status === "ready" || s.status === "in_progress") && <button type="button" onClick={() => { navigator.clipboard?.writeText(candidateLink(s.token)); toast.success(t("aiInterview.toasts.linkCopied")); }} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"><Copy className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />{t("aiInterview.list.linkLabel")}</button>}{s.status === "draft" && <button type="button" onClick={() => setDeleteId(s.id)} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete draft"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}<Link to={`/ai-interviews/${s.id}`} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={`View interview for ${s.candidate_name}`}><ChevronRight className="h-5 w-5" aria-hidden="true" /></Link></div></div>
+            </article>
+          ))}
+        </div>
+        <div className="hidden overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm md:block">
+          <table className="min-w-[780px] w-full text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-6 py-3 font-medium">{t("aiInterview.list.colCandidate")}</th>
@@ -122,15 +145,15 @@ export function AiInterviewsListPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {sessions.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium text-gray-900">{s.candidate_name}</td>
+                <tr key={s.id} className="transition-colors hover:bg-purple-50/30">
+                  <td className="px-6 py-4 font-semibold text-gray-900">{s.candidate_name}</td>
                   <td className="px-6 py-3 text-gray-600">{s.job_title || "—"}</td>
                   <td className="px-6 py-3">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE[s.status]}`}>
                       {t(`aiInterview.status.${s.status}`)}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-gray-700">
+                  <td className="px-6 py-3 font-semibold tabular-nums text-gray-700">
                     {s.overall_score != null ? `${s.overall_score}/100` : "—"}
                   </td>
                   <td className="px-6 py-3 text-gray-500">{formatDate(s.created_at)}</td>
@@ -148,8 +171,9 @@ export function AiInterviewsListPage() {
                           <Copy className="h-3.5 w-3.5" /> {t("aiInterview.list.linkLabel")}
                         </button>
                       )}
-                      <Link to={`/ai-interviews/${s.id}`} className="text-gray-400 hover:text-gray-600">
-                        <ChevronRight className="h-5 w-5" />
+                      {s.status === "draft" && <button onClick={() => setDeleteId(s.id)} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Delete draft"><Trash2 className="h-4 w-4" aria-hidden="true" /></button>}
+                      <Link to={`/ai-interviews/${s.id}`} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={`View interview for ${s.candidate_name}`}>
+                        <ChevronRight className="h-5 w-5" aria-hidden="true" />
                       </Link>
                     </div>
                   </td>
@@ -158,6 +182,7 @@ export function AiInterviewsListPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {!isLoading && total > 0 && (
@@ -170,6 +195,7 @@ export function AiInterviewsListPage() {
           onCreated={() => queryClient.invalidateQueries({ queryKey: ["ai-interviews"] })}
         />
       )}
+      <ConfirmDialog open={deleteId !== null} title="Delete draft AI interview?" message="The generated questions and unused candidate link will be permanently removed." confirmLabel="Delete draft" variant="danger" loading={deleteMutation.isPending} onConfirm={() => deleteId && deleteMutation.mutate(deleteId)} onCancel={() => setDeleteId(null)} />
     </div>
   );
 }
@@ -238,6 +264,20 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
       toast.success(t("aiInterview.toasts.approved"));
     },
     onError: (err: any) => toast.error(err?.response?.data?.error?.message || t("aiInterview.toasts.approveError")),
+  });
+
+  const saveDraftMutation = useMutation({
+    mutationFn: async () => {
+      const clean = questions.map((q) => q.trim()).filter(Boolean);
+      if (!sessionId || clean.length === 0) throw new Error("At least one question is required");
+      await apiPut(`/ai-interviews/${sessionId}/questions`, { questions: clean });
+    },
+    onSuccess: () => {
+      onCreated();
+      toast.success(t("aiInterview.toasts.draftSaved"));
+      onClose();
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || err?.message || t("aiInterview.toasts.draftSaveError")),
   });
 
   return (
@@ -419,9 +459,11 @@ function NewInterviewModal({ onClose, onCreated }: { onClose: () => void; onCrea
             </button>
             <div className="mt-5 flex justify-end gap-2">
               <button
-                onClick={onClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={() => saveDraftMutation.mutate()}
+                disabled={saveDraftMutation.isPending || questions.filter((q) => q.trim()).length === 0}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
+                {saveDraftMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {t("aiInterview.modal.saveAsDraft")}
               </button>
               <button

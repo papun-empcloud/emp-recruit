@@ -16,6 +16,7 @@ import {
   Plus,
   X,
   Loader2,
+  Archive,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { apiGet, apiPost } from "@/api/client";
@@ -24,6 +25,7 @@ import toast from "react-hot-toast";
 import type { Candidate, Application, JobPosting, PaginatedResponse } from "@emp-recruit/shared";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const STAGE_BADGE: Record<string, string> = {
   applied: "bg-blue-100 text-blue-700",
@@ -63,6 +65,7 @@ export function CandidateDetailPage() {
   const queryClient = useQueryClient();
   const [showApply, setShowApply] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState("");
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   // Open jobs to apply this candidate to (loaded when the dialog opens).
   const { data: jobsData } = useQuery({
@@ -90,6 +93,12 @@ export function CandidateDetailPage() {
           t("candidates.detail.applyError"),
       );
     },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: () => apiPost(`/candidates/${id}/archive`),
+    onSuccess: () => { toast.success("Candidate archived"); navigate("/candidates"); },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Could not archive candidate"),
   });
 
   if (loadingCandidate) {
@@ -161,6 +170,7 @@ export function CandidateDetailPage() {
           <Pencil className="h-4 w-4" />
           {t("candidates.detail.edit")}
         </Link>
+        <button onClick={() => setShowArchiveConfirm(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Archive className="h-4 w-4" /> Archive</button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -377,6 +387,7 @@ export function CandidateDetailPage() {
           )}
         </div>
       </div>
+      <ConfirmDialog open={showArchiveConfirm} title="Archive candidate?" message="The candidate will be removed from active searches while their recruitment history is retained." confirmLabel="Archive candidate" variant="danger" loading={archiveMutation.isPending} onConfirm={() => archiveMutation.mutate()} onCancel={() => setShowArchiveConfirm(false)} />
 
       {/* Apply-to-job dialog */}
       {showApply && (

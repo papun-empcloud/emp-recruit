@@ -102,6 +102,23 @@ describe("Email Service", () => {
     });
   });
 
+  describe("deleteTemplate", () => {
+    it("deletes a template owned by the organization", async () => {
+      mockDB.findOne.mockResolvedValueOnce({ id: "e1", organization_id: ORG });
+      mockDB.delete.mockResolvedValueOnce(true);
+
+      await expect(emailService.deleteTemplate(ORG, "e1")).resolves.toBeUndefined();
+      expect(mockDB.delete).toHaveBeenCalledWith("email_templates", "e1");
+    });
+
+    it("does not delete a template outside the organization", async () => {
+      mockDB.findOne.mockResolvedValueOnce(null);
+
+      await expect(emailService.deleteTemplate(ORG, "other-org-template")).rejects.toThrow();
+      expect(mockDB.delete).not.toHaveBeenCalled();
+    });
+  });
+
   describe("renderTemplate", () => {
     it("renders Handlebars template", () => {
       const result = emailService.renderTemplate("Hello {{name}}!", { name: "World" });

@@ -63,6 +63,13 @@ router.post("/:id/approve", async (req: Request, res: Response, next: NextFuncti
   }
 });
 
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await aiInterviewService.deleteDraftSession(req.user!.empcloudOrgId, String(req.params.id));
+    sendSuccess(res, { deleted: true });
+  } catch (err) { next(err); }
+});
+
 // GET / — list sessions
 router.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {

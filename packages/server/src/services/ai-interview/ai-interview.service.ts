@@ -412,6 +412,15 @@ export async function approveSession(orgId: number, id: string): Promise<void> {
   logger.info(`AI interview ${id} approved (ready)`);
 }
 
+/** HR: remove an unused draft. Started or completed interviews remain immutable. */
+export async function deleteDraftSession(orgId: number, id: string): Promise<void> {
+  const db = getDB();
+  const session = await db.findOne<AiInterviewRow>("ai_interviews", { id, organization_id: orgId });
+  if (!session) throw new NotFoundError("AI interview", id);
+  if (session.status !== "draft") throw new ValidationError("Only draft AI interviews can be deleted");
+  await db.delete("ai_interviews", id);
+}
+
 async function loadByToken(token: string): Promise<AiInterviewRow> {
   const db = getDB();
   const session = await db.findOne<AiInterviewRow>("ai_interviews", { token });

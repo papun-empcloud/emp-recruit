@@ -31,6 +31,20 @@ router.get(
   },
 );
 
+// POST /templates/preview — render an unsaved template with realistic sample
+// data. The client displays this in a sandboxed iframe.
+router.post(
+  "/templates/preview",
+  authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      sendSuccess(res, offerLetterService.previewLetterTemplate(req.body.content_template));
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // POST /templates — Create template (admin only)
 router.post(
   "/templates",

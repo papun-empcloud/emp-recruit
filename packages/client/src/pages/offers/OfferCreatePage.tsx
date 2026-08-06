@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Save, Loader2, Search } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Search, FileText, Eye } from "lucide-react";
 import { apiGet, apiPost } from "@/api/client";
 import { DateInput } from "@/components/DateInput";
 import toast from "react-hot-toast";
@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import type { Application, PaginatedResponse } from "@emp-recruit/shared";
 
 interface DepartmentOption { id: number; name: string }
+interface OfferLetterTemplate { id: string; name: string; content_template: string; is_default: boolean }
 
 type ApplicationRow = Application & {
   candidate_name: string;
@@ -31,6 +32,7 @@ interface FormData {
   expiry_date: string;
   benefits: string;
   notes: string;
+  template_id: string;
 }
 
 const INITIAL: FormData = {
@@ -43,6 +45,7 @@ const INITIAL: FormData = {
   expiry_date: "",
   benefits: "",
   notes: "",
+  template_id: "",
 };
 
 export function OfferCreatePage() {
@@ -80,6 +83,26 @@ export function OfferCreatePage() {
     retry: false,
   });
   const departments = useMemo(() => departmentsData?.data ?? [], [departmentsData]);
+
+  const { data: templatesData, isLoading: loadingTemplates } = useQuery({
+    queryKey: ["offer-letter-templates"],
+    queryFn: () => apiGet<OfferLetterTemplate[]>("/offer-letters/templates"),
+  });
+  const templates = templatesData?.data ?? [];
+  useEffect(() => {
+    if (!form.template_id && templates.length) {
+      const preferred = templates.find((template) => template.is_default) ?? templates[0];
+      setForm((current) => ({ ...current, template_id: preferred.id }));
+    }
+  }, [templates, form.template_id]);
+
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const previewMutation = useMutation({
+    mutationFn: (content_template: string) =>
+      apiPost<{ content: string }>("/offer-letters/templates/preview", { content_template }),
+    onSuccess: (res) => setPreviewHtml(res.data?.content ?? ""),
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Unable to preview the offer letter"),
+  });
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, any>) => apiPost<{ id: string }>("/offers", data),
@@ -163,6 +186,7 @@ export function OfferCreatePage() {
     if (form.department) payload.department = form.department;
     if (form.benefits) payload.benefits = form.benefits;
     if (form.notes) payload.notes = form.notes;
+    if (form.template_id) payload.template_id = form.template_id;
 
     createMutation.mutate(payload);
   }
@@ -379,6 +403,61 @@ export function OfferCreatePage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Notes */}
+        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+                <FileText className="h-5 w-5 text-brand-600" /> Offer letter template
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">Select the document that will be generated with this draft offer.</p>
+            </div>
+          </div>
+          {loadingTemplates ? (
+            <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+          ) : templates.length === 0 ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              No active offer letter template exists. You can create the offer without a letter, then configure templates from Offer Letter Templates.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">Template</label>
+                <select
+                  value={form.template_id}
+                  onChange={(e) => { setForm((p) => ({ ...p, template_id: e.target.value })); setPreviewHtml(null); }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}{template.is_default ? " (Default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                disabled={!form.template_id || previewMutation.isPending}
+                onClick={() => {
+                  const template = templates.find((item) => item.id === form.template_id);
+                  if (template) previewMutation.mutate(template.content_template);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+              >
+                {previewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />} Preview
+              </button>
+            </div>
+          )}
+          {previewHtml !== null && (
+            <iframe
+              title="Selected offer letter preview"
+              sandbox=""
+              srcDoc={`<!doctype html><html><head><style>body{font-family:Arial,sans-serif;color:#111827;line-height:1.6;padding:40px;max-width:800px;margin:auto}</style></head><body>${previewHtml}</body></html>`}
+              className="h-[480px] w-full rounded-lg border border-gray-200 bg-white"
+            />
+          )}
         </div>
 
         {/* Notes */}

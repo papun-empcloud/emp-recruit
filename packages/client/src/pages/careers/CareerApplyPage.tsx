@@ -22,6 +22,7 @@ interface PublicScreeningQuestion {
   options: string[] | null;
   required: boolean;
 }
+interface PublicCustomField { id: string; field_key: string; label: string; field_type: string; options: string[] | null; required: boolean; condition_field_key?: string | null; condition_value?: string | null; }
 
 // Upper bounds for the optional numeric fields (BUG-10). Negatives were already
 // rejected; these cap unrealistic values like 999 years / 999,999,999 salary.
@@ -51,6 +52,7 @@ export function CareerApplyPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Answers to the job's screening questions, keyed by question id.
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
   const jobQuery = useQuery({
     queryKey: ["public-job", slug, jobId],
@@ -70,6 +72,11 @@ export function CareerApplyPage() {
     },
   });
   const questions = screeningQuery.data ?? [];
+  const customFieldsQuery = useQuery({
+    queryKey: ["public-form-fields", slug, jobId],
+    queryFn: async () => (await axios.get(`${PUBLIC_API}/careers/${slug}/jobs/${jobId}/form-fields`)).data.data as PublicCustomField[],
+  });
+  const customFields = customFieldsQuery.data ?? [];
 
   const applyMutation = useMutation({
     mutationFn: async () => {
@@ -96,6 +103,7 @@ export function CareerApplyPage() {
           JSON.stringify(questions.map((q) => ({ question_id: q.id, answer: answers[q.id] ?? "" }))),
         );
       }
+      if (customFields.length) formData.append("custom_form_values", JSON.stringify(customValues));
       if (resume) formData.append("resume", resume);
 
       const { data } = await axios.post(`${PUBLIC_API}/careers/${slug}/apply`, formData, {
@@ -210,6 +218,9 @@ export function CareerApplyPage() {
     // Required screening questions must be answered.
     const missingScreening = questions.filter((q) => q.required && (answers[q.id] ?? "").trim() === "");
     for (const q of missingScreening) next[`screening_${q.id}`] = t("careers.apply.screeningRequired");
+    const visibleCustomFields = customFields.filter((f) => !f.condition_field_key || (customValues[f.condition_field_key] ?? "") === (f.condition_value ?? ""));
+    const missingCustom = visibleCustomFields.filter((f) => f.required && !(customValues[f.field_key] ?? "").trim());
+    for (const f of missingCustom) next[`custom_${f.field_key}`] = "This field is required";
     setErrors(next);
 
     // Keep the exact toast messages/priority the QA verified (CHK-01/02/03).
@@ -253,6 +264,7 @@ export function CareerApplyPage() {
       toast.error(t("careers.apply.screeningRequiredToast"));
       return;
     }
+    if (missingCustom.length > 0) { toast.error("Please complete all required application fields"); return; }
     setSubmitError(null);
     applyMutation.mutate();
   }
@@ -260,7 +272,7 @@ export function CareerApplyPage() {
   // Wait for BOTH the job and its screening questions before showing the form:
   // rendering with a failed screening fetch would let the applicant submit with
   // no required answers and hit an unfixable server rejection.
-  if (jobQuery.isLoading || screeningQuery.isLoading) {
+  if (jobQuery.isLoading || screeningQuery.isLoading || customFieldsQuery.isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
@@ -268,7 +280,7 @@ export function CareerApplyPage() {
     );
   }
 
-  if (screeningQuery.isError) {
+  if (screeningQuery.isError || customFieldsQuery.isError) {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
@@ -425,6 +437,25 @@ export function CareerApplyPage() {
                     {errors[key] && <p className="mt-1 text-xs text-red-600">{errors[key]}</p>}
                   </div>
                 );
+              })}
+            </div>
+          )}
+
+          {customFields.length > 0 && (
+            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Additional application details</h3>
+              {customFields.filter((f) => !f.condition_field_key || (customValues[f.condition_field_key] ?? "") === (f.condition_value ?? "")).map((f) => {
+                const value = customValues[f.field_key] ?? "";
+                const set = (next: string) => setCustomValues((current) => ({ ...current, [f.field_key]: next }));
+                const key = `custom_${f.field_key}`;
+                return <div key={f.id}><label className="block text-sm font-medium text-gray-700">{f.label} {f.required && <span className="text-red-500">*</span>}</label>
+                  {f.field_type === "yes_no" ? <select className={fieldClass(key)} value={value} onChange={(e) => set(e.target.value)}><option value="">Select…</option><option>Yes</option><option>No</option></select>
+                    : f.field_type === "multi_choice" ? <select multiple className={fieldClass(key)} value={value ? value.split("\u001f") : []} onChange={(e) => set(Array.from(e.target.selectedOptions).map((option) => option.value).join("\u001f"))}>{(f.options ?? []).map((option) => <option key={option}>{option}</option>)}</select>
+                    : f.field_type === "single_choice" ? <select className={fieldClass(key)} value={value} onChange={(e) => set(e.target.value)}><option value="">Select…</option>{(f.options ?? []).map((option) => <option key={option}>{option}</option>)}</select>
+                    : f.field_type === "textarea" ? <textarea className={fieldClass(key)} rows={3} value={value} onChange={(e) => set(e.target.value)} />
+                    : <input className={fieldClass(key)} type={f.field_type === "number" ? "number" : f.field_type === "date" ? "date" : "text"} value={value} onChange={(e) => set(e.target.value)} />}
+                  {errors[key] && <p className="mt-1 text-xs text-red-600">{errors[key]}</p>}
+                </div>;
               })}
             </div>
           )}

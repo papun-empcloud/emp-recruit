@@ -43,6 +43,8 @@ import { organizationRoutes } from "./api/routes/organization.routes";
 import { meetingProviderRoutes } from "./api/routes/meeting-provider.routes";
 import { jobBoardRoutes } from "./api/routes/job-board.routes";
 import { jobPublishingRoutes } from "./api/routes/job-publishing.routes";
+import { recruitmentOpsRoutes } from "./api/routes/recruitment-ops.routes";
+import { processDueAutomationRuns, processDueCampaigns } from "./services/recruitment-ops/recruitment-ops.service";
 import { readCookie } from "./api/middleware/auth.middleware";
 import { errorHandler } from "./api/middleware/error.middleware";
 import { apiLimiter, authLimiter } from "./api/middleware/rate-limit.middleware";
@@ -171,6 +173,7 @@ v1.use("/organizations", organizationRoutes);
 v1.use("/meeting-providers", meetingProviderRoutes);
 v1.use("/job-boards", jobBoardRoutes);
 v1.use("/job-publishing", jobPublishingRoutes); // outbound job-board publishing (scaffold)
+v1.use("/recruitment-ops", recruitmentOpsRoutes);
 
 // Public routes (no auth required) — career pages, job listings, applications.
 // The AI-interview public router is mounted first so its more specific prefix
@@ -277,6 +280,16 @@ async function start() {
     // Run migrations
     await db.migrate();
     logger.info("Recruit database migrations applied");
+
+    // Database-backed scheduler: durable rows survive restarts; each run is
+    // idempotently claimed by status/event key. Polling is intentionally small
+    // and bounded so one tenant's workload cannot monopolize the process.
+    setInterval(() => {
+      db.raw<any[][]>("SELECT DISTINCT organization_id FROM recruitment_automation_runs WHERE status='pending' AND scheduled_for<=NOW() LIMIT 100")
+        .then(async (rows) => { for (const row of rows[0] || []) await processDueAutomationRuns(Number(row.organization_id)); })
+        .then(() => processDueCampaigns())
+        .catch((error) => logger.error("Recruitment operations scheduler failed", error));
+    }, 30_000).unref();
 
     // Start server
     app.listen(config.port, config.host, () => {
