@@ -88,6 +88,18 @@ export async function updateTemplate(
   return db.update<EmailTemplate>("email_templates", id, data as Partial<EmailTemplate>);
 }
 
+export async function deleteTemplate(orgId: number, id: string): Promise<void> {
+  const db = getDB();
+  const template = await db.findOne<EmailTemplate>("email_templates", {
+    id,
+    organization_id: orgId,
+  });
+  if (!template) {
+    throw new NotFoundError("Email template", id);
+  }
+  await db.delete("email_templates", id);
+}
+
 // ---------------------------------------------------------------------------
 // Template rendering
 // ---------------------------------------------------------------------------

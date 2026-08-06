@@ -67,6 +67,13 @@ export async function createCandidate(
   }
 }
 
+export async function findCandidateByEmail(orgId: number, email: string): Promise<Candidate | null> {
+  const db = getDB();
+  const candidate = await db.findOne<Candidate & { archived_at?: Date | null }>("candidates", { organization_id: orgId, email: email.trim().toLowerCase() });
+  if (candidate?.archived_at) return db.update<Candidate>("candidates", candidate.id, { archived_at: null, archived_by: null } as any);
+  return candidate;
+}
+
 export interface BulkImportResult {
   createdNew: number; // brand-new candidates created and applied to the job
   linkedExisting: number; // existing candidate (by email) linked to the job
@@ -130,6 +137,7 @@ export async function bulkImportCandidates(
         isNew = true;
       }
 
+      if ((candidate as Candidate & { archived_at?: Date | null }).archived_at) candidate = await db.update<Candidate>("candidates", candidate.id, { archived_at: null, archived_by: null } as any);
       const existingApp = await db.findOne<Application>("applications", {
         organization_id: orgId,
         job_id: jobId,
@@ -213,13 +221,13 @@ export async function listCandidates(
     const offset = (page - 1) * perPage;
 
     const countRows = await db.raw<any[][]>(
-      "SELECT COUNT(*) as total FROM candidates WHERE organization_id = ? AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?)",
+      "SELECT COUNT(*) as total FROM candidates WHERE organization_id = ? AND archived_at IS NULL AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?)",
       [orgId, search, search, search, search],
     );
     const total = Number(countRows[0]?.[0]?.total ?? 0);
 
     const dataRows = await db.raw<any[][]>(
-      `SELECT * FROM candidates WHERE organization_id = ? AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?) ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
+      `SELECT * FROM candidates WHERE organization_id = ? AND archived_at IS NULL AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?) ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
       [orgId, search, search, search, search, perPage, offset],
     );
 
@@ -229,11 +237,18 @@ export async function listCandidates(
   const result = await db.findMany<Candidate>("candidates", {
     page,
     limit: perPage,
-    filters: { organization_id: orgId },
+    filters: { organization_id: orgId, archived_at: null },
     sort: { field: column, order: direction.toLowerCase() as "asc" | "desc" },
   });
 
   return { data: result.data, total: result.total, page, perPage };
+}
+
+export async function archiveCandidate(orgId: number, id: string, userId: number): Promise<Candidate> {
+  const db = getDB();
+  const candidate = await db.findOne<Candidate>("candidates", { id, organization_id: orgId });
+  if (!candidate) throw new NotFoundError("Candidate", id);
+  return db.update<Candidate>("candidates", id, { archived_at: new Date(), archived_by: userId } as any);
 }
 
 export async function getCandidate(orgId: number, id: string): Promise<Candidate> {

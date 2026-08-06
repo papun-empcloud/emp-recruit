@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Navigate } from "react-router-dom";
-import { Calendar, Users, Plus, Search, ShieldAlert, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Calendar, Users, Plus, Search, AlertTriangle } from "lucide-react";
 import { getUser } from "@/lib/auth-store";
-import { canAccessRecruit } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import { enumLabel } from "@/lib/enums";
 import { usePaginatedList } from "@/lib/usePaginatedList";
@@ -64,13 +64,8 @@ function isOverdue(interview: InterviewRow): boolean {
 }
 
 export function InterviewListPage() {
+  const canSchedule = isAdminRole(getUser()?.role);
   const { t } = useTranslation();
-  const user = getUser();
-
-  // RBAC: admin/HR roles OR a federated recruit:* permission can access.
-  if (user && !canAccessRecruit(user)) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
@@ -111,13 +106,13 @@ export function InterviewListPage() {
             columns={INTERVIEW_COLUMNS}
             fetchRows={() => fetchAllRows<InterviewRow>("/interviews", { status: statusFilter, search })}
           />
-          <Link
+          {canSchedule && <Link
             to="/interviews/schedule"
             className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
             {t("interviews.list.scheduleInterview")}
-          </Link>
+          </Link>}
         </div>
       </div>
 

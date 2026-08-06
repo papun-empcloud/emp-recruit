@@ -4,6 +4,8 @@ import { findUserById } from "../../db/empcloud";
 import { safeOrderBy } from "../../utils/sort";
 import { NotFoundError, ConflictError, ValidationError } from "../../utils/errors";
 import type { Application, ApplicationActivity, ApplicationStageHistory } from "@emp-recruit/shared";
+import { dispatchAutomationEvent } from "../recruitment-ops/recruitment-ops.service";
+import { logger } from "../../utils/logger";
 
 // ---------------------------------------------------------------------------
 // Activity feed (030) — a unified per-application log.
@@ -94,6 +96,9 @@ export async function createApplication(
     notes: "Application submitted",
   });
 
+  await dispatchAutomationEvent(orgId, { trigger: "application_created", value: "applied", applicationId: id })
+    .catch((error) => logger.error(`Application ${id} created but automation dispatch failed`, error));
+
   return application;
 }
 
@@ -142,6 +147,11 @@ export async function moveStage(
   });
 
   await logActivity(orgId, id, userId, "stage_change", `Moved from ${fromStage} to ${newStage}`);
+
+  // Persisting the stage is the source of truth; automation failures are
+  // isolated in run records and never roll back the recruiter's action.
+  await dispatchAutomationEvent(orgId, { trigger: "application_stage_changed", value: newStage, applicationId: id })
+    .catch((error) => logger.error(`Application ${id} moved to ${newStage} but automation dispatch failed`, error));
 
   return updated;
 }

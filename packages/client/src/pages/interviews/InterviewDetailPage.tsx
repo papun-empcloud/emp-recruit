@@ -1040,67 +1040,72 @@ export function InterviewDetailPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[1500px] space-y-5 pb-8 sm:space-y-6">
       {/* Back + header */}
-      <div>
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#111a35] via-[#18244a] to-brand-900 p-5 text-white shadow-xl dark:shadow-none sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" aria-hidden="true" />
+        <div className="relative">
         <button
+          type="button"
           onClick={() => navigate("/interviews")}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="mb-5 inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
-          <ArrowLeft className="h-4 w-4" /> {t("interviews.detail.backToInterviews")}
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("interviews.detail.backToInterviews")}
         </button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{interview.title}</h1>
-            <p className="mt-1 text-sm text-gray-500">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-brand-200">Interview Workspace</p>
+            <h1 className="break-words text-balance text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">{interview.title}</h1>
+            <p className="mt-2 break-words text-sm leading-6 text-slate-300 sm:text-base">
               {interview.candidate_name} &mdash; {interview.job_title}
             </p>
           </div>
           <span
             className={cn(
-              "rounded-full px-3 py-1 text-sm font-medium capitalize",
+              "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold capitalize ring-1 ring-inset ring-white/20",
               STATUS_COLORS[interview.status] || "bg-gray-100 text-gray-800",
             )}
           >
             {enumLabel(t, "interviewStatus", interview.status)}
           </span>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* Info cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <section aria-label="Interview details" className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Calendar className="h-4 w-4" /> {t("interviews.detail.schedule")}
+            <Calendar className="h-4 w-4" aria-hidden="true" /> {t("interviews.detail.schedule")}
           </div>
           <p className="text-sm font-medium text-gray-900">{formatDate(interview.scheduled_at)}</p>
           <p className="text-xs text-gray-500">{formatTime(interview.scheduled_at)}</p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Clock className="h-4 w-4" /> {t("interviews.detail.duration")}
+            <Clock className="h-4 w-4" aria-hidden="true" /> {t("interviews.detail.duration")}
           </div>
           <p className="text-sm font-medium text-gray-900">{t("interviews.detail.durationMinutes", { minutes: interview.duration_minutes })}</p>
           <p className="text-xs text-gray-500 capitalize">{interview.type} &middot; {t("interviews.detail.round", { round: interview.round })}</p>
         </div>
         {interview.location && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <MapPin className="h-4 w-4" /> {t("interviews.detail.location")}
+              <MapPin className="h-4 w-4" aria-hidden="true" /> {t("interviews.detail.location")}
             </div>
-            <p className="text-sm font-medium text-gray-900">{interview.location}</p>
+            <p className="break-words text-sm font-medium text-gray-900">{interview.location}</p>
           </div>
         )}
         {interview.meeting_link && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <ExternalLink className="h-4 w-4" /> {t("interviews.detail.meetingLink")}
+              <ExternalLink className="h-4 w-4" aria-hidden="true" /> {t("interviews.detail.meetingLink")}
             </div>
             {interview.meeting_embeddable ? (
               /* Embedded providers (Jitsi/LiveKit): join in-app. */
               <Link
                 to={`/interviews/${interview.id}/room`}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-800"
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg text-sm font-semibold text-brand-600 transition-colors hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <Video className="h-4 w-4" /> {t("interviews.detail.joinRoom")}
               </Link>
@@ -1109,32 +1114,35 @@ export function InterviewDetailPage() {
                 href={interview.meeting_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-brand-600 hover:text-brand-800 break-all"
+                className="inline-flex min-h-10 items-center break-all rounded-lg text-sm font-semibold text-brand-600 transition-colors hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 {t("interviews.detail.joinMeeting")}
               </a>
             )}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Status actions */}
       {interview.status !== "completed" && interview.status !== "cancelled" && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{t("interviews.detail.changeStatus")}</span>
+        <section className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+          <span className="shrink-0 text-sm font-semibold text-gray-700">{t("interviews.detail.changeStatus")}</span>
+          <div className="flex flex-wrap gap-2">
           {(["in_progress", "completed", "cancelled", "no_show"] as InterviewStatus[])
             .filter((s) => s !== interview.status)
             .map((status) => (
               <button
+                type="button"
                 key={status}
                 onClick={() => statusMutation.mutate(status)}
                 disabled={statusMutation.isPending}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 capitalize disabled:opacity-50"
+                className="min-h-10 rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold capitalize text-gray-700 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {status.replace("_", " ")}
               </button>
             ))}
-        </div>
+          </div>
+        </section>
       )}
 
       {/* Meeting Link Section */}
@@ -1145,22 +1153,22 @@ export function InterviewDetailPage() {
 
       {/* Notes */}
       {interview.notes && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-medium text-gray-700 mb-1">{t("interviews.detail.notes")}</h3>
           <p className="text-sm text-gray-600 whitespace-pre-wrap">{interview.notes}</p>
         </div>
       )}
 
       {/* Panelists */}
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Users className="h-5 w-5 text-gray-400" /> {t("interviews.detail.panelists")} ({interview.panelists.length})
+            <Users className="h-5 w-5 text-gray-400" aria-hidden="true" /> {t("interviews.detail.panelists")} ({interview.panelists.length})
           </h2>
           {!showAddPanelist && (
             <button
               onClick={() => setShowAddPanelist(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-100"
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <UserPlus className="h-4 w-4" /> {t("interviews.detail.addPanelist")}
             </button>
@@ -1168,7 +1176,7 @@ export function InterviewDetailPage() {
         </div>
 
         {showAddPanelist && (
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
+          <div className="border-b border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
                 <label className="mb-1 block text-xs font-medium text-gray-500">{t("interviews.detail.teamMember")}</label>
@@ -1199,6 +1207,7 @@ export function InterviewDetailPage() {
               </div>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => {
                     if (!panelistUserId) {
                       toast.error(t("interviews.detail.selectTeamMember"));
@@ -1212,6 +1221,7 @@ export function InterviewDetailPage() {
                   {addPanelistMutation.isPending ? t("interviews.detail.adding") : t("interviews.detail.add")}
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowAddPanelist(false);
                     setPanelistUserId("");
@@ -1244,17 +1254,17 @@ export function InterviewDetailPage() {
                   .slice(0, 2)
                   .toUpperCase();
             return (
-              <div key={panelist.id} className="flex items-center justify-between px-6 py-3">
-                <div className="flex items-center gap-3">
+              <div key={panelist.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-medium text-brand-700">
                     {initials}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{name}</p>
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium text-gray-900">{name}</p>
                     <p className="text-xs text-gray-500 capitalize">{panelist.role}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
                   {fb ? (
                     <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                       {t("interviews.detail.feedbackSubmitted")}
@@ -1267,17 +1277,17 @@ export function InterviewDetailPage() {
                   <button
                     onClick={() => removePanelistMutation.mutate(panelist.user_id)}
                     disabled={removePanelistMutation.isPending}
-                    title={t("interviews.detail.removePanelist")}
-                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    aria-label={`${t("interviews.detail.removePanelist")}: ${name}`}
+                    className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* Recording Section */}
       <RecordingSection interviewId={interview.id} />
@@ -1304,9 +1314,9 @@ export function InterviewDetailPage() {
             return (
               <div
                 key={fb.id}
-                className="rounded-lg border border-gray-200 bg-white p-5 space-y-3"
+                className="space-y-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-700">
                       {fb.panelist_id}

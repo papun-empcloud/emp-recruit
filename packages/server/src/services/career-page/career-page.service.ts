@@ -5,6 +5,7 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
+import type { IDBAdapter } from "../../db/adapters/interface";
 import { findOrgById } from "../../db/empcloud";
 import { NotFoundError, ValidationError, ConflictError } from "../../utils/errors";
 import { logger } from "../../utils/logger";
@@ -269,8 +270,9 @@ export async function submitPublicApplication(
     skills?: string[];
   },
   resumePath?: string,
+  database?: IDBAdapter,
 ): Promise<{ candidate: Candidate; application: Application }> {
-  const db = getDB();
+  const db = database ?? getDB();
 
   // Validate career page
   const page = await db.findOne<CareerPage>("career_pages", { slug, is_active: true });

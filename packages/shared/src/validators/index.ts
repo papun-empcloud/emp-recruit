@@ -343,6 +343,9 @@ export const createOfferSchema = z
     benefits: z.string().optional(),
     notes: z.string().optional(),
     approver_ids: z.array(z.number().int()).optional(),
+    // When supplied, the server immediately renders the selected letter so
+    // the draft offer and its document cannot drift into separate workflows.
+    template_id: z.string().uuid().optional(),
   })
   .refine((d) => expiryOnOrAfterJoining(d.joining_date, d.expiry_date), {
     message: OFFER_DATE_ORDER_MESSAGE,

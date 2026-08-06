@@ -122,7 +122,7 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        "group relative transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus-within:ring-2 focus-within:ring-brand-500",
+        "group relative overflow-hidden rounded-2xl transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md focus-within:ring-2 focus-within:ring-brand-500",
         "border-l-4",
         tone.vars,
       )}
@@ -137,33 +137,31 @@ export function StatCard({
        */
       style={{ borderLeftColor: "var(--accent)" }}
     >
-      <Link to={to} className="block min-h-[150px] p-5 focus:outline-none">
-        <div className="flex items-stretch justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3.5">
-            <span className={cn("inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", tone.chip)}>
-              <Icon className="h-6 w-6" aria-hidden="true" />
-            </span>
-            <div className="min-w-0 pt-0.5">
-              <span className="block min-h-10 whitespace-normal break-words text-sm font-medium leading-5 text-gray-500">{label}</span>
-              {isLoading ? (
-                <Skeleton className="mt-2 h-8 w-16" />
-              ) : (
-                <p className="mt-2 text-3xl font-semibold leading-none tracking-tight text-gray-900">
-                  {formatValue(value, locale)}
-                </p>
-              )}
-            </div>
-          </div>
+      <Link to={to} className="block min-h-[148px] p-4 focus:outline-none sm:min-h-[164px] sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <span className={cn("inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11", tone.chip)}>
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <ArrowUpRight
+            className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-brand-500"
+            aria-hidden="true"
+          />
+        </div>
 
-          <div className="flex shrink-0 flex-col items-end justify-between gap-5">
-            <ArrowUpRight
-              className="h-4 w-4 text-gray-400 transition-colors group-hover:text-brand-500"
-              aria-hidden="true"
-            />
+        <div className="mt-4 min-w-0">
+          <span className="block truncate text-sm font-medium leading-5 text-gray-500" title={label}>{label}</span>
+          <div className="mt-2 flex min-w-0 flex-wrap items-end justify-between gap-x-2 gap-y-2">
+            {isLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="min-w-0 text-2xl font-semibold leading-none tracking-tight text-gray-900 tabular-nums sm:text-3xl">
+                {formatValue(value, locale)}
+              </p>
+            )}
             {!isLoading && hasDelta && (
               <Badge
                 variant={direction === "up" ? "success" : direction === "down" ? "destructive" : "secondary"}
-                className="shrink-0 font-semibold"
+                className="shrink-0 font-semibold tabular-nums"
                 title={period}
                 aria-label={`${signed} ${period}`}
               >

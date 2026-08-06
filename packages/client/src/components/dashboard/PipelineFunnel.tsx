@@ -34,7 +34,6 @@ export function PipelineFunnel({ stages }: PipelineFunnelProps) {
           const Icon = STAGE_ICONS[item.stage as keyof typeof STAGE_ICONS] ?? FileText;
           const color = stageColor(item.stage, pipelineStages);
           const isFirst = index === 0;
-
           return (
             <div
               key={item.stage}

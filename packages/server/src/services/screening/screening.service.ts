@@ -6,6 +6,7 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { getDB } from "../../db/adapters";
+import type { IDBAdapter } from "../../db/adapters/interface";
 import { NotFoundError, ValidationError } from "../../utils/errors";
 import type { JobScreeningQuestion, JobPosting } from "@emp-recruit/shared";
 
@@ -167,9 +168,10 @@ export async function storeAnswers(
   orgId: number,
   applicationId: string,
   rows: PreparedAnswers["rows"],
+  database?: IDBAdapter,
 ): Promise<void> {
   if (rows.length === 0) return;
-  const db = getDB();
+  const db = database ?? getDB();
   for (const r of rows) {
     await db.create("application_screening_answers", {
       id: uuidv4(),

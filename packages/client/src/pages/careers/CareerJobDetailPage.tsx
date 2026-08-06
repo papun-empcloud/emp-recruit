@@ -10,6 +10,8 @@ import {
   ArrowLeft,
   DollarSign,
   ChevronRight,
+  CalendarDays,
+  CheckCircle2,
 } from "lucide-react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
@@ -64,23 +66,36 @@ export function CareerJobDetailPage() {
   }
 
   return (
-    <div>
+    <div className="pb-8">
       {/* Breadcrumb */}
-      <div className="mb-6">
+      <div className="mb-5">
         <Link
           to={`/careers/${slug}`}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="inline-flex items-center gap-2 rounded-lg py-2 text-sm font-semibold text-slate-600 transition-colors hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:text-slate-300 dark:hover:text-indigo-300 dark:focus-visible:ring-offset-[#0b1120]"
         >
           <ArrowLeft className="h-4 w-4" />
           {t("careers.detail.backToAll")}
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <section className="relative mb-8 overflow-hidden rounded-3xl bg-slate-950 px-5 py-8 text-white shadow-xl shadow-slate-200 dark:shadow-none sm:px-10 sm:py-10">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-indigo-500/25 blur-3xl" aria-hidden="true" />
+        <div className="relative max-w-4xl">
+          {job.department && <p className="mb-3 text-sm font-semibold text-indigo-300">{job.department}</p>}
+          <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">{job.title}</h1>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm text-slate-300">
+            {job.location && <span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-indigo-300" aria-hidden="true" />{job.location}</span>}
+            <span className="inline-flex items-center gap-2"><Briefcase className="h-4 w-4 text-indigo-300" aria-hidden="true" />{enumLabel(t, "employmentType", job.employment_type)}</span>
+            {(job.experience_min != null || job.experience_max != null) && <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4 text-indigo-300" aria-hidden="true" />{t("careers.detail.experienceYears", { min: job.experience_min ?? 0, max: job.experience_max ?? "10+" })}</span>}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         {/* Main content */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
+        <div className="min-w-0 space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
+            <h2 className="text-lg font-bold text-slate-950 dark:text-white">Position Overview</h2>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
               {job.department && (
                 <span className="flex items-center gap-1">
@@ -121,7 +136,7 @@ export function CareerJobDetailPage() {
           </div>
 
           {/* Description */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("careers.detail.jobDescription")}</h2>
             <div
               className="rte-content prose prose-sm max-w-none text-gray-700"
@@ -131,7 +146,7 @@ export function CareerJobDetailPage() {
 
           {/* Requirements */}
           {job.requirements && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
               <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("careers.detail.requirements")}</h2>
               <div
                 className="rte-content prose prose-sm max-w-none text-gray-700"
@@ -142,7 +157,7 @@ export function CareerJobDetailPage() {
 
           {/* Benefits */}
           {job.benefits && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-7">
               <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("careers.detail.benefits")}</h2>
               <div
                 className="prose prose-sm max-w-none text-gray-700"
@@ -153,14 +168,15 @@ export function CareerJobDetailPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <aside className="space-y-5 lg:sticky lg:top-6">
           {/* Apply card */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">{t("careers.detail.interested")}</h3>
-            <p className="mt-1 text-sm text-gray-500">{t("careers.detail.applyPrompt")}</p>
+          <div className="rounded-2xl bg-indigo-600 p-6 text-white shadow-xl shadow-indigo-200 dark:shadow-none">
+            <CheckCircle2 className="mb-4 h-8 w-8 text-indigo-200" aria-hidden="true" />
+            <h2 className="text-xl font-bold">{t("careers.detail.interested")}</h2>
+            <p className="mt-2 text-sm leading-6 text-indigo-100">{t("careers.detail.applyPrompt")}</p>
             <Link
               to={`/careers/${slug}/jobs/${jobId}/apply`}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-brand-200 transition-all hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 shadow-sm transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-600"
             >
               {t("careers.detail.applyNow")}
               <ChevronRight className="h-4 w-4" />
@@ -169,7 +185,7 @@ export function CareerJobDetailPage() {
 
           {/* Skills */}
           {skills.length > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("careers.detail.skills")}</h3>
               <div className="flex flex-wrap gap-2">
                 {skills.map((skill, i) => (
@@ -185,7 +201,7 @@ export function CareerJobDetailPage() {
           )}
 
           {/* Job details summary */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-3">
+          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("careers.detail.jobDetails")}</h3>
             <div className="text-sm">
               <span className="text-gray-500">{t("careers.detail.employmentType")}</span>
@@ -205,14 +221,14 @@ export function CareerJobDetailPage() {
             )}
             {job.closes_at && (
               <div className="text-sm">
-                <span className="text-gray-500">{t("careers.detail.applyBefore")}</span>
+                <span className="inline-flex items-center gap-1.5 text-gray-500"><CalendarDays className="h-4 w-4" aria-hidden="true" />{t("careers.detail.applyBefore")}</span>
                 <p className="font-medium text-gray-900">
                   {formatDate(job.closes_at)}
                 </p>
               </div>
             )}
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

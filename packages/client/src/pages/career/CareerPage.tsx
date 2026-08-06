@@ -11,6 +11,9 @@ import {
   ChevronDown,
   Check,
   X,
+  Palette,
+  Globe2,
+  CheckCircle2,
 } from "lucide-react";
 import { apiGet, apiPut } from "@/api/client";
 import toast from "react-hot-toast";
@@ -23,13 +26,19 @@ import type { CareerPage as CareerPageType, JobPosting } from "@emp-recruit/shar
 export function CareerPage() {
   const { t } = useTranslation();
   return (
-    <div className="space-y-8 pb-28">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t("careerAdmin.title")}</h1>
-        <p className="mt-1 text-sm text-gray-500">
+    <div className="mx-auto max-w-[1500px] space-y-6 pb-28">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#111a35] via-[#18244a] to-brand-900 px-5 py-7 text-white shadow-xl sm:px-8 sm:py-9">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl" aria-hidden="true" />
+        <div className="relative flex max-w-3xl items-start gap-4">
+          <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 sm:flex"><Globe2 className="h-6 w-6 text-brand-100" aria-hidden="true" /></span>
+          <div><p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-brand-200">Employer Brand</p>
+        <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">{t("careerAdmin.title")}</h1>
+        <p className="mt-3 max-w-2xl text-pretty text-sm leading-6 text-slate-300 sm:text-base">
           {t("careerAdmin.subtitle")}
         </p>
-      </div>
+          </div>
+        </div>
+      </section>
 
       <CareerPageSettings />
     </div>
@@ -165,47 +174,61 @@ function CareerPageSettings() {
   const previewJobs = (jobsQuery.data || []).filter((j) => jobSelection.has(j.id));
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 items-start gap-6 xl:grid-cols-7">
       {/* ---- Left: the form ---- */}
-      <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">{t("careerAdmin.configTitle")}</h2>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm xl:col-span-4 sm:p-7">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><Palette className="h-5 w-5" aria-hidden="true" /></span>
+          <div><h2 className="text-lg font-bold text-gray-900">{t("careerAdmin.configTitle")}</h2>
         <p className="mt-1 text-sm text-gray-500">
           {t("careerAdmin.configSubtitle")}
         </p>
+          </div>
+        </div>
 
         <div className="mt-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.pageTitleLabel")}</label>
+            <label htmlFor="career-page-title" className="block text-sm font-semibold text-gray-700">{t("careerAdmin.pageTitleLabel")}</label>
             <input
+              id="career-page-title"
+              name="career-page-title"
+              autoComplete="off"
               type="text"
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
               placeholder={t("careerAdmin.pageTitlePlaceholder")}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="mt-2 block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors hover:border-gray-400 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.descriptionLabel")}</label>
+            <label htmlFor="career-page-description" className="block text-sm font-semibold text-gray-700">{t("careerAdmin.descriptionLabel")}</label>
             <textarea
+              id="career-page-description"
+              name="career-page-description"
+              autoComplete="off"
               rows={3}
               maxLength={300}
               value={form.description}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               placeholder={t("careerAdmin.descriptionPlaceholder")}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="mt-2 block w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm leading-6 shadow-sm transition-colors hover:border-gray-400 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
             />
             <p className="mt-1 text-right text-xs text-gray-400">{form.description.length}/300</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.slugLabel")}</label>
+            <label htmlFor="career-page-slug" className="block text-sm font-semibold text-gray-700">{t("careerAdmin.slugLabel")}</label>
             <div className="mt-1 flex items-center rounded-lg border border-gray-300 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
               <span className="flex items-center gap-1 border-r border-gray-200 px-3 py-2 text-sm text-gray-400">
                 <Link2 className="h-3.5 w-3.5" />
                 /careers/
               </span>
               <input
+                id="career-page-slug"
+                name="career-page-slug"
+                autoComplete="off"
+                spellCheck={false}
                 type="text"
                 value={form.slug}
                 onChange={(e) =>
@@ -224,9 +247,12 @@ function CareerPageSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">{t("careerAdmin.brandColorLabel")}</label>
+            <label htmlFor="career-brand-color" className="block text-sm font-semibold text-gray-700">{t("careerAdmin.brandColorLabel")}</label>
             <div className="mt-1 flex items-center gap-3">
               <input
+                id="career-brand-color"
+                name="career-brand-color"
+                aria-label={t("careerAdmin.brandColorLabel")}
                 type="color"
                 value={previewColor}
                 onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))}
@@ -234,6 +260,10 @@ function CareerPageSettings() {
               />
               <input
                 type="text"
+                name="career-brand-hex"
+                aria-label={t("careerAdmin.brandColorLabel")}
+                autoComplete="off"
+                spellCheck={false}
                 value={form.primary_color}
                 onChange={(e) => setForm((p) => ({ ...p, primary_color: e.target.value }))}
                 className={`block w-32 rounded-lg border px-3 py-2 text-sm uppercase focus:outline-none focus:ring-1 ${
@@ -261,7 +291,7 @@ function CareerPageSettings() {
           <button
             type="submit"
             disabled={saveMutation.isPending}
-            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            className="flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saveMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -275,23 +305,23 @@ function CareerPageSettings() {
               href={`/careers/${configQuery.data.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               <ExternalLink className="h-4 w-4" />
               {t("careerAdmin.viewLivePage")}
             </a>
           )}
         </div>
-      </div>
+      </section>
 
       {/* ---- Right: live preview ---- */}
-      <div className="lg:col-span-2">
+      <aside className="min-w-0 xl:col-span-3">
         <div className="sticky top-6">
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+          <div className="mb-3 flex items-center justify-between gap-3"><p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-500">
             <Eye className="h-3.5 w-3.5" />
             {t("careerAdmin.livePreview")}
-          </p>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          </p><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />Live Preview</span></div>
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg shadow-gray-200/60">
             <div className="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-2">
               <span className="h-2.5 w-2.5 rounded-full bg-red-300" />
               <span className="h-2.5 w-2.5 rounded-full bg-yellow-300" />
@@ -300,11 +330,14 @@ function CareerPageSettings() {
                 /careers/{form.slug || t("careerAdmin.slugPlaceholder")}
               </span>
             </div>
-            <div className="p-5">
-              <h3 className="text-xl font-bold text-gray-900">{form.title || t("careerAdmin.previewTitleDefault")}</h3>
-              <p className="mt-2 text-sm text-gray-500">
+            <div className="bg-gray-50 p-3 sm:p-5">
+              <div className="rounded-2xl bg-slate-950 p-5 text-white shadow-sm sm:p-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand-200">Join Our Team</p>
+              <h3 className="mt-2 text-balance text-xl font-bold sm:text-2xl">{form.title || t("careerAdmin.previewTitleDefault")}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
                 {form.description || t("careerAdmin.descriptionPlaceholder")}
               </p>
+              </div>
               {previewJobs.length === 0 ? (
                 <div className="mt-4 rounded-lg border border-dashed border-gray-200 p-4 text-center text-xs text-gray-400">
                   {t("careerAdmin.noJobsPreview")}
@@ -312,7 +345,7 @@ function CareerPageSettings() {
               ) : (
                 <div className="mt-4 space-y-2">
                   {previewJobs.slice(0, 4).map((job) => (
-                    <div key={job.id} className="rounded-lg border border-gray-200 p-3">
+                    <div key={job.id} className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
                       <div className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4 text-gray-400" />
                         <p className="text-sm font-semibold text-gray-900">{job.title}</p>
@@ -340,7 +373,7 @@ function CareerPageSettings() {
           </div>
           <p className="mt-2 text-xs text-gray-400">{t("careerAdmin.previewFooter")}</p>
         </div>
-      </div>
+      </aside>
     </form>
   );
 }
@@ -437,11 +470,13 @@ function CareerJobsSection({
         ) : (
           <>
             {/* Multi-select dropdown */}
-            <div className="relative max-w-xl" ref={dropdownRef}>
+            <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:border-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                aria-expanded={open}
+                aria-haspopup="listbox"
+                className="flex min-h-11 w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors hover:border-gray-400 focus-visible:border-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
               >
                 <span className={selected.size ? "text-gray-900" : "text-gray-400"}>
                   {selected.size
@@ -458,6 +493,7 @@ function CareerJobsSection({
                   {/* Department / location filters */}
                   <div className="flex flex-wrap gap-2 border-b border-gray-100 p-3">
                     <select
+                      aria-label={t("careerAdmin.allDepartments")}
                       value={deptFilter}
                       onChange={(e) => setDeptFilter(e.target.value)}
                       className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
@@ -470,6 +506,7 @@ function CareerJobsSection({
                       ))}
                     </select>
                     <select
+                      aria-label={t("careerAdmin.allLocations")}
                       value={locFilter}
                       onChange={(e) => setLocFilter(e.target.value)}
                       className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
@@ -518,14 +555,16 @@ function CareerJobsSection({
                             key={job.id}
                             type="button"
                             onClick={() => toggle(job.id)}
-                            className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50"
+                            role="option"
+                            aria-selected={checked}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
                           >
                             <span
                               className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
                                 checked ? "border-brand-600 bg-brand-600" : "border-gray-300 bg-white"
                               }`}
                             >
-                              {checked && <Check className="h-3 w-3 text-white" />}
+                              {checked && <Check className="h-3 w-3 text-white" aria-hidden="true" />}
                             </span>
                             <span className="min-w-0">
                               <span className="block truncate text-sm text-gray-900">{job.title}</span>
@@ -557,7 +596,7 @@ function CareerJobsSection({
                       className="rounded-full p-0.5 hover:bg-brand-100"
                       aria-label={t("careerAdmin.removeJob", { title: job.title })}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3" aria-hidden="true" />
                     </button>
                   </span>
                 ))}

@@ -20,12 +20,14 @@ import {
   Mail,
   X,
   Plus,
+  Trash2,
 } from "lucide-react";
-import { apiGet, apiPost } from "@/api/client";
+import { apiDelete, apiGet, apiPost } from "@/api/client";
 import { formatDate, formatCurrency as formatCurrencyShared } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { Offer, OfferApprover } from "@emp-recruit/shared";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 type OfferDetail = Offer & {
   approvers: OfferApprover[];
@@ -75,6 +77,7 @@ export function OfferDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["offer", id],
@@ -136,6 +139,12 @@ export function OfferDetailPage() {
     onError: (err: any) => {
       toast.error(err?.response?.data?.error?.message || t("offers.detail.toastRevokeFailed"));
     },
+  });
+
+  const deleteOffer = useMutation({
+    mutationFn: () => apiDelete(`/offers/${id}`),
+    onSuccess: () => { toast.success("Draft offer deleted"); navigate("/offers"); },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || "Could not delete draft offer"),
   });
 
   // #34 — approve/reject mutations previously had no onError handler, so
@@ -299,6 +308,12 @@ export function OfferDetailPage() {
               >
                 {t("offers.detail.edit")}
               </Link>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" /> Delete draft
+              </button>
               {/* #21 — was POSTing { approver_ids: [] }, which the server
                   rejected with "At least one approver is required". Open a
                   modal to pick approvers first. */}
@@ -742,6 +757,7 @@ export function OfferDetailPage() {
           </div>
         </div>
       </div>
+      <ConfirmDialog open={showDeleteConfirm} title="Delete draft offer?" message="This draft offer will be permanently removed. Sent or approved offers cannot be deleted." confirmLabel="Delete draft" variant="danger" loading={deleteOffer.isPending} onConfirm={() => deleteOffer.mutate()} onCancel={() => setShowDeleteConfirm(false)} />
 
       {/* #21 — Approver picker modal */}
       {showApproverModal && (

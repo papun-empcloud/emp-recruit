@@ -10,6 +10,7 @@ import {
   LineChart as LineIcon,
   PieChart as PieIcon,
   FileText,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   PieChart,
@@ -172,15 +173,18 @@ export function AnalyticsPage() {
     : 1;
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("analytics.title")}</h1>
-          <p className="mt-1 text-sm text-gray-500">
+    <div className="mx-auto w-full max-w-[1500px] space-y-5 pb-8 sm:space-y-6">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><BarChart3 className="h-6 w-6" aria-hidden="true" /></span>
+          <div><div className="flex flex-wrap items-center gap-2"><h1 className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{t("analytics.title")}</h1><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Live Reporting</span></div>
+          <p className="mt-1 max-w-2xl text-pretty text-sm leading-6 text-gray-500">
             {t("analytics.subtitle")}
           </p>
         </div>
-        <ExportMenu
+        </div>
+        <div className="shrink-0 rounded-xl border border-gray-200 bg-gray-50 p-1 [&>div>button]:min-h-10 [&>div>button]:rounded-lg [&>div>button]:border-0 [&>div>button]:bg-white [&>div>button]:font-semibold [&>div>button]:shadow-sm"><ExportMenu
           disabled={!anyLoaded}
           onCsv={() => downloadCsvSections("recruitment-analytics", buildSections())}
           onPdf={() =>
@@ -190,16 +194,17 @@ export function AnalyticsPage() {
               sections: buildSections(),
             })
           }
-        />
-      </div>
+        /></div>
+        </div>
+      </section>
 
       {/* KPI cards — analytical rates, not the Dashboard's entity counts */}
       {metricsQuery.isLoading ? (
-        <div className="flex h-24 items-center justify-center">
+        <div className="flex h-32 items-center justify-center rounded-2xl border border-gray-200 bg-white" role="status" aria-live="polite">
           <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
         </div>
       ) : metrics ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Key analytics metrics" className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
           <StatCard
             icon={TrendingUp}
             label={t("analytics.hireRate")}
@@ -236,18 +241,21 @@ export function AnalyticsPage() {
             accent="amber"
             to="/offers?status=pending_approval"
           />
-        </div>
+        </section>
       ) : null}
 
       {/* Row 2: Applications trend + Source effectiveness */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="grid items-stretch gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.75fr)]">
         {/* Applications Trend */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-gray-100 p-5 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between sm:p-6">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
             <LineIcon className="h-5 w-5 text-brand-600" />
             {t("analytics.applicationsTrend")}
-            <span className="ml-auto text-xs font-normal text-gray-400">{t("analytics.last8Weeks")}</span>
           </h2>
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">{t("analytics.last8Weeks")}</span>
+          </div>
+          <div className="p-4 sm:p-6">
           {trendQuery.isLoading ? (
             <div className="flex h-48 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
@@ -255,7 +263,7 @@ export function AnalyticsPage() {
           ) : trendTotal === 0 ? (
             <EmptyState message={t("analytics.noApplications8Weeks")} />
           ) : (
-            <div className="mt-4 h-48">
+            <div className="h-64 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={trendData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                   <XAxis
@@ -270,14 +278,14 @@ export function AnalyticsPage() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+          </div>
+        </section>
 
         {/* Source Effectiveness */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-            <PieIcon className="h-5 w-5 text-brand-600" />
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-gray-100 p-5 sm:px-6"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700"><PieIcon className="h-5 w-5" aria-hidden="true" /></span><h2 className="text-lg font-bold text-gray-900">
             {t("analytics.sourceEffectiveness")}
-          </h2>
+          </h2></div><div className="p-5 sm:p-6">
           {sourcesQuery.isLoading ? (
             <div className="flex h-32 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
@@ -285,8 +293,8 @@ export function AnalyticsPage() {
           ) : sources.length === 0 || sourcesTotal === 0 ? (
             <EmptyState message={t("analytics.noSources")} compact />
           ) : (
-            <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="relative h-32 w-32 flex-shrink-0">
+            <div className="mt-5 flex flex-col gap-6 min-[430px]:flex-row min-[430px]:items-center xl:flex-col xl:items-stretch 2xl:flex-row 2xl:items-center">
+              <div className="relative mx-auto h-36 w-36 flex-shrink-0 min-[430px]:mx-0 xl:mx-auto 2xl:mx-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -310,9 +318,9 @@ export function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="min-w-0 flex-1 space-y-2">
+              <div className="min-w-0 flex-1 space-y-2.5">
                 {sources.map((src, i) => (
-                  <div key={src.source} className="flex items-center justify-between gap-2 text-sm">
+                  <div key={src.source} className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-gray-50">
                     <span className="flex min-w-0 items-center gap-2">
                       <span
                         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -340,18 +348,17 @@ export function AnalyticsPage() {
                 ))}
               </div>
             </div>
-          )}
-        </div>
+          )}</div>
+        </section>
       </div>
 
       {/* Row 3: Offer outcomes + Time to hire */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="grid items-stretch gap-5 lg:grid-cols-2">
         {/* Offer Outcomes */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-            <FileText className="h-5 w-5 text-brand-600" />
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-gray-100 p-5 sm:px-6"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><FileText className="h-5 w-5" aria-hidden="true" /></span><h2 className="text-lg font-bold text-gray-900">
             {t("analytics.offerOutcomes")}
-          </h2>
+          </h2></div><div className="p-5 sm:p-6">
           {metricsQuery.isLoading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
@@ -369,9 +376,9 @@ export function AnalyticsPage() {
                       <span className="font-medium text-gray-700">{t(labelKey)}</span>
                       <span className="font-semibold text-gray-900">{count}</span>
                     </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-label={t(labelKey)} aria-valuenow={count} aria-valuemin={0} aria-valuemax={offerMax}>
                       <div
-                        className={`h-full rounded-full ${color} transition-all duration-500`}
+                        className={`h-full rounded-full ${color}`}
                         style={{ width: `${width}%` }}
                       />
                     </div>
@@ -382,23 +389,23 @@ export function AnalyticsPage() {
                 {t("analytics.offersExtendedTotal", { count: metrics.offers.total })}
               </p>
             </div>
-          )}
-        </div>
+          )}</div>
+        </section>
 
         {/* Time to Hire */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-            <Clock className="h-5 w-5 text-brand-600" />
+        <section className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full bg-brand-50" aria-hidden="true" />
+          <div className="relative flex items-center gap-2 border-b border-gray-100 p-5 sm:px-6"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-700"><Clock className="h-5 w-5" aria-hidden="true" /></span><h2 className="text-lg font-bold text-gray-900">
             {t("analytics.timeToHire")}
-          </h2>
+          </h2></div><div className="relative p-5 sm:p-6">
           {timeToHireQuery.isLoading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
             </div>
           ) : timeToHire && timeToHire.hiredCount > 0 ? (
-            <div className="flex h-40 flex-col justify-center">
+            <div className="relative flex min-h-48 flex-col justify-center">
               <div className="flex items-end gap-2">
-                <span className="text-5xl font-bold text-gray-900">{timeToHire.averageDays}</span>
+                <span className="text-6xl font-bold tracking-tight text-gray-900 tabular-nums">{timeToHire.averageDays}</span>
                 <span className="mb-2 text-sm text-gray-500">{t("analytics.daysOnAverage")}</span>
               </div>
               <p className="mt-3 text-sm text-gray-500">
@@ -407,8 +414,8 @@ export function AnalyticsPage() {
             </div>
           ) : (
             <EmptyState message={t("analytics.noHires")} />
-          )}
-        </div>
+          )}</div>
+        </section>
       </div>
     </div>
   );
@@ -419,7 +426,7 @@ function EmptyState({ message, compact = false }: { message: string; compact?: b
     <div
       className={`flex flex-col items-center justify-center text-center ${compact ? "py-6" : "py-12"}`}
     >
-      <BarChart3 className="h-8 w-8 text-gray-200" />
+      <BarChart3 className="h-8 w-8 text-gray-200" aria-hidden="true" />
       <p className="mt-2 text-sm text-gray-400">{message}</p>
     </div>
   );
@@ -448,22 +455,22 @@ function StatCard({
   to?: string;
 }) {
   const a = ACCENTS[accent] ?? ACCENTS.blue;
+  const displayValue = typeof value === "number" ? value.toLocaleString(activeLocale()) : value;
   const content = (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all group-hover:-translate-y-0.5 group-hover:border-brand-300 group-hover:shadow-md">
-      <div className="flex items-center gap-3">
-        <div className={`rounded-lg p-2.5 ${a.bg}`}>
-          <Icon className={`h-5 w-5 ${a.color}`} />
+    <div className="h-full rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-[transform,border-color,box-shadow] group-hover:-translate-y-0.5 group-hover:border-brand-300 group-hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div className={`rounded-xl p-2.5 ${a.bg}`}>
+          <Icon className={`h-5 w-5 ${a.color}`} aria-hidden="true" />
         </div>
-        <div className="min-w-0">
-          <p className="text-sm text-gray-500">{label}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-        </div>
+        {to && <ArrowUpRight className="h-4 w-4 text-gray-400 transition-colors group-hover:text-brand-600" aria-hidden="true" />}
       </div>
-      {sub && <p className="mt-3 truncate text-xs text-gray-400">{sub}</p>}
+      <p className="mt-4 truncate text-sm font-medium text-gray-500" title={label}>{label}</p>
+      <p className="mt-1 text-3xl font-bold tracking-tight text-gray-900 tabular-nums">{displayValue}</p>
+      {sub && <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-400">{sub}</p>}
     </div>
   );
   return to ? (
-    <Link to={to} className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+    <Link to={to} className="group block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
       {content}
     </Link>
   ) : content;

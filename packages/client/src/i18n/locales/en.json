@@ -21,6 +21,7 @@
     "analytics": "Analytics",
     "careerPage": "Career Page",
     "settings": "Settings",
+    "operations": "Recruitment Ops",
     "admin": "Admin",
     "employee": "Employee",
     "logout": "Logout",
@@ -1789,7 +1790,9 @@
       "copied": "Link copied",
       "approved": "Interview approved",
       "approveError": "Failed to approve",
-      "generateError": "Failed to generate questions"
+      "generateError": "Failed to generate questions",
+      "draftSaved": "Draft questions saved",
+      "draftSaveError": "Failed to save draft questions"
     },
     "list": {
       "title": "AI Interviews",
@@ -1928,6 +1931,11 @@
       "createFailed": "Failed to create template",
       "templateUpdated": "Template updated",
       "updateFailed": "Failed to update template",
+      "templateDeleted": "Template deleted",
+      "deleteFailed": "Failed to delete template",
+      "delete": "Delete",
+      "deleteTitle": "Delete email template?",
+      "deleteMessage": "This template will be permanently removed. Existing campaign history will be retained.",
       "previewFailed": "Failed to generate preview",
       "emailPreview": "Email Preview",
       "heading": "Email Templates",

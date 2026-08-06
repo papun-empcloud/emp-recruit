@@ -47,6 +47,46 @@ interface CreateTemplateData {
   is_default?: boolean;
 }
 
+const ALLOWED_TEMPLATE_VARIABLES = new Set([
+  "candidate.firstName", "candidate.lastName", "candidate.fullName", "candidate.email", "candidate.phone",
+  "offer.designation", "offer.salary", "offer.salaryCurrency", "offer.joiningDate", "offer.expiryDate", "offer.department", "offer.benefits",
+  "organization.name", "job.title", "job.department", "job.location", "date",
+]);
+
+function referencedVariables(content: string): string[] {
+  const variables = new Set<string>();
+  for (const match of content.matchAll(/{{{?\s*([^{}\s#\/!][^{}\s]*)[^{}]*}?}}/g)) {
+    const value = match[1]?.replace(/^[@.]+/, "");
+    if (value) variables.add(value);
+  }
+  return [...variables];
+}
+
+function validateTemplateContent(content: string): string[] {
+  try {
+    Handlebars.compile(content)({});
+  } catch (error) {
+    throw new ValidationError(`Invalid offer letter template: ${(error as Error).message}`);
+  }
+  return referencedVariables(content).filter((variable) => !ALLOWED_TEMPLATE_VARIABLES.has(variable));
+}
+
+export function previewLetterTemplate(content: string): { content: string; unknown_variables: string[] } {
+  if (!content?.trim()) throw new ValidationError("Template content is required");
+  const unknownVariables = validateTemplateContent(content);
+  const sampleVariables = {
+    candidate: { firstName: "Aarav", lastName: "Sharma", fullName: "Aarav Sharma", email: "aarav.sharma@example.com", phone: "+91 98765 43210" },
+    offer: { designation: "Senior Software Engineer", salary: "12,00,000", salaryCurrency: "INR", joiningDate: "1 September 2026", expiryDate: "15 August 2026", department: "Engineering", benefits: "Health insurance, paid leave and performance bonus" },
+    organization: { name: "Your Organization" },
+    job: { title: "Senior Software Engineer", department: "Engineering", location: "Bengaluru" },
+    date: "6 August 2026",
+  };
+  return {
+    content: Handlebars.compile(content)(sampleVariables),
+    unknown_variables: unknownVariables,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Template CRUD
 // ---------------------------------------------------------------------------
@@ -59,6 +99,10 @@ export async function createLetterTemplate(
 
   if (!data.name || !data.content_template) {
     throw new ValidationError("Name and content template are required");
+  }
+  const unknownVariables = validateTemplateContent(data.content_template);
+  if (unknownVariables.length) {
+    throw new ValidationError(`Unknown template variable(s): ${unknownVariables.join(", ")}`);
   }
 
   // Prevent duplicate template names within an org.
@@ -104,6 +148,10 @@ export async function updateLetterTemplate(
 
   if (!data.name || !data.content_template) {
     throw new ValidationError("Name and content template are required");
+  }
+  const unknownVariables = validateTemplateContent(data.content_template);
+  if (unknownVariables.length) {
+    throw new ValidationError(`Unknown template variable(s): ${unknownVariables.join(", ")}`);
   }
 
   // Prevent renaming onto another template's name.
@@ -166,6 +214,15 @@ export async function listLetterTemplates(orgId: number): Promise<OfferLetterTem
   return result.data.map((t) => ({ ...t, is_default: Boolean(t.is_default) }));
 }
 
+export async function assertLetterTemplateAvailable(orgId: number, templateId: string): Promise<void> {
+  const template = await getDB().findOne<OfferLetterTemplate>("offer_letter_templates", {
+    id: templateId,
+    organization_id: orgId,
+    is_active: true,
+  });
+  if (!template) throw new NotFoundError("Active offer letter template", templateId);
+}
+
 // ---------------------------------------------------------------------------
 // Letter Generation
 // ---------------------------------------------------------------------------
@@ -195,7 +252,7 @@ export async function generateOfferLetter(
     id: templateId,
     organization_id: orgId,
   });
-  if (!template) {
+  if (!template || template.is_active === false) {
     throw new NotFoundError("Offer letter template", templateId);
   }
 

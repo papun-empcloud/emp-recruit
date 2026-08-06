@@ -9,6 +9,7 @@ import {
   FileText,
   X,
   Info,
+  Eye,
 } from "lucide-react";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/api/client";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -38,6 +39,8 @@ export function OfferLetterTemplatePage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", content_template: "", is_default: false });
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewWarnings, setPreviewWarnings] = useState<string[]>([]);
 
   const templatesQuery = useQuery({
     queryKey: ["offer-letter-templates"],
@@ -62,6 +65,16 @@ export function OfferLetterTemplatePage() {
     onError: (err: any) => toast.error(err.response?.data?.error?.message || t("offers.template.toastSaveFailed")),
   });
 
+  const previewMutation = useMutation({
+    mutationFn: (content_template: string) =>
+      apiPost<{ content: string; unknown_variables: string[] }>("/offer-letters/templates/preview", { content_template }),
+    onSuccess: (res) => {
+      setPreviewHtml(res.data?.content ?? "");
+      setPreviewWarnings(res.data?.unknown_variables ?? []);
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || "Unable to preview this template"),
+  });
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiDelete(`/offer-letters/templates/${id}`),
@@ -80,12 +93,15 @@ export function OfferLetterTemplatePage() {
     setForm({ name: "", content_template: "", is_default: false });
     setShowForm(false);
     setEditingId(null);
+    setPreviewHtml(null);
+    setPreviewWarnings([]);
   }
 
   function startEdit(tpl: OfferLetterTemplate) {
     setEditingId(tpl.id);
     setShowForm(true);
     setForm({ name: tpl.name, content_template: tpl.content_template, is_default: tpl.is_default });
+    setPreviewHtml(null);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -164,6 +180,15 @@ export function OfferLetterTemplatePage() {
                 </button>
                 <button
                   type="button"
+                  disabled={!form.content_template.trim() || previewMutation.isPending}
+                  onClick={() => previewMutation.mutate(form.content_template)}
+                  className="flex items-center gap-2 rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+                >
+                  {previewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                  Preview document
+                </button>
+                <button
+                  type="button"
                   onClick={resetForm}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
@@ -171,6 +196,25 @@ export function OfferLetterTemplatePage() {
                 </button>
               </div>
             </form>
+            {previewWarnings.length > 0 && (
+              <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                Unsupported variables: {previewWarnings.join(", ")}
+              </p>
+            )}
+            {previewHtml !== null && (
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-gray-900">Rendered preview</h4>
+                  <span className="text-xs text-gray-500">Sample candidate and offer data</span>
+                </div>
+                <iframe
+                  title="Offer letter template preview"
+                  sandbox=""
+                  srcDoc={`<!doctype html><html><head><style>body{font-family:Arial,sans-serif;color:#111827;line-height:1.6;padding:40px;max-width:800px;margin:auto}table{border-collapse:collapse;width:100%}td,th{padding:8px;border:1px solid #d1d5db}</style></head><body>${previewHtml}</body></html>`}
+                  className="h-[520px] w-full rounded-lg border border-gray-200 bg-white"
+                />
+              </div>
+            )}
           </div>
 
           {/* Variable Reference Panel */}
@@ -242,6 +286,18 @@ export function OfferLetterTemplatePage() {
                 </p>
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setEditingId(tpl.id);
+                    setForm({ name: tpl.name, content_template: tpl.content_template, is_default: tpl.is_default });
+                    previewMutation.mutate(tpl.content_template);
+                  }}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-brand-50 hover:text-brand-600"
+                  title="Preview"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
                 <button
                   onClick={() => startEdit(tpl)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"

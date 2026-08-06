@@ -12,6 +12,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from "@/api/client";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface PipelineStage {
   id: string;
@@ -29,6 +30,7 @@ export function PipelineSettingsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: "", color: "#6B7280" });
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const stagesQuery = useQuery({
     queryKey: ["pipeline-stages"],
@@ -54,6 +56,7 @@ export function PipelineSettingsPage() {
     onSuccess: () => {
       toast.success(t("settings.pipeline.stageDeleted"));
       queryClient.invalidateQueries({ queryKey: ["pipeline-stages"] });
+      setDeleteId(null);
     },
     onError: (err: any) => toast.error(err.response?.data?.error?.message || t("settings.pipeline.deleteFailed")),
   });
@@ -235,7 +238,7 @@ export function PipelineSettingsPage() {
 
             {!stage.is_default && (
               <button
-                onClick={() => deleteMutation.mutate(stage.id)}
+                onClick={() => setDeleteId(stage.id)}
                 disabled={deleteMutation.isPending}
                 className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                 title={t("settings.pipeline.deleteStage")}
@@ -254,6 +257,16 @@ export function PipelineSettingsPage() {
           </p>
         </div>
       )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        title={t("settings.pipeline.deleteStage")}
+        message="This stage will be permanently removed. A stage containing applications cannot be deleted."
+        confirmLabel={t("settings.pipeline.deleteStage")}
+        variant="danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

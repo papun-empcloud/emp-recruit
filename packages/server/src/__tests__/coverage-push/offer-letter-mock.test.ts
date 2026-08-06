@@ -58,6 +58,21 @@ beforeEach(() => {
 });
 
 describe("Offer Letter Service", () => {
+  describe("previewLetterTemplate", () => {
+    it("renders supported variables using realistic sample data", () => {
+      const result = offerLetterService.previewLetterTemplate(
+        "<p>{{candidate.fullName}} — {{offer.designation}}</p>",
+      );
+      expect(result.content).toContain("<p>Hello");
+      expect(result.unknown_variables).toEqual([]);
+    });
+
+    it("reports variables that cannot be populated", () => {
+      const result = offerLetterService.previewLetterTemplate("<p>{{candidate.middleName}}</p>");
+      expect(result.unknown_variables).toEqual(["candidate.middleName"]);
+    });
+  });
+
   describe("createLetterTemplate", () => {
     it("creates a template successfully", async () => {
       mockDB.create.mockResolvedValueOnce({ id: "tpl-1", name: "Standard", organization_id: ORG, is_default: false, is_active: true, content_template: "<p>Hello</p>" });
@@ -67,6 +82,13 @@ describe("Offer Letter Service", () => {
 
     it("throws when name or content missing", async () => {
       await expect(offerLetterService.createLetterTemplate(ORG, { name: "", content_template: "" })).rejects.toThrow();
+    });
+
+    it("rejects templates containing unsupported variables", async () => {
+      await expect(offerLetterService.createLetterTemplate(ORG, {
+        name: "Broken",
+        content_template: "<p>{{candidate.middleName}}</p>",
+      })).rejects.toThrow(/Unknown template variable/);
     });
 
     it("unsets other defaults when is_default=true", async () => {
@@ -86,6 +108,18 @@ describe("Offer Letter Service", () => {
       mockDB.findMany.mockResolvedValueOnce({ data: [{ id: "t1" }], total: 1, page: 1, limit: 100, totalPages: 1 });
       const result = await offerLetterService.listLetterTemplates(ORG);
       expect(result).toHaveLength(1);
+    });
+  });
+
+  describe("assertLetterTemplateAvailable", () => {
+    it("rejects inactive or cross-organization template selections", async () => {
+      mockDB.findOne.mockResolvedValueOnce(null);
+      await expect(offerLetterService.assertLetterTemplateAvailable(ORG, "tpl-missing")).rejects.toThrow();
+      expect(mockDB.findOne).toHaveBeenCalledWith("offer_letter_templates", {
+        id: "tpl-missing",
+        organization_id: ORG,
+        is_active: true,
+      });
     });
   });
 

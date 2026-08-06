@@ -18,6 +18,7 @@ import { createOfferSchema, updateOfferSchema } from "@emp-recruit/shared";
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
 import * as offerService from "../../services/offer/offer.service";
+import * as offerLetterService from "../../services/offer/offer-letter.service";
 
 const router = Router();
 
@@ -34,10 +35,24 @@ router.post(
       // up front — otherwise a missing NOT NULL field used to surface as a 500.
       const data = createOfferSchema.parse(req.body);
       const orgId = req.user!.empcloudOrgId;
+      // Validate the selection before creating the offer. Otherwise a stale or
+      // cross-organization template id could leave an offer behind even though
+      // the request reports that letter generation failed.
+      if (data.template_id) {
+        await offerLetterService.assertLetterTemplateAvailable(orgId, data.template_id);
+      }
       const offer = await offerService.createOffer(orgId, {
         ...data,
         created_by: req.user!.empcloudUserId,
       });
+      if (data.template_id) {
+        await offerLetterService.generateOfferLetter(
+          orgId,
+          offer.id,
+          data.template_id,
+          req.user!.empcloudUserId,
+        );
+      }
       sendSuccess(res, offer, 201);
     } catch (err) {
       next(err);
@@ -117,6 +132,18 @@ router.put(
     } catch (err) {
       next(err);
     }
+  },
+);
+
+// DELETE /:id — Permanently delete a draft that has never entered approval.
+router.delete(
+  "/:id",
+  authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await offerService.deleteDraftOffer(req.user!.empcloudOrgId, String(req.params.id));
+      sendSuccess(res, { deleted: true });
+    } catch (err) { next(err); }
   },
 );
 

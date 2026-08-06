@@ -124,4 +124,14 @@ router.post("/:id/preview", async (req: Request, res: Response, next: NextFuncti
   }
 });
 
+// DELETE /:id
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await emailService.deleteTemplate(req.user!.empcloudOrgId, String(req.params.id));
+    sendSuccess(res, { deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export { router as emailTemplateRoutes };

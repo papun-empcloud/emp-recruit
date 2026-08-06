@@ -46,6 +46,12 @@ export const uploadResume = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
+export const uploadResumes = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024, files: 100 },
+});
+
 // ---------------------------------------------------------------------------
 // Recording upload (audio/video for interview recordings, up to 500MB)
 // ---------------------------------------------------------------------------
