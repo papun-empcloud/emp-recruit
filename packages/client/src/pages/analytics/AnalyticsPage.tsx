@@ -239,7 +239,7 @@ export function AnalyticsPage() {
             value={metrics.offers.pending}
             sub={t("analytics.awaitingResponse")}
             accent="amber"
-            to="/offers?status=pending_approval"
+            to="/offers?status=sent"
           />
         </section>
       ) : null}
