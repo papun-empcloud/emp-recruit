@@ -259,6 +259,7 @@ export function ReferralListPage() {
             <label className="block text-sm font-medium text-gray-700">{t("referrals.pickExisting")}</label>
             <input
               type="text"
+              aria-label={t("referrals.searchPlaceholder")}
               value={candidateSearch}
               onChange={(e) => setCandidateSearch(e.target.value)}
               placeholder={t("referrals.searchByNameEmail")}

@@ -95,14 +95,14 @@ export function InterviewListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("interviews.list.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {t("interviews.list.subtitle")}
+            {t(canSchedule ? "interviews.list.subtitle" : "interviews.list.employeeSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="interviews"
             title={t("interviews.list.title")}
-            subtitle={t("interviews.list.subtitle")}
+            subtitle={t(canSchedule ? "interviews.list.subtitle" : "interviews.list.employeeSubtitle")}
             columns={INTERVIEW_COLUMNS}
             fetchRows={() => fetchAllRows<InterviewRow>("/interviews", { status: statusFilter, search })}
           />
@@ -122,6 +122,7 @@ export function InterviewListPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
+            aria-label={t("interviews.list.searchPlaceholder")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t("interviews.list.searchPlaceholder")}
