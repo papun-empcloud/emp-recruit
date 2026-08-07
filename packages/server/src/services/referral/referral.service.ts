@@ -146,7 +146,7 @@ export async function listReferrals(
   await db.raw(
     `UPDATE referrals SET status = 'bonus_eligible', updated_at = NOW()
       WHERE organization_id = ? AND status = 'bonus_paid'
-        AND (bonus_amount IS NULL OR bonus_amount <= 0)`,
+        AND (bonus_amount IS NULL OR bonus_amount <= 0 OR bonus_paid_at IS NULL)`,
     [orgId],
   );
   const page = params.page || 1;
