@@ -9,6 +9,8 @@ export function getActiveTheme(): Theme {
 
 export function applyTheme(theme: Theme): void {
   document.documentElement.classList.toggle("dark", theme === "dark");
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+    ?.setAttribute("content", theme === "dark" ? "#0f172a" : "#ffffff");
   try {
     localStorage.setItem("theme", theme);
   } catch {
