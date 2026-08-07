@@ -58,6 +58,8 @@ interface DashboardInterview {
   title?: string;
   candidate_name?: string;
   status?: string;
+  panelist_count?: number;
+  panelist_names?: string[];
 }
 interface RecruiterMetric { user_id: number; user_name?: string | null; function: string; applications: number; hires: number; conversion_rate: number; sla_breaches: number; }
 interface SourceMetric { source: string; total: number; hired: number; hireRate: number; }
@@ -109,6 +111,10 @@ function AdminDashboard() {
     queryKey: ["dashboard-pipeline-rejected"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "rejected", perPage: 1 }),
   });
+  const { data: hiredData } = useQuery({
+    queryKey: ["dashboard-pipeline-hired"],
+    queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "hired", perPage: 1 }),
+  });
 
   const { data: pendingOffersData } = useQuery({
     queryKey: ["dashboard-action-offers"],
@@ -146,7 +152,9 @@ function AdminDashboard() {
   const recentApps = appsData?.data?.data ?? [];
   const pipelineDisplayStages: FunnelStageDatum[] = funnel
     ? [
-        ...funnel.stages.filter((stage) => stage.stage !== "rejected"),
+        ...funnel.stages.filter((stage) => stage.stage !== "rejected").map((stage) =>
+          stage.stage === "hired" ? { ...stage, reached: hiredData?.data?.total ?? 0 } : stage,
+        ),
         {
           stage: "rejected",
           reached: rejectedData?.data?.total ?? 0,
@@ -478,6 +486,7 @@ function EmployeeDashboard() {
   const { data: approvalsRes } = useQuery({
     queryKey: ["my-offer-approvals"],
     queryFn: () => apiGet<PendingApprovalOffer[]>("/offers/my-approvals"),
+    enabled: false,
   });
   const pendingApprovals = approvalsRes?.data ?? [];
 
@@ -541,7 +550,7 @@ function EmployeeDashboard() {
 
       {/* Offers awaiting my approval (BUG-012) — only rendered when the
           current user has pending approver rows. */}
-      {pendingApprovals.length > 0 && (
+      {false && pendingApprovals.length > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -614,7 +623,7 @@ function EmployeeDashboard() {
       {/* My recent referrals */}
       {assignedInterviews.length > 0 && <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-900">My assigned interviews</h2><Link to="/interviews" className="text-sm text-brand-600">View all</Link></div>
-        <div className="space-y-3">{assignedInterviews.map((interview) => <Link key={interview.id} to={`/interviews/${interview.id}`} className="flex flex-col gap-2 rounded-xl border border-gray-100 p-3 hover:border-brand-300 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-sm font-medium text-gray-900">{interview.title || "Interview"}</p><p className="truncate text-xs text-gray-500">{interview.candidate_name || "Candidate"}</p></div><span className="shrink-0 text-xs text-gray-500">{formatDate(interview.scheduled_at)}</span></Link>)}</div>
+        <div className="space-y-3">{assignedInterviews.map((interview) => <Link key={interview.id} to={`/interviews/${interview.id}`} className="flex flex-col gap-2 rounded-xl border border-gray-100 p-3 hover:border-brand-300 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-sm font-medium text-gray-900">{interview.title || "Interview"}</p><p className="truncate text-xs text-gray-500">{interview.candidate_name || "Candidate"}</p><p className="truncate text-xs text-gray-500">Panelists: {interview.panelist_names?.join(", ") || `${interview.panelist_count || 0} assigned`}</p></div><span className="shrink-0 text-xs font-medium text-brand-600">View details · {formatDate(interview.scheduled_at)}</span></Link>)}</div>
       </div>}
 
       {/* My recent referrals */}
