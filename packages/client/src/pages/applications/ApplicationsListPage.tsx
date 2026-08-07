@@ -48,7 +48,7 @@ const APPLICATION_COLUMNS: ExportColumn<AppRow>[] = [
 
 export function ApplicationsListPage() {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stage, setStage] = useState(() => {
     const requested = searchParams.get("stage") ?? "";
     return STAGES.includes(requested) ? requested : "";
@@ -58,15 +58,21 @@ export function ApplicationsListPage() {
   const [location, setLocation] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const initialSearch = searchParams.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [page, setPage] = useState(1);
 
   // Debounce the search box so we don't fire a request per keystroke.
   useEffect(() => {
     const t = setTimeout(() => {
-      setSearch(searchInput);
+      const value = searchInput.trim();
+      setSearch(value);
       setPage(1);
+      const next = new URLSearchParams(searchParams);
+      if (value) next.set("search", value); else next.delete("search");
+      next.delete("page");
+      setSearchParams(next, { replace: true });
     }, 400);
     return () => clearTimeout(t);
   }, [searchInput]);

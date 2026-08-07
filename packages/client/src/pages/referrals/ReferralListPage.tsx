@@ -78,16 +78,22 @@ export function ReferralListPage() {
 
   // List controls: search (candidate/job), status filter, pagination.
   // The status filter honours ?status= so dashboard cards can deep-link here.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [listPage, setListPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
-  const [listSearchInput, setListSearchInput] = useState("");
-  const [listSearch, setListSearch] = useState("");
+  const initialListSearch = searchParams.get("search") ?? "";
+  const [listSearchInput, setListSearchInput] = useState(initialListSearch);
+  const [listSearch, setListSearch] = useState(initialListSearch);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      setListSearch(listSearchInput.trim());
+      const value = listSearchInput.trim();
+      setListSearch(value);
       setListPage(1);
+      const next = new URLSearchParams(searchParams);
+      if (value) next.set("search", value); else next.delete("search");
+      next.delete("page");
+      setSearchParams(next, { replace: true });
     }, 400);
     return () => clearTimeout(t);
   }, [listSearchInput]);
@@ -504,7 +510,7 @@ export function ReferralListPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      {ref.bonus_amount ? `INR ${(ref.bonus_amount / 100).toLocaleString()}` : "—"}
+                      {ref.bonus_amount ? <><span>INR {(ref.bonus_amount / 100).toLocaleString()}</span>{ref.status === "bonus_paid" && ref.bonus_paid_at && <span className="block text-xs text-gray-500">Paid {formatDate(ref.bonus_paid_at)}</span>}</> : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(ref.created_at)}</td>
                     {isAdmin && (
