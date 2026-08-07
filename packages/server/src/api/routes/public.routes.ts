@@ -86,10 +86,9 @@ const applySchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  // Phone is optional. When given, it must contain only digits and phone
-  // punctuation (no letters/symbols — BUG-02) and at least one digit, but we do
-  // NOT enforce a strict length: a real number of any reasonable length must
-  // never be rejected, which was blocking legitimate applications (BUG-09).
+  // Career-page phone is optional, but when supplied it must contain exactly
+  // 10 digits. The API repeats the client-side constraint so direct requests
+  // cannot bypass it (BUG-020).
   phone: z
     .string()
     .refine(
@@ -97,9 +96,9 @@ const applySchema = z.object({
         if (!v.trim()) return true;
         if (/[^\d+\-()\s]/.test(v)) return false;
         const digits = v.replace(/\D/g, "");
-        return digits.length >= 7 && digits.length <= 15;
+        return digits.length === 10;
       },
-      { message: "Please enter a valid phone number" },
+      { message: "Please enter a valid 10-digit phone number" },
     )
     .optional(),
   cover_letter: z.string().optional(),

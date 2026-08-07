@@ -28,7 +28,7 @@ interface PublicCustomField { id: string; field_key: string; label: string; fiel
 // rejected; these cap unrealistic values like 999 years / 999,999,999 salary.
 const MAX_EXPERIENCE_YEARS = 50;
 const MAX_EXPECTED_SALARY = 100_000_000;
-const MAX_PHONE_DIGITS = 15;
+const REQUIRED_PHONE_DIGITS = 10;
 
 export function CareerApplyPage() {
   const { t } = useTranslation();
@@ -133,15 +133,9 @@ export function CareerApplyPage() {
     const { name, value } = e.target;
     // Clear a field's error as soon as the applicant edits it. (BUG-06)
     setErrors((prev) => (prev[name] ? { ...prev, [name]: "" } : prev));
-    // Phone: reject non-numeric input as it's typed — only digits and the usual
-    // phone punctuation (+ - ( ) space) are kept. (BUG-02)
+    // Phone: accept digits only and stop at exactly 10 digits (BUG-020).
     if (name === "phone") {
-      let digits = 0;
-      const phone = value
-        .replace(/[^\d+\-()\s]/g, "")
-        .split("")
-        .filter((character) => !/\d/.test(character) || ++digits <= MAX_PHONE_DIGITS)
-        .join("");
+      const phone = value.replace(/\D/g, "").slice(0, REQUIRED_PHONE_DIGITS);
       setForm((prev) => ({ ...prev, phone }));
       return;
     }
@@ -186,13 +180,11 @@ export function CareerApplyPage() {
     const next: Record<string, string> = {};
     const emailInvalid =
       form.email.trim() !== "" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim());
-    // Phone is optional. The input filter already strips letters/symbols
-    // (BUG-02), so here we only reject clearly-non-phone input: something typed
-    // that contains no digits at all, or an absurdly long string. A real phone
-    // number of any reasonable length must never block submission (BUG-09).
+    // Phone is optional, but when supplied it must contain exactly 10 digits.
+    // This also protects submission state from programmatic changes (BUG-020).
     const phoneDigits = form.phone.replace(/\D/g, "");
     const phoneInvalid =
-      form.phone.trim() !== "" && (phoneDigits.length < 7 || phoneDigits.length > MAX_PHONE_DIGITS);
+      form.phone.trim() !== "" && phoneDigits.length !== REQUIRED_PHONE_DIGITS;
     const yearsNegative = form.experience_years !== "" && Number(form.experience_years) < 0;
     const yearsTooHigh =
       form.experience_years !== "" && Number(form.experience_years) > MAX_EXPERIENCE_YEARS;
@@ -380,8 +372,9 @@ export function CareerApplyPage() {
               id="phone"
               name="phone"
               type="tel"
-              inputMode="tel"
-              maxLength={MAX_PHONE_DIGITS}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={REQUIRED_PHONE_DIGITS}
               value={form.phone}
               onChange={handleChange}
               className={fieldClass("phone")}
