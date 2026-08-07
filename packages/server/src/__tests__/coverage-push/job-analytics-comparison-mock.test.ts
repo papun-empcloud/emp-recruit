@@ -118,11 +118,14 @@ describe("Job Service", () => {
     });
 
     it("applies status filter", async () => {
-      mockDB.findMany.mockResolvedValueOnce({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+      mockDB.raw
+        .mockResolvedValueOnce([[{ total: 1 }]])
+        .mockResolvedValueOnce([[{ ...baseJob, status: "closed" }]]);
       await jobService.listJobs(ORG, { status: "closed" });
-      expect(mockDB.findMany).toHaveBeenCalledWith("job_postings", expect.objectContaining({
-        filters: expect.objectContaining({ status: "closed" }),
-      }));
+      expect(mockDB.raw).toHaveBeenCalledWith(
+        expect.stringContaining("LOWER(TRIM(status)) = ?"),
+        [ORG, "closed"],
+      );
     });
   });
 
