@@ -348,6 +348,22 @@ export async function listInterviews(
   };
 }
 
+/**
+ * Close interviews that were never actioned. A full day after the scheduled
+ * end is deliberately allowed for delayed feedback/status updates; after that,
+ * leaving the record as Scheduled is misleading and it becomes No Show.
+ */
+export async function reconcileOverdueInterviews(): Promise<number> {
+  const db = getDB();
+  const result = await db.raw<any>(
+    `UPDATE interviews
+        SET status = 'no_show', updated_at = NOW()
+      WHERE status IN ('scheduled', 'in_progress')
+        AND TIMESTAMPADD(MINUTE, duration_minutes + 1440, scheduled_at) < NOW()`,
+  );
+  return Number(result?.[0]?.affectedRows ?? result?.affectedRows ?? 0);
+}
+
 // ---------------------------------------------------------------------------
 // Get interview detail with panelists and feedback
 // ---------------------------------------------------------------------------
