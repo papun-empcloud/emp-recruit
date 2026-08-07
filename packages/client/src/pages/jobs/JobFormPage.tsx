@@ -374,10 +374,13 @@ export function JobFormPage() {
   ) {
     return (
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={`job-${name}`} className="block text-sm font-medium text-gray-700 mb-1">
           {label} {opts?.required && <span className="text-red-500">*</span>}
         </label>
         <input
+          id={`job-${name}`}
+          name={name}
+          autoComplete="off"
           type={type}
           value={form[name]}
           onChange={(e) => {
@@ -406,6 +409,8 @@ export function JobFormPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
+          type="button"
+          aria-label={t("jobs.form.cancel")}
           onClick={() => navigate(-1)}
           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
@@ -438,6 +443,8 @@ export function JobFormPage() {
                   the title, chosen seniority, department, location and skills. */}
               <div className="flex items-center gap-2">
                 <select
+                  aria-label={t("jobs.form.seniorityLabel")}
+                  name="seniority"
                   value={seniority}
                   onChange={(e) => setSeniority(e.target.value)}
                   className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:border-brand-500 focus:outline-none"
@@ -483,9 +490,11 @@ export function JobFormPage() {
               configured entries, free-text fallback otherwise. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.department")}</label>
+              <label htmlFor="job-department" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.department")}</label>
               {departments.length > 0 ? (
                 <select
+                  id="job-department"
+                  name="department"
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -497,6 +506,9 @@ export function JobFormPage() {
                 </select>
               ) : (
                 <input
+                  id="job-department"
+                  name="department"
+                  autoComplete="organization"
                   type="text"
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
@@ -506,9 +518,11 @@ export function JobFormPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.location")}</label>
+              <label htmlFor="job-location" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.location")}</label>
               {locations.length > 0 ? (
                 <select
+                  id="job-location"
+                  name="location"
                   value={form.location}
                   onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -520,6 +534,9 @@ export function JobFormPage() {
                 </select>
               ) : (
                 <input
+                  id="job-location"
+                  name="location"
+                  autoComplete="off"
                   type="text"
                   value={form.location}
                   onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
@@ -532,8 +549,10 @@ export function JobFormPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.employmentTypeLabel")}</label>
+              <label htmlFor="job-employment-type" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.employmentTypeLabel")}</label>
               <select
+                id="job-employment-type"
+                name="employment_type"
                 value={form.employment_type}
                 onChange={(e) => setForm((p) => ({ ...p, employment_type: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -546,8 +565,10 @@ export function JobFormPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.remotePolicyLabel")}</label>
+              <label htmlFor="job-remote-policy" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.remotePolicyLabel")}</label>
               <select
+                id="job-remote-policy"
+                name="remote_policy"
                 value={form.remote_policy}
                 onChange={(e) => setForm((p) => ({ ...p, remote_policy: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -564,6 +585,7 @@ export function JobFormPage() {
           {/* Internal-only visibility */}
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
             <input
+              name="is_internal"
               type="checkbox"
               checked={form.is_internal}
               onChange={(e) => setForm((p) => ({ ...p, is_internal: e.target.checked }))}
@@ -591,8 +613,10 @@ export function JobFormPage() {
             {field(t("jobs.form.minSalaryLabel"), "salary_min", "number", { placeholder: t("jobs.form.minSalaryPlaceholder"), min: 0 })}
             {field(t("jobs.form.maxSalaryLabel"), "salary_max", "number", { placeholder: t("jobs.form.maxSalaryPlaceholder"), min: 0 })}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.currency")}</label>
+              <label htmlFor="job-salary-currency" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.currency")}</label>
               <select
+                id="job-salary-currency"
+                name="salary_currency"
                 value={form.salary_currency}
                 onChange={(e) => setForm((p) => ({ ...p, salary_currency: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -624,8 +648,11 @@ export function JobFormPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.benefits")}</label>
+            <label htmlFor="job-benefits" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.benefits")}</label>
             <textarea
+              id="job-benefits"
+              name="benefits"
+              autoComplete="off"
               value={form.benefits}
               onChange={(e) => setForm((p) => ({ ...p, benefits: e.target.value }))}
               rows={3}
@@ -656,8 +683,10 @@ export function JobFormPage() {
           {/* #13 — can't pick a deadline in the past. Enforced client-side
               via the native min attribute; backend rejects Invalid dates too. */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.applicationDeadline")}</label>
+            <label htmlFor="job-application-deadline" className="block text-sm font-medium text-gray-700 mb-1">{t("jobs.form.applicationDeadline")}</label>
             <DateInput
+              id="job-application-deadline"
+              name="closes_at"
               value={form.closes_at}
               onChange={(e) => setForm((p) => ({ ...p, closes_at: e.target.value }))}
               min={minCloseDate}
