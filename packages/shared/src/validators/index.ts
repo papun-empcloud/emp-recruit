@@ -439,13 +439,13 @@ export const publicApplicationSchema = z.object({
   first_name: z.string().trim().min(1).max(64),
   last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
+  country_code: z.string().regex(/^\+\d{1,4}$/).default("+91"),
   phone: z
     .string()
     .refine(
       (value) => {
         if (!value.trim()) return true;
-        if (/[^\d+\-()\s]/.test(value)) return false;
-        return value.replace(/\D/g, "").length === 10;
+        return /^\d{10}$/.test(value);
       },
       { message: "Enter a valid 10-digit phone number" },
     )

@@ -310,7 +310,8 @@
       "skillsLabel": "Skills (comma separated)",
       "skillsPlaceholder": "React, Python, SQL",
       "screeningLoadError": "Couldn't load the application form. Please try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "countryCodeLabel": "Country code"
     },
     "success": {
       "title": "Thank You for Applying!",

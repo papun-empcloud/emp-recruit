@@ -309,7 +309,8 @@
       "skillsLabel": "कौशल (कोमा अलग)",
       "skillsPlaceholder": "React, पायथन,SQL",
       "screeningLoadError": "आवेदन फ़ॉर्म लोड नहीं हो सका। कृपया पुनः प्रयास करें।",
-      "retry": "पुनः प्रयास करें"
+      "retry": "पुनः प्रयास करें",
+      "countryCodeLabel": "देश कोड"
     },
     "success": {
       "title": "धन्यवाद!",

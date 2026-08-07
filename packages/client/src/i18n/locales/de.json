@@ -309,7 +309,8 @@
       "skillsLabel": "Fähigkeiten (durch Kommas getrennt)",
       "skillsPlaceholder": "React, Python, SQL",
       "screeningLoadError": "Das Bewerbungsformular konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
-      "retry": "Erneut versuchen"
+      "retry": "Erneut versuchen",
+      "countryCodeLabel": "Ländervorwahl"
     },
     "success": {
       "title": "Vielen Dank für Ihre Bewerbung!",

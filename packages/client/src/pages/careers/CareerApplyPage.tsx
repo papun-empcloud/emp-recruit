@@ -29,6 +29,22 @@ interface PublicCustomField { id: string; field_key: string; label: string; fiel
 const MAX_EXPERIENCE_YEARS = 50;
 const MAX_EXPECTED_SALARY = 100_000_000;
 const REQUIRED_PHONE_DIGITS = 10;
+const COUNTRY_CODES = [
+  { code: "+91", label: "🇮🇳 +91" },
+  { code: "+1", label: "🇺🇸 +1" },
+  { code: "+44", label: "🇬🇧 +44" },
+  { code: "+971", label: "🇦🇪 +971" },
+  { code: "+61", label: "🇦🇺 +61" },
+  { code: "+65", label: "🇸🇬 +65" },
+  { code: "+49", label: "🇩🇪 +49" },
+  { code: "+33", label: "🇫🇷 +33" },
+  { code: "+34", label: "🇪🇸 +34" },
+  { code: "+351", label: "🇵🇹 +351" },
+  { code: "+62", label: "🇮🇩 +62" },
+  { code: "+81", label: "🇯🇵 +81" },
+  { code: "+86", label: "🇨🇳 +86" },
+  { code: "+966", label: "🇸🇦 +966" },
+] as const;
 
 export function CareerApplyPage() {
   const { t } = useTranslation();
@@ -39,6 +55,7 @@ export function CareerApplyPage() {
     first_name: "",
     last_name: "",
     email: "",
+    country_code: "+91",
     phone: "",
     cover_letter: "",
     current_company: "",
@@ -85,7 +102,10 @@ export function CareerApplyPage() {
       formData.append("last_name", form.last_name);
       formData.append("email", form.email);
       formData.append("job_id", jobId!);
-      if (form.phone) formData.append("phone", form.phone);
+      if (form.phone) {
+        formData.append("country_code", form.country_code);
+        formData.append("phone", form.phone);
+      }
       if (form.cover_letter) formData.append("cover_letter", form.cover_letter);
       if (form.current_company) formData.append("current_company", form.current_company);
       // Fold months into the decimal years the API already accepts (same
@@ -368,17 +388,35 @@ export function CareerApplyPage() {
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
               {t("careers.apply.phoneLabel")}
             </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={REQUIRED_PHONE_DIGITS}
-              value={form.phone}
-              onChange={handleChange}
-              className={fieldClass("phone")}
-            />
+            <div className="mt-1 flex gap-2">
+              <select
+                id="country_code"
+                name="country_code"
+                value={form.country_code}
+                onChange={(event) =>
+                  setForm((previous) => ({ ...previous, country_code: event.target.value }))
+                }
+                className="w-32 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                aria-label={t("careers.apply.countryCodeLabel", { defaultValue: "Country code" })}
+              >
+                {COUNTRY_CODES.map((country) => (
+                  <option key={country.code} value={country.code}>
+                    {country.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={REQUIRED_PHONE_DIGITS}
+                value={form.phone}
+                onChange={handleChange}
+                className={fieldClass("phone").replace("mt-1 ", "")}
+              />
+            </div>
             {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
           </div>
 

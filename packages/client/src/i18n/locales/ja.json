@@ -309,7 +309,8 @@
       "skillsLabel": "スキル(コンマ区切り)",
       "skillsPlaceholder": "反応、Python、SQL",
       "screeningLoadError": "応募フォームを読み込めませんでした。もう一度お試しください。",
-      "retry": "再試行"
+      "retry": "再試行",
+      "countryCodeLabel": "国番号"
     },
     "success": {
       "title": "お問い合わせ",
