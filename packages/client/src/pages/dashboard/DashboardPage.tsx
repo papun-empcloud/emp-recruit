@@ -516,8 +516,8 @@ function EmployeeDashboard() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#111a35] via-[#18244a] to-brand-900 px-5 py-7 text-white shadow-xl sm:px-8 sm:py-9">
         <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" aria-hidden="true" />
         <div className="relative max-w-2xl">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-brand-200">My recruiting workspace</p>
-        <h1 className="text-pretty text-3xl font-bold tracking-[-0.04em] sm:text-4xl">{t("dashboard.welcome", { name: firstName })}</h1>
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-brand-200">{t("dashboard.welcome", { name: firstName })}</p>
+        <h1 className="text-pretty text-3xl font-bold tracking-[-0.04em] sm:text-4xl">{t("dashboard.title")}</h1>
         <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
           {t("dashboard.employeeSubtitle")}
         </p>
