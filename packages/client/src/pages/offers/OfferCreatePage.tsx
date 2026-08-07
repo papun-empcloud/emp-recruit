@@ -200,6 +200,8 @@ export function OfferCreatePage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
+          type="button"
+          aria-label={t("offers.form.cancel")}
           onClick={() => navigate(-1)}
           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
@@ -216,6 +218,9 @@ export function OfferCreatePage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
+              aria-label={t("offers.form.searchCandidatePlaceholder")}
+              name="application_search"
+              autoComplete="off"
               type="text"
               placeholder={t("offers.form.searchCandidatePlaceholder")}
               value={appSearch}
@@ -284,6 +289,9 @@ export function OfferCreatePage() {
                 {t("offers.form.jobTitleLabel")} <span className="text-red-500">*</span>
               </label>
               <input
+                aria-label={t("offers.form.jobTitle")}
+                name="job_title"
+                autoComplete="organization-title"
                 type="text"
                 required
                 value={form.job_title}
@@ -299,6 +307,8 @@ export function OfferCreatePage() {
                   departments) aren't blocked. */}
               {departments.length > 0 ? (
                 <select
+                  aria-label={t("offers.form.department")}
+                  name="department"
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -310,6 +320,9 @@ export function OfferCreatePage() {
                 </select>
               ) : (
                 <input
+                  aria-label={t("offers.form.department")}
+                  name="department"
+                  autoComplete="organization"
                   type="text"
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
@@ -331,6 +344,9 @@ export function OfferCreatePage() {
                 {t("offers.form.annualSalary")} <span className="text-red-500">*</span>
               </label>
               <input
+                aria-label={t("offers.form.salary")}
+                name="salary_amount"
+                autoComplete="off"
                 type="number"
                 required
                 min={0}
@@ -347,6 +363,8 @@ export function OfferCreatePage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.currency")}</label>
               <select
+                aria-label={t("offers.form.currency")}
+                name="salary_currency"
                 value={form.salary_currency}
                 onChange={(e) => setForm((p) => ({ ...p, salary_currency: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -362,6 +380,9 @@ export function OfferCreatePage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t("offers.form.benefits")}</label>
             <textarea
+              aria-label={t("offers.form.benefits")}
+              name="benefits"
+              autoComplete="off"
               value={form.benefits}
               onChange={(e) => setForm((p) => ({ ...p, benefits: e.target.value }))}
               rows={3}
@@ -381,6 +402,8 @@ export function OfferCreatePage() {
                 {t("offers.form.joiningDate")} <span className="text-red-500">*</span>
               </label>
               <DateInput
+                aria-label={t("offers.form.joiningDate")}
+                name="joining_date"
                 required
                 value={form.joining_date}
                 min={minDate}
@@ -394,6 +417,8 @@ export function OfferCreatePage() {
                 {t("offers.form.offerExpiryDate")} <span className="text-red-500">*</span>
               </label>
               <DateInput
+                aria-label={t("offers.form.expiryDate")}
+                name="expiry_date"
                 required
                 value={form.expiry_date}
                 min={form.joining_date && form.joining_date > minDate ? form.joining_date : minDate}
@@ -426,6 +451,8 @@ export function OfferCreatePage() {
               <div className="flex-1">
                 <label className="mb-1 block text-sm font-medium text-gray-700">Template</label>
                 <select
+                  aria-label="Template"
+                  name="template_id"
                   value={form.template_id}
                   onChange={(e) => { setForm((p) => ({ ...p, template_id: e.target.value })); setPreviewHtml(null); }}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -464,6 +491,9 @@ export function OfferCreatePage() {
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">{t("offers.form.additionalNotes")}</h2>
           <textarea
+            aria-label={t("offers.form.notes")}
+            name="notes"
+            autoComplete="off"
             value={form.notes}
             onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             rows={3}
