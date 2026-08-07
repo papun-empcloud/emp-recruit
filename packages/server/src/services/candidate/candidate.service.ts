@@ -217,18 +217,18 @@ export async function listCandidates(
   );
 
   if (params.search) {
-    const search = `%${params.search}%`;
+    const search = `%${params.search.trim().replace(/\s+/g, " ")}%`;
     const offset = (page - 1) * perPage;
 
     const countRows = await db.raw<any[][]>(
-      "SELECT COUNT(*) as total FROM candidates WHERE organization_id = ? AND archived_at IS NULL AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?)",
-      [orgId, search, search, search, search],
+      "SELECT COUNT(*) as total FROM candidates WHERE organization_id = ? AND archived_at IS NULL AND (first_name LIKE ? OR last_name LIKE ? OR CONCAT_WS(' ', first_name, last_name) LIKE ? OR email LIKE ? OR current_company LIKE ?)",
+      [orgId, search, search, search, search, search],
     );
     const total = Number(countRows[0]?.[0]?.total ?? 0);
 
     const dataRows = await db.raw<any[][]>(
-      `SELECT * FROM candidates WHERE organization_id = ? AND archived_at IS NULL AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR current_company LIKE ?) ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
-      [orgId, search, search, search, search, perPage, offset],
+      `SELECT * FROM candidates WHERE organization_id = ? AND archived_at IS NULL AND (first_name LIKE ? OR last_name LIKE ? OR CONCAT_WS(' ', first_name, last_name) LIKE ? OR email LIKE ? OR current_company LIKE ?) ORDER BY \`${column}\` ${direction} LIMIT ? OFFSET ?`,
+      [orgId, search, search, search, search, search, perPage, offset],
     );
 
     return { data: dataRows[0] as Candidate[], total, page, perPage };
