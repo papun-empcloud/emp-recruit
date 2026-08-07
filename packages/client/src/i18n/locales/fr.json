@@ -316,7 +316,8 @@
       "screeningRequired": "Cette question est obligatoire",
       "screeningRequiredToast": "Veuillez répondre à toutes les questions de présélection obligatoires.",
       "screeningLoadError": "Impossible de charger le formulaire de candidature. Veuillez réessayer.",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "countryCodeLabel": "Indicatif du pays"
     },
     "success": {
       "title": "Merci pour votre candidature !",

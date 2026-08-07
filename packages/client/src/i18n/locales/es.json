@@ -316,7 +316,8 @@
       "screeningRequired": "Esta pregunta es obligatoria",
       "screeningRequiredToast": "Responde todas las preguntas de preselección obligatorias.",
       "screeningLoadError": "No se pudo cargar el formulario de solicitud. Inténtalo de nuevo.",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "countryCodeLabel": "Código de país"
     },
     "success": {
       "title": "¡Gracias por postularte!",

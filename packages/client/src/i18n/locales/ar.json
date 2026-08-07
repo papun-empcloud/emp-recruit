@@ -337,7 +337,8 @@
       "screeningRequired": "هذا السؤال مطلوب",
       "screeningRequiredToast": "يرجى الإجابة على جميع أسئلة التصفية المطلوبة.",
       "screeningLoadError": "تعذّر تحميل نموذج التقديم. يُرجى المحاولة مرة أخرى.",
-      "retry": "إعادة المحاولة"
+      "retry": "إعادة المحاولة",
+      "countryCodeLabel": "رمز الدولة"
     },
     "success": {
       "title": "شكرًا لتقديمك!",

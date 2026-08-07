@@ -295,7 +295,8 @@
       "screeningRequired": "Pertanyaan ini wajib diisi",
       "screeningRequiredToast": "Silakan jawab semua pertanyaan seleksi yang wajib.",
       "screeningLoadError": "Tidak dapat memuat formulir lamaran. Silakan coba lagi.",
-      "retry": "Coba lagi"
+      "retry": "Coba lagi",
+      "countryCodeLabel": "Kode negara"
     },
     "success": {
       "title": "Terima Kasih Telah Melamar!",

@@ -309,7 +309,8 @@
       "skillsLabel": "技能(离职)",
       "skillsPlaceholder": "反应,Python,SQL",
       "screeningLoadError": "无法加载申请表单。请重试。",
-      "retry": "重试"
+      "retry": "重试",
+      "countryCodeLabel": "国家/地区代码"
     },
     "success": {
       "title": "谢谢你的应用!",

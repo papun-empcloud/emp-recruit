@@ -89,14 +89,13 @@ const applySchema = z.object({
   // Career-page phone is optional, but when supplied it must contain exactly
   // 10 digits. The API repeats the client-side constraint so direct requests
   // cannot bypass it (BUG-020).
+  country_code: z.string().regex(/^\+\d{1,4}$/, "Invalid country code").default("+91"),
   phone: z
     .string()
     .refine(
       (v) => {
         if (!v.trim()) return true;
-        if (/[^\d+\-()\s]/.test(v)) return false;
-        const digits = v.replace(/\D/g, "");
-        return digits.length === 10;
+        return /^\d{10}$/.test(v);
       },
       { message: "Please enter a valid 10-digit phone number" },
     )
@@ -243,8 +242,12 @@ router.post(
 
       const knockoutFailed = prepared.knockoutFailed || preparedCustom.knockoutFailed;
       const result = await getDB().transaction(async (tx) => {
+        const { country_code: countryCode, ...applicationData } = parsed.data;
+        if (applicationData.phone) {
+          applicationData.phone = countryCode + applicationData.phone;
+        }
         const submitted = await careerPageService.submitPublicApplication(
-          String(req.params.slug), jobId as string, parsed.data, resumePath, tx,
+          String(req.params.slug), jobId as string, applicationData, resumePath, tx,
         );
         await screeningService.storeAnswers(submitted.application.organization_id, submitted.application.id, prepared.rows, tx);
         await recruitmentOps.storeFormValues(submitted.application.organization_id, submitted.application.id, preparedCustom.rows, tx);
