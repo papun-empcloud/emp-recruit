@@ -404,8 +404,10 @@ export function ReferralListPage() {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 sm:w-72">
+            <label className="sr-only" htmlFor="referral-search">{t("referrals.searchPlaceholder")}</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
+              id="referral-search"
               type="text"
               value={listSearchInput}
               onChange={(e) => setListSearchInput(e.target.value)}
@@ -413,7 +415,9 @@ export function ReferralListPage() {
               className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
+          <label className="sr-only" htmlFor="referral-status">{t("referrals.status")}</label>
           <select
+            id="referral-status"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);

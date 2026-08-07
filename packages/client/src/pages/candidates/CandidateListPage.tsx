@@ -93,8 +93,10 @@ export function CandidateListPage() {
 
       {/* Search */}
       <div className="relative">
+        <label className="sr-only" htmlFor="candidate-search">{t("candidates.list.searchPlaceholder")}</label>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          id="candidate-search"
           type="text"
           aria-label={t("candidates.list.searchPlaceholder")}
           value={searchInput}

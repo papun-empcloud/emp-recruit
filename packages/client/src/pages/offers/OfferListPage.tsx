@@ -140,8 +140,10 @@ export function OfferListPage() {
 
       {/* Search */}
       <div className="relative">
+        <label className="sr-only" htmlFor="offer-search">{t("offers.list.searchPlaceholder")}</label>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          id="offer-search"
           type="text"
           aria-label={t("offers.list.searchPlaceholder")}
           placeholder={t("offers.list.searchPlaceholder")}

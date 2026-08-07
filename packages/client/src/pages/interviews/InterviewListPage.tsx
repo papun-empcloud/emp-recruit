@@ -64,7 +64,7 @@ function isOverdue(interview: InterviewRow): boolean {
 }
 
 export function InterviewListPage() {
-  const canSchedule = isAdminRole(getUser()?.role);
+  const canSchedule = isAdminRole(getUser()?.role) || getUser()?.role === "employee";
   const { t } = useTranslation();
 
   const [page, setPage] = useState(1);
@@ -119,8 +119,10 @@ export function InterviewListPage() {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <label className="sr-only" htmlFor="interview-search">{t("interviews.list.searchPlaceholder")}</label>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
+            id="interview-search"
             type="text"
             aria-label={t("interviews.list.searchPlaceholder")}
             value={searchInput}
@@ -130,7 +132,9 @@ export function InterviewListPage() {
           />
         </div>
         <div>
+          <label className="sr-only" htmlFor="interview-status">Status</label>
           <select
+            id="interview-status"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
