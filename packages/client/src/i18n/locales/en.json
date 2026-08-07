@@ -371,6 +371,7 @@
     "offersExtendedTotal_one": "{{count}} offer extended in total",
     "offersExtendedTotal_other": "{{count}} offers extended in total",
     "timeToHire": "Time to Hire",
+    "dayOnAverage": "day on average",
     "daysOnAverage": "days on average",
     "timeToHireBasis_one": "From application to hire, based on {{count}} hire.",
     "timeToHireBasis_other": "From application to hire, based on {{count}} hires.",
