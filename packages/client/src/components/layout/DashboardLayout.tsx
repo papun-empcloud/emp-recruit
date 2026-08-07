@@ -195,6 +195,7 @@ export function DashboardLayout() {
 
   return (
     <div className="fixed inset-0 flex min-h-0 overflow-hidden bg-gray-50">
+      <a href="#main-content" className="sr-only z-[100] rounded-md bg-white px-4 py-2 font-medium text-gray-900 shadow focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to main content</a>
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <SidebarContent />
@@ -235,7 +236,7 @@ export function DashboardLayout() {
         {/* Page content. The ErrorBoundary is keyed on the path so a crash on one
             page is isolated (sidebar stays usable) and clears when the user
             navigates elsewhere, instead of blanking the whole app. */}
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 sm:p-5 lg:p-8">
+        <main id="main-content" tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 sm:p-5 lg:p-8">
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>
