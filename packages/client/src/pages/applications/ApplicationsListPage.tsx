@@ -353,11 +353,13 @@ export function ApplicationsListPage() {
           {rows.map((app) => (
             <div key={app.id} className="flex items-center gap-3">
               <input
+                id={`application-select-${app.id}`}
+                name="selected_applications"
                 type="checkbox"
                 checked={selected.has(app.id)}
                 onChange={() => toggleSelected(app.id)}
                 className="h-4 w-4 flex-shrink-0 rounded border-gray-300"
-                aria-label={t("applications.bulk.selected", { count: 1 })}
+                aria-label={`Select application for ${`${app.candidate_first_name} ${app.candidate_last_name}`.trim()}`}
               />
               <Link
                 to={`/applications/${app.id}`}
