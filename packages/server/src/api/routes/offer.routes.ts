@@ -166,6 +166,7 @@ router.post(
 // POST /:id/approve — Approve offer
 router.post(
   "/:id/approve",
+  authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
@@ -182,6 +183,7 @@ router.post(
 // POST /:id/reject — Reject offer
 router.post(
   "/:id/reject",
+  authorize("super_admin", "org_admin", "hr_admin", "hr_manager"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
