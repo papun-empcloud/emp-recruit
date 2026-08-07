@@ -28,6 +28,7 @@ router.use(authenticate);
 router.get("/", authorize("org_admin", "hr_admin", "hr_manager", "employee"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orgId = req.user!.empcloudOrgId;
+    await interviewService.reconcileOverdueInterviews();
     const { page, limit, application_id, status, search, sort_field, sort_order } = req.query;
 
     const viewerScope = interviewService.interviewViewerScope({ role: req.user!.role, userId: req.user!.empcloudUserId });
