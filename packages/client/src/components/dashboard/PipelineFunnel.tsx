@@ -53,7 +53,7 @@ export function PipelineFunnel({ stages }: PipelineFunnelProps) {
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
-              <span className="text-sm font-semibold text-gray-700">{t(`dashboard.stages.${item.stage}`)}</span>
+              <span className="text-sm font-semibold text-gray-700">{item.stage === "hired" ? "Currently Hired" : t(`dashboard.stages.${item.stage}`)}</span>
               <span className="mt-1 text-2xl font-bold tracking-tight" style={{ color }}>{item.reached}</span>
             </div>
           );
@@ -63,7 +63,7 @@ export function PipelineFunnel({ stages }: PipelineFunnelProps) {
       <table className="sr-only">
         <caption>{t("dashboard.funnel.tableCaption")}</caption>
         <thead><tr><th>{t("dashboard.funnel.colStage")}</th><th>{t("dashboard.funnel.colReached")}</th></tr></thead>
-        <tbody>{stages.map((item) => <tr key={item.stage}><th>{t(`dashboard.stages.${item.stage}`)}</th><td>{item.reached}</td></tr>)}</tbody>
+        <tbody>{stages.map((item) => <tr key={item.stage}><th>{item.stage === "hired" ? "Currently Hired" : t(`dashboard.stages.${item.stage}`)}</th><td>{item.reached}</td></tr>)}</tbody>
       </table>
     </div>
   );
