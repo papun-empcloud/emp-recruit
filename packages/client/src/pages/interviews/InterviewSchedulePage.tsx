@@ -190,6 +190,8 @@ export function InterviewSchedulePage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
+          type="button"
+          aria-label={t("interviews.schedule.cancel")}
           onClick={() => navigate(-1)}
           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
@@ -217,8 +219,12 @@ export function InterviewSchedulePage() {
           </div>
 
           <div className="relative">
+            <label className="sr-only" htmlFor="interview-application-search">{t("interviews.schedule.searchCandidatePlaceholder")}</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
+              id="interview-application-search"
+              name="application_search"
+              autoComplete="off"
               type="text"
               placeholder={t("interviews.schedule.searchCandidatePlaceholder")}
               value={appSearch}
@@ -312,10 +318,13 @@ export function InterviewSchedulePage() {
           </h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="interview-title" className="block text-sm font-medium text-gray-700 mb-1">
               {t("interviews.schedule.titleLabel")} <span className="text-red-500">*</span>
             </label>
             <input
+              id="interview-title"
+              name="title"
+              autoComplete="off"
               type="text"
               required
               value={form.title}
@@ -327,8 +336,10 @@ export function InterviewSchedulePage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.typeLabel")}</label>
+              <label htmlFor="interview-type" className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.typeLabel")}</label>
               <select
+                id="interview-type"
+                name="type"
                 value={form.type}
                 onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -341,10 +352,13 @@ export function InterviewSchedulePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.roundLabel")}</label>
+              <label htmlFor="interview-round" className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.roundLabel")}</label>
               {/* #18 — store as string so the user can clear the field
                   with backspace without Number("") snapping back to 0. */}
               <input
+                id="interview-round"
+                name="round"
+                autoComplete="off"
                 type="number"
                 min={1}
                 value={form.round}
@@ -356,11 +370,13 @@ export function InterviewSchedulePage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="interview-date" className="block text-sm font-medium text-gray-700 mb-1">
                 {t("interviews.schedule.dateLabel")} <span className="text-red-500">*</span>
               </label>
               {/* #17 — can't schedule in the past. */}
               <DateInput
+                id="interview-date"
+                name="scheduled_at"
                 max="9999-12-31"
                 required
                 value={form.scheduled_at}
@@ -370,10 +386,12 @@ export function InterviewSchedulePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="interview-time" className="block text-sm font-medium text-gray-700 mb-1">
                 {t("interviews.schedule.timeLabel")} <span className="text-red-500">*</span>
               </label>
               <input
+                id="interview-time"
+                name="scheduled_time"
                 type="time"
                 required
                 value={form.scheduled_time}
@@ -382,9 +400,12 @@ export function InterviewSchedulePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.durationLabel")}</label>
+              <label htmlFor="interview-duration" className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.durationLabel")}</label>
               {/* #18 — same string-state pattern as Round. */}
               <input
+                id="interview-duration"
+                name="duration_minutes"
+                autoComplete="off"
                 type="number"
                 min={15}
                 max={480}
@@ -404,8 +425,11 @@ export function InterviewSchedulePage() {
           </h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.locationLabel")}</label>
+            <label htmlFor="interview-location" className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.locationLabel")}</label>
             <input
+              id="interview-location"
+              name="location"
+              autoComplete="off"
               type="text"
               value={form.location}
               onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
@@ -415,19 +439,25 @@ export function InterviewSchedulePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.meetingLinkLabel")}</label>
+            <label htmlFor="interview-meeting-link" className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.meetingLinkLabel")}</label>
             <input
+              id="interview-meeting-link"
+              name="meeting_link"
+              autoComplete="url"
               type="url"
               value={form.meeting_link}
               onChange={(e) => setForm((p) => ({ ...p, meeting_link: e.target.value }))}
-              placeholder="https://meet.google.com/..."
+              placeholder="https://meet.google.com/…"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.notesLabel")}</label>
+            <label htmlFor="interview-notes" className="block text-sm font-medium text-gray-700 mb-1">{t("interviews.schedule.notesLabel")}</label>
             <textarea
+              id="interview-notes"
+              name="notes"
+              autoComplete="off"
               value={form.notes}
               onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
               rows={3}
