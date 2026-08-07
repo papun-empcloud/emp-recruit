@@ -22,8 +22,9 @@ import { apiGet, apiPost } from "@/api/client";
 import { getUser } from "@/lib/auth-store";
 import { canAccessRecruit } from "@/lib/roles";
 import type { PaginatedResponse } from "@emp-recruit/shared";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatTime } from "@/lib/utils";
 import { usePipelineStages, stageColor } from "@/lib/pipeline-stages";
+import { enumLabel } from "@/lib/enums";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,6 +59,9 @@ interface DashboardInterview {
   title?: string;
   candidate_name?: string;
   status?: string;
+  panelist_count?: number;
+  panelist_names?: string[];
+  round?: number;
 }
 interface RecruiterMetric { user_id: number; user_name?: string | null; function: string; applications: number; hires: number; conversion_rate: number; sla_breaches: number; }
 interface SourceMetric { source: string; total: number; hired: number; hireRate: number; }
@@ -97,7 +101,7 @@ function AdminDashboard() {
   });
 
   // Fetch recent applications
-  const { data: appsData } = useQuery({
+  const { data: appsData, isLoading: appsLoading } = useQuery({
     queryKey: ["dashboard-applications"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { perPage: 10, sort: "applied_at", order: "desc" }),
   });
@@ -108,6 +112,10 @@ function AdminDashboard() {
   const { data: rejectedData } = useQuery({
     queryKey: ["dashboard-pipeline-rejected"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "rejected", perPage: 1 }),
+  });
+  const { data: hiredData } = useQuery({
+    queryKey: ["dashboard-pipeline-hired"],
+    queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { stage: "hired", perPage: 1 }),
   });
 
   const { data: pendingOffersData } = useQuery({
@@ -146,7 +154,9 @@ function AdminDashboard() {
   const recentApps = appsData?.data?.data ?? [];
   const pipelineDisplayStages: FunnelStageDatum[] = funnel
     ? [
-        ...funnel.stages.filter((stage) => stage.stage !== "rejected"),
+        ...funnel.stages.filter((stage) => stage.stage !== "rejected").map((stage) =>
+          stage.stage === "hired" ? { ...stage, reached: hiredData?.data?.total ?? 0 } : stage,
+        ),
         {
           stage: "rejected",
           reached: rejectedData?.data?.total ?? 0,
@@ -315,7 +325,13 @@ function AdminDashboard() {
             </Link>
           </CardHeader>
           <CardContent className="flex-1">
-          {recentApps.length === 0 ? (
+          {appsLoading ? (
+            <div className="space-y-3" aria-label={t("dashboard.loading")}>
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="h-16 animate-pulse rounded-xl bg-gray-100" />
+              ))}
+            </div>
+          ) : recentApps.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">{t("dashboard.noApplications")}</p>
           ) : (
             // Ten rows fetched, five in view: the container is capped at five
@@ -411,7 +427,7 @@ function AdminDashboard() {
 
       <Card className="overflow-hidden rounded-2xl">
         <CardHeader className="flex-row items-center justify-between border-b border-gray-100"><CardTitle>Applicant Source Performance</CardTitle><Link className="text-sm font-semibold text-brand-600 hover:text-brand-700" to="/analytics">Full analytics</Link></CardHeader>
-        <CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr>{["Source", "Applicants", "Hires", "Hire rate"].map((heading) => <th key={heading} className="px-5 py-3 font-semibold">{heading}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{sourceMetrics.length ? sourceMetrics.map((metric) => <tr key={metric.source}><td className="px-5 py-4 font-semibold capitalize">{metric.source}</td><td className="px-5 py-4 tabular-nums">{metric.total}</td><td className="px-5 py-4 tabular-nums">{metric.hired}</td><td className="px-5 py-4 font-semibold tabular-nums">{metric.hireRate}%</td></tr>) : <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-500">No applicant source data is available yet.</td></tr>}</tbody></table></div></CardContent>
+        <CardContent className="p-0"><div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr>{["Source", "Applicants", "Hires", "Hire rate"].map((heading) => <th key={heading} className="px-5 py-3 font-semibold">{heading}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{sourceMetrics.length ? sourceMetrics.map((metric) => <tr key={metric.source}><td className="px-5 py-4 font-semibold">{metric.source === "linkedin" ? "LinkedIn" : metric.source.charAt(0).toUpperCase() + metric.source.slice(1)}</td><td className="px-5 py-4 tabular-nums">{metric.total}</td><td className="px-5 py-4 tabular-nums">{metric.hired}</td><td className="px-5 py-4 font-semibold tabular-nums">{metric.hireRate}%</td></tr>) : <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-500">No applicant source data is available yet.</td></tr>}</tbody></table></div></CardContent>
       </Card>
     </div>
   );
@@ -510,8 +526,8 @@ function EmployeeDashboard() {
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#111a35] via-[#18244a] to-brand-900 px-5 py-7 text-white shadow-xl sm:px-8 sm:py-9">
         <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-brand-400/20 blur-3xl" aria-hidden="true" />
         <div className="relative max-w-2xl">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-brand-200">My recruiting workspace</p>
-        <h1 className="text-pretty text-3xl font-bold tracking-[-0.04em] sm:text-4xl">{t("dashboard.welcome", { name: firstName })}</h1>
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-brand-200">{t("dashboard.welcome", { name: firstName })}</p>
+        <h1 className="text-pretty text-3xl font-bold tracking-[-0.04em] sm:text-4xl">{t("dashboard.title")}</h1>
         <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
           {t("dashboard.employeeSubtitle")}
         </p>
@@ -608,7 +624,7 @@ function EmployeeDashboard() {
       {/* My recent referrals */}
       {assignedInterviews.length > 0 && <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold text-gray-900">My assigned interviews</h2><Link to="/interviews" className="text-sm text-brand-600">View all</Link></div>
-        <div className="space-y-3">{assignedInterviews.map((interview) => <Link key={interview.id} to={`/interviews/${interview.id}`} className="flex flex-col gap-2 rounded-xl border border-gray-100 p-3 hover:border-brand-300 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-sm font-medium text-gray-900">{interview.title || "Interview"}</p><p className="truncate text-xs text-gray-500">{interview.candidate_name || "Candidate"}</p></div><span className="shrink-0 text-xs text-gray-500">{formatDate(interview.scheduled_at)}</span></Link>)}</div>
+        <div className="space-y-3">{assignedInterviews.map((interview) => <Link key={interview.id} to={`/interviews/${interview.id}`} className="flex flex-col gap-2 rounded-xl border border-gray-100 p-3 hover:border-brand-300 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-sm font-medium text-gray-900">{interview.title || "Interview"}</p><p className="truncate text-xs text-gray-500">{interview.candidate_name || "Candidate"}</p><p className="truncate text-xs text-gray-500">Panelists ({interview.panelist_count || 0}): {interview.panelist_names?.join(", ") || "None assigned"}</p><p className="text-xs text-gray-500">Round {interview.round || 1} · {interview.status ? enumLabel(t, "interviewStatus", interview.status) : "Scheduled"}</p></div><span className="shrink-0 text-xs font-medium text-brand-600">View details · {formatDate(interview.scheduled_at)} at {formatTime(interview.scheduled_at)}</span></Link>)}</div>
       </div>}
 
       {/* My recent referrals */}

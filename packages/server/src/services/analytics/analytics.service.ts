@@ -260,9 +260,9 @@ export async function getConversionFunnel(orgId: number): Promise<ConversionFunn
        SUM(cur >= 2 OR h_screened  > 0)    AS screened,
        SUM(cur >= 3 OR h_interview > 0)    AS \`interview\`,
        SUM(cur >= 4 OR h_offer     > 0)    AS offer,
-       SUM(cur >= 5 OR h_hired     > 0)    AS hired
+       SUM(current_stage = 'hired')         AS hired
      FROM (
-       SELECT a.id,
+       SELECT a.id, a.stage AS current_stage,
               FIELD(a.stage, 'applied', 'screened', 'interview', 'offer', 'hired') AS cur,
               SUM(h.to_stage = 'screened')  AS h_screened,
               SUM(h.to_stage = 'interview') AS h_interview,

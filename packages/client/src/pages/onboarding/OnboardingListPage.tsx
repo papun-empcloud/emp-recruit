@@ -268,9 +268,12 @@ export function OnboardingListPage() {
 
       {/* Search */}
       <div className="relative">
+        <label className="sr-only" htmlFor="onboarding-search">{t("onboarding.list.searchPlaceholder")}</label>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          id="onboarding-search"
           type="text"
+          aria-label={t("onboarding.list.searchPlaceholder")}
           placeholder={t("onboarding.list.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}

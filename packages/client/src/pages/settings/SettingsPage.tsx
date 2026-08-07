@@ -339,7 +339,7 @@ function EmailTemplateSettings() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-semibold text-gray-900">
-                    {(tpl.name || "").replace(/<[^>]+>/g, "")}
+                    {(tpl.name || "").replace(/<[^>]+>/g, "").trim() || t("settings.email.untitledTemplate")}
                   </h3>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${

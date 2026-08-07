@@ -37,7 +37,6 @@ export function usePaginatedList<T>(
       });
       return res.data!;
     },
-    placeholderData: (prev) => prev,
     enabled: options?.enabled ?? true,
   });
 

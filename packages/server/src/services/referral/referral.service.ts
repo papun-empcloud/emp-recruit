@@ -141,6 +141,14 @@ export async function listReferrals(
   totalPages: number;
 }> {
   const db = getDB();
+  // Repair legacy rows that predate the paid-bonus invariant so the API never
+  // presents a payment as completed without a positive recorded amount.
+  await db.raw(
+    `UPDATE referrals SET status = 'bonus_eligible', updated_at = NOW()
+      WHERE organization_id = ? AND status = 'bonus_paid'
+        AND (bonus_amount IS NULL OR bonus_amount <= 0 OR bonus_paid_at IS NULL)`,
+    [orgId],
+  );
   const page = params.page || 1;
   const limit = params.limit || 20;
 
@@ -273,6 +281,10 @@ export async function updateReferralStatus(
   }
 
   if (status === "bonus_paid") {
+    const effectiveBonus = bonusAmount ?? Number(referral.bonus_amount ?? 0);
+    if (!Number.isFinite(effectiveBonus) || effectiveBonus <= 0) {
+      throw new ValidationError("A positive bonus amount is required before marking a bonus as paid");
+    }
     (updateData as any).bonus_paid_at = new Date();
   }
 

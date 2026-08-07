@@ -48,7 +48,7 @@ const APPLICATION_COLUMNS: ExportColumn<AppRow>[] = [
 
 export function ApplicationsListPage() {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stage, setStage] = useState(() => {
     const requested = searchParams.get("stage") ?? "";
     return STAGES.includes(requested) ? requested : "";
@@ -58,15 +58,21 @@ export function ApplicationsListPage() {
   const [location, setLocation] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const initialSearch = searchParams.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [page, setPage] = useState(1);
 
   // Debounce the search box so we don't fire a request per keystroke.
   useEffect(() => {
     const t = setTimeout(() => {
-      setSearch(searchInput);
+      const value = searchInput.trim();
+      setSearch(value);
       setPage(1);
+      const next = new URLSearchParams(searchParams);
+      if (value) next.set("search", value); else next.delete("search");
+      next.delete("page");
+      setSearchParams(next, { replace: true });
     }, 400);
     return () => clearTimeout(t);
   }, [searchInput]);
@@ -177,11 +183,12 @@ export function ApplicationsListPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           {/* Employee / job search */}
           <div className="w-full flex-1 sm:min-w-[16rem]">
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.searchLabel")}</label>
+            <label htmlFor="applications-search" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.searchLabel")}</label>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
+                id="applications-search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={t("applications.searchPlaceholder")}
@@ -192,8 +199,9 @@ export function ApplicationsListPage() {
 
           {/* Job role */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.jobRole")}</label>
+            <label htmlFor="applications-job" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.jobRole")}</label>
             <select
+              id="applications-job"
               value={jobId}
               onChange={(e) => setFilter(setJobId)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-44"
@@ -209,8 +217,9 @@ export function ApplicationsListPage() {
 
           {/* Department */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.department")}</label>
+            <label htmlFor="applications-department" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.department")}</label>
             <select
+              id="applications-department"
               value={department}
               onChange={(e) => setFilter(setDepartment)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-40"
@@ -226,8 +235,9 @@ export function ApplicationsListPage() {
 
           {/* Location */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.location")}</label>
+            <label htmlFor="applications-location" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.location")}</label>
             <select
+              id="applications-location"
               value={location}
               onChange={(e) => setFilter(setLocation)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-40"
@@ -243,8 +253,9 @@ export function ApplicationsListPage() {
 
           {/* Stage */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.stageLabel")}</label>
+            <label htmlFor="applications-stage" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.stageLabel")}</label>
             <select
+              id="applications-stage"
               value={stage}
               onChange={(e) => setFilter(setStage)(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:w-36"
@@ -260,8 +271,9 @@ export function ApplicationsListPage() {
 
           {/* Date range */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.appliedFrom")}</label>
+            <label htmlFor="applications-from" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.appliedFrom")}</label>
             <input
+              id="applications-from"
               type="date"
               value={dateFrom}
               max={dateTo || undefined}
@@ -270,8 +282,9 @@ export function ApplicationsListPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("applications.appliedTo")}</label>
+            <label htmlFor="applications-to" className="mb-1 block text-xs font-medium text-gray-500">{t("applications.appliedTo")}</label>
             <input
+              id="applications-to"
               type="date"
               value={dateTo}
               min={dateFrom || undefined}

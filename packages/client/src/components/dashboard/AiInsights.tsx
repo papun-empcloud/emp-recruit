@@ -83,7 +83,7 @@ export function AiInsights() {
         // No comparison window means no comparison claim — the average is stated
         // on its own instead of against a period that has no hires in it.
         if (v.changePct === null) {
-          return t("dashboard.insights.timeToHire", { days: v.days });
+          return `Your average time to hire is ${v.days} ${Number(v.days) === 1 ? "day" : "days"}.`;
         }
         return t(
           v.improved

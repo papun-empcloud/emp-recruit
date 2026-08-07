@@ -64,7 +64,7 @@ function isOverdue(interview: InterviewRow): boolean {
 }
 
 export function InterviewListPage() {
-  const canSchedule = isAdminRole(getUser()?.role);
+  const canSchedule = isAdminRole(getUser()?.role) || getUser()?.role === "employee";
   const { t } = useTranslation();
 
   const [page, setPage] = useState(1);
@@ -95,14 +95,14 @@ export function InterviewListPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t("interviews.list.title")}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {t("interviews.list.subtitle")}
+            {t(canSchedule ? "interviews.list.subtitle" : "interviews.list.employeeSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButtons
             baseName="interviews"
             title={t("interviews.list.title")}
-            subtitle={t("interviews.list.subtitle")}
+            subtitle={t(canSchedule ? "interviews.list.subtitle" : "interviews.list.employeeSubtitle")}
             columns={INTERVIEW_COLUMNS}
             fetchRows={() => fetchAllRows<InterviewRow>("/interviews", { status: statusFilter, search })}
           />
@@ -119,9 +119,12 @@ export function InterviewListPage() {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <label className="sr-only" htmlFor="interview-search">{t("interviews.list.searchPlaceholder")}</label>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
+            id="interview-search"
             type="text"
+            aria-label={t("interviews.list.searchPlaceholder")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t("interviews.list.searchPlaceholder")}
@@ -129,7 +132,9 @@ export function InterviewListPage() {
           />
         </div>
         <div>
+          <label className="sr-only" htmlFor="interview-status">Status</label>
           <select
+            id="interview-status"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);

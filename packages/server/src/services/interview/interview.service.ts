@@ -212,7 +212,7 @@ export async function listInterviews(
   orgId: number,
   params: ListInterviewsParams,
 ): Promise<{
-  data: (Interview & { candidate_name: string; job_title: string; panelist_count: number })[];
+  data: (Interview & { candidate_name: string; job_title: string; panelist_count: number; panelist_names: string[] })[];
   total: number;
   page: number;
   perPage: number;
@@ -318,15 +318,21 @@ export async function listInterviews(
   }
 
   const panelistRows = await db.raw<any[][]>(
-    `SELECT interview_id, COUNT(*) AS cnt
+    `SELECT interview_id, user_id
      FROM interview_panelists
      WHERE interview_id IN (${ivPlaceholders})
-     GROUP BY interview_id`,
+     ORDER BY created_at ASC`,
     interviewIds,
   );
   const panelistCounts = new Map<string, number>();
+  const panelistNames = new Map<string, string[]>();
+  const userIds = [...new Set(((panelistRows[0] || []) as any[]).map((row) => Number(row.user_id)))];
+  const users = new Map((await Promise.all(userIds.map(async (id) => [id, await findUserById(id).catch(() => null)] as const))));
   for (const r of (panelistRows[0] || []) as any[]) {
-    panelistCounts.set(r.interview_id, Number(r.cnt));
+    panelistCounts.set(r.interview_id, (panelistCounts.get(r.interview_id) || 0) + 1);
+    const user = users.get(Number(r.user_id));
+    const name = user ? `${user.first_name} ${user.last_name}`.trim() : `Panelist ${r.user_id}`;
+    panelistNames.set(r.interview_id, [...(panelistNames.get(r.interview_id) || []), name]);
   }
 
   const enriched = rows.map((interview) => {
@@ -336,6 +342,7 @@ export async function listInterviews(
       candidate_name: info?.candidate_name || "Unknown",
       job_title: info?.job_title || "Unknown",
       panelist_count: panelistCounts.get(interview.id) || 0,
+      panelist_names: panelistNames.get(interview.id) || [],
     };
   });
 
@@ -346,6 +353,22 @@ export async function listInterviews(
     perPage: limit,
     totalPages,
   };
+}
+
+/**
+ * Close interviews that were never actioned. A full day after the scheduled
+ * end is deliberately allowed for delayed feedback/status updates; after that,
+ * leaving the record as Scheduled is misleading and it becomes No Show.
+ */
+export async function reconcileOverdueInterviews(): Promise<number> {
+  const db = getDB();
+  const result = await db.raw<any>(
+    `UPDATE interviews
+        SET status = 'no_show', updated_at = NOW()
+      WHERE status IN ('scheduled', 'in_progress')
+        AND TIMESTAMPADD(MINUTE, duration_minutes + 1440, scheduled_at) < NOW()`,
+  );
+  return Number(result?.[0]?.affectedRows ?? result?.affectedRows ?? 0);
 }
 
 // ---------------------------------------------------------------------------

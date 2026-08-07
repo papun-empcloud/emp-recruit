@@ -78,16 +78,22 @@ export function ReferralListPage() {
 
   // List controls: search (candidate/job), status filter, pagination.
   // The status filter honours ?status= so dashboard cards can deep-link here.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [listPage, setListPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "");
-  const [listSearchInput, setListSearchInput] = useState("");
-  const [listSearch, setListSearch] = useState("");
+  const initialListSearch = searchParams.get("search") ?? "";
+  const [listSearchInput, setListSearchInput] = useState(initialListSearch);
+  const [listSearch, setListSearch] = useState(initialListSearch);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      setListSearch(listSearchInput.trim());
+      const value = listSearchInput.trim();
+      setListSearch(value);
       setListPage(1);
+      const next = new URLSearchParams(searchParams);
+      if (value) next.set("search", value); else next.delete("search");
+      next.delete("page");
+      setSearchParams(next, { replace: true });
     }, 400);
     return () => clearTimeout(t);
   }, [listSearchInput]);
@@ -259,6 +265,7 @@ export function ReferralListPage() {
             <label className="block text-sm font-medium text-gray-700">{t("referrals.pickExisting")}</label>
             <input
               type="text"
+              aria-label={t("referrals.searchPlaceholder")}
               value={candidateSearch}
               onChange={(e) => setCandidateSearch(e.target.value)}
               placeholder={t("referrals.searchByNameEmail")}
@@ -403,8 +410,10 @@ export function ReferralListPage() {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative min-w-0 sm:w-72">
+            <label className="sr-only" htmlFor="referral-search">{t("referrals.searchPlaceholder")}</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
+              id="referral-search"
               type="text"
               value={listSearchInput}
               onChange={(e) => setListSearchInput(e.target.value)}
@@ -412,7 +421,9 @@ export function ReferralListPage() {
               className="h-10 w-full rounded-lg border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
+          <label className="sr-only" htmlFor="referral-status">{t("referrals.status")}</label>
           <select
+            id="referral-status"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
@@ -499,7 +510,7 @@ export function ReferralListPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
-                      {ref.bonus_amount ? `INR ${(ref.bonus_amount / 100).toLocaleString()}` : "—"}
+                      {ref.bonus_amount ? <><span>INR {(ref.bonus_amount / 100).toLocaleString()}</span>{ref.status === "bonus_paid" && ref.bonus_paid_at && <span className="block text-xs text-gray-500">Paid {formatDate(ref.bonus_paid_at)}</span>}</> : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(ref.created_at)}</td>
                     {isAdmin && (

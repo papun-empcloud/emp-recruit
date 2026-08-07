@@ -13,6 +13,7 @@ import { config } from "./config";
 import { initDB, closeDB } from "./db/adapters";
 import { initEmpCloudDB, migrateEmpCloudDB, closeEmpCloudDB } from "./db/empcloud";
 import { logger } from "./utils/logger";
+import { reconcileOverdueInterviews } from "./services/interview/interview.service";
 
 // Route imports
 import { healthRoutes } from "./api/routes/health.routes";
@@ -290,6 +291,13 @@ async function start() {
         .then(() => processDueCampaigns())
         .catch((error) => logger.error("Recruitment operations scheduler failed", error));
     }, 30_000).unref();
+
+    // Resolve abandoned interview states independently of page traffic. The
+    // operation is idempotent and catches up after downtime on the first run.
+    reconcileOverdueInterviews().catch((error) => logger.error("Interview lifecycle reconciliation failed", error));
+    setInterval(() => {
+      reconcileOverdueInterviews().catch((error) => logger.error("Interview lifecycle reconciliation failed", error));
+    }, 15 * 60_000).unref();
 
     // Start server
     app.listen(config.port, config.host, () => {

@@ -93,9 +93,12 @@ export function CandidateListPage() {
 
       {/* Search */}
       <div className="relative">
+        <label className="sr-only" htmlFor="candidate-search">{t("candidates.list.searchPlaceholder")}</label>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          id="candidate-search"
           type="text"
+          aria-label={t("candidates.list.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t("candidates.list.searchPlaceholder")}
@@ -200,8 +203,12 @@ export function CandidateListPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">{formatDate(c.created_at)}</td>
                   <td className="px-6 py-4 text-right">
-                    <Link to={`/candidates/${c.id}`} className="text-gray-400 hover:text-gray-600">
-                      <ChevronRight className="h-5 w-5" />
+                    <Link
+                      to={`/candidates/${c.id}`}
+                      aria-label={`${t("candidates.list.colName")}: ${c.first_name} ${c.last_name}`}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <ChevronRight className="h-5 w-5" aria-hidden="true" />
                     </Link>
                   </td>
                 </tr>

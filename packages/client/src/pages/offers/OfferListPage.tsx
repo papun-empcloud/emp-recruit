@@ -75,20 +75,26 @@ const OFFER_COLUMNS: ExportColumn<EnrichedOffer>[] = [
 
 export function OfferListPage() {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<string>(() => {
     const requested = searchParams.get("status") ?? "all";
     return STATUS_TABS.some((tab) => tab.value === requested) ? requested : "all";
   });
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const initialSearch = searchParams.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
 
   // Debounce the search box and reset to page 1 when the term changes.
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearch(searchInput);
+      const value = searchInput.trim();
+      setSearch(value);
       setPage(1);
+      const next = new URLSearchParams(searchParams);
+      if (value) next.set("search", value); else next.delete("search");
+      next.delete("page");
+      setSearchParams(next, { replace: true });
     }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
@@ -140,9 +146,12 @@ export function OfferListPage() {
 
       {/* Search */}
       <div className="relative">
+        <label className="sr-only" htmlFor="offer-search">{t("offers.list.searchPlaceholder")}</label>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <input
+          id="offer-search"
           type="text"
+          aria-label={t("offers.list.searchPlaceholder")}
           placeholder={t("offers.list.searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
