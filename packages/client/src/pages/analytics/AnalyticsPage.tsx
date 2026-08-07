@@ -407,7 +407,7 @@ export function AnalyticsPage() {
               <div className="flex items-end gap-2">
                 <span className="text-6xl font-bold tracking-tight text-gray-900 tabular-nums">{timeToHire.averageDays}</span>
                 <span className="mb-2 text-sm text-gray-500">
-                  {Number(timeToHire.averageDays) === 1 ? t("analytics.dayOnAverage") : t("analytics.daysOnAverage")}
+                  {Number(timeToHire.averageDays) === 1 ? "day on average" : "days on average"}
                 </span>
               </div>
               <p className="mt-3 text-sm text-gray-500">
