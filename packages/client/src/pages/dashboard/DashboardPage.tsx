@@ -97,7 +97,7 @@ function AdminDashboard() {
   });
 
   // Fetch recent applications
-  const { data: appsData } = useQuery({
+  const { data: appsData, isLoading: appsLoading } = useQuery({
     queryKey: ["dashboard-applications"],
     queryFn: () => apiGet<PaginatedResponse<any>>("/applications", { perPage: 10, sort: "applied_at", order: "desc" }),
   });
@@ -315,7 +315,13 @@ function AdminDashboard() {
             </Link>
           </CardHeader>
           <CardContent className="flex-1">
-          {recentApps.length === 0 ? (
+          {appsLoading ? (
+            <div className="space-y-3" aria-label={t("dashboard.loading")}>
+              {[0, 1, 2].map((row) => (
+                <div key={row} className="h-16 animate-pulse rounded-xl bg-gray-100" />
+              ))}
+            </div>
+          ) : recentApps.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">{t("dashboard.noApplications")}</p>
           ) : (
             // Ten rows fetched, five in view: the container is capped at five
