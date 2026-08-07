@@ -439,7 +439,17 @@ export const publicApplicationSchema = z.object({
   first_name: z.string().trim().min(1).max(64),
   last_name: z.string().trim().min(1).max(64),
   email: z.string().email().max(128),
-  phone: z.string().max(20).optional(),
+  phone: z
+    .string()
+    .refine(
+      (value) => {
+        if (!value.trim()) return true;
+        if (/[^\d+\-()\s]/.test(value)) return false;
+        return value.replace(/\D/g, "").length === 10;
+      },
+      { message: "Enter a valid 10-digit phone number" },
+    )
+    .optional(),
   cover_letter: z.string().optional(),
   linkedin_url: z.string().url().optional(),
   portfolio_url: z.string().url().optional(),
