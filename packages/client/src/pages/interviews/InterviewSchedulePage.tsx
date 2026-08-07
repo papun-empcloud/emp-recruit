@@ -94,7 +94,7 @@ export function InterviewSchedulePage() {
   const { data: appsData, isLoading: loadingApps } = useQuery({
     queryKey: ["applications-for-schedule", appSearch],
     queryFn: () =>
-      apiGet<PaginatedResponse<ApplicationRow>>("/applications", {
+      apiGet<PaginatedResponse<ApplicationRow>>("/interviews/schedule-options", {
         page: 1,
         perPage: 50,
         ...(appSearch && { search: appSearch }),

@@ -20,10 +20,11 @@ const InterviewRoomPage = lazyWithRetry(() =>
 export const panelistInterviewRoutes = (
   <>
     <Route path="/interviews" element={<InterviewListPage />} />
+    <Route path="/interviews/schedule" element={<InterviewSchedulePage />} />
     <Route path="/interviews/:id" element={<InterviewDetailPage />} />
     <Route path="/interviews/:id/feedback" element={<InterviewFeedbackPage />} />
     <Route path="/interviews/:id/room" element={<InterviewRoomPage />} />
   </>
 );
 
-export const adminInterviewRoutes = <Route path="/interviews/schedule" element={<InterviewSchedulePage />} />;
+export const adminInterviewRoutes = null;

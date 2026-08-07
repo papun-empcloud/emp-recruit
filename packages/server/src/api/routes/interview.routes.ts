@@ -12,6 +12,7 @@ import { recordingUpload } from "../middleware/upload.middleware";
 import { sendSuccess, sendPaginated } from "../../utils/response";
 import { ValidationError, NotFoundError } from "../../utils/errors";
 import * as interviewService from "../../services/interview/interview.service";
+import * as applicationService from "../../services/application/application.service";
 import * as recordingService from "../../services/interview/recording.service";
 import * as evaluationService from "../../services/ai/evaluation.service";
 import { submitFeedbackSchema, type InterviewStatus } from "@emp-recruit/shared";
@@ -52,7 +53,7 @@ router.get("/", authorize("org_admin", "hr_admin", "hr_manager", "employee"), as
 // ---------------------------------------------------------------------------
 router.post(
   "/",
-  authorize("org_admin", "hr_admin", "hr_manager"),
+  authorize("org_admin", "hr_admin", "hr_manager", "employee"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const orgId = req.user!.empcloudOrgId;
@@ -108,7 +109,7 @@ router.post(
 // ---------------------------------------------------------------------------
 router.get(
   "/meeting-config",
-  authorize("org_admin", "hr_admin", "hr_manager"),
+  authorize("org_admin", "hr_admin", "hr_manager", "employee"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const cfg = await interviewService.getMeetingConfig(req.user!.empcloudOrgId);
@@ -118,6 +119,21 @@ router.get(
     }
   },
 );
+
+// Employees who can schedule interviews need a narrow application picker,
+// without gaining access to the rest of the applications workspace.
+router.get("/schedule-options", authorize("org_admin", "hr_admin", "hr_manager", "employee"), async (req, res, next) => {
+  try {
+    const result = await applicationService.listApplications(req.user!.empcloudOrgId, {
+      page: 1,
+      perPage: Math.min(parseLimit(req.query.perPage), 100),
+      search: req.query.search as string | undefined,
+      sort: "applied_at",
+      order: "desc",
+    });
+    return sendPaginated(res, result.data, result.total, result.page, result.perPage);
+  } catch (err) { next(err); }
+});
 
 router.put(
   "/meeting-config",
