@@ -165,10 +165,13 @@ export function CandidateCreatePage() {
   function field(label: string, name: keyof FormData, type = "text", opts?: { required?: boolean; placeholder?: string }) {
     return (
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={`candidate-${name}`} className="block text-sm font-medium text-gray-700 mb-1">
           {label} {opts?.required && <span className="text-red-500">*</span>}
         </label>
         <input
+          id={`candidate-${name}`}
+          name={name}
+          autoComplete={name === "first_name" ? "given-name" : name === "last_name" ? "family-name" : name === "email" ? "email" : name === "phone" ? "tel" : name === "current_company" ? "organization" : name === "current_title" ? "organization-title" : name === "linkedin_url" || name === "portfolio_url" ? "url" : "off"}
           type={type}
           value={form[name]}
           onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))}
@@ -184,6 +187,8 @@ export function CandidateCreatePage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-4">
         <button
+          type="button"
+          aria-label={t("candidates.form.cancel")}
           onClick={() => navigate(-1)}
           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
         >
@@ -213,10 +218,14 @@ export function CandidateCreatePage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.experienceYears")}</label>
+              <label htmlFor="candidate-experience-years" className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.experienceYears")}</label>
               <input
+                id="candidate-experience-years"
+                name="experience_years"
+                autoComplete="off"
                 type="number"
                 min={0}
+                max={50}
                 step={1}
                 value={form.experience_years}
                 onChange={(e) => setForm((p) => ({ ...p, experience_years: e.target.value }))}
@@ -225,8 +234,11 @@ export function CandidateCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.months")}</label>
+              <label htmlFor="candidate-experience-months" className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.months")}</label>
               <input
+                id="candidate-experience-months"
+                name="experience_months"
+                autoComplete="off"
                 type="number"
                 min={0}
                 max={11}
@@ -238,8 +250,10 @@ export function CandidateCreatePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.source")}</label>
+              <label htmlFor="candidate-source" className="block text-sm font-medium text-gray-700 mb-1">{t("candidates.form.source")}</label>
               <select
+                id="candidate-source"
+                name="source"
                 value={form.source}
                 onChange={(e) => setForm((p) => ({ ...p, source: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -257,8 +271,8 @@ export function CandidateCreatePage() {
         {/* Links & Skills */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.linksSkills")}</h2>
-          {field(t("candidates.form.linkedinUrl"), "linkedin_url", "url", { placeholder: "https://linkedin.com/in/..." })}
-          {field(t("candidates.form.portfolioUrl"), "portfolio_url", "url", { placeholder: "https://..." })}
+          {field(t("candidates.form.linkedinUrl"), "linkedin_url", "url", { placeholder: "https://linkedin.com/in/…" })}
+          {field(t("candidates.form.portfolioUrl"), "portfolio_url", "url", { placeholder: "https://…" })}
           {field(t("candidates.form.skillsCommaSeparated"), "skills", "text", { placeholder: "React, TypeScript, Node.js" })}
           {field(t("candidates.form.tagsCommaSeparated"), "tags", "text", { placeholder: t("candidates.form.tagsPlaceholder") })}
         </div>
@@ -289,6 +303,7 @@ export function CandidateCreatePage() {
               <span>{t("candidates.form.clickToUpload")}</span>
               <span className="text-xs text-gray-400">{t("candidates.form.fileTypes")}</span>
               <input
+                name="resume"
                 type="file"
                 accept=".pdf,.doc,.docx"
                 className="hidden"
@@ -305,6 +320,10 @@ export function CandidateCreatePage() {
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">{t("candidates.form.notes")}</h2>
           <textarea
+            id="candidate-notes"
+            name="notes"
+            aria-label={t("candidates.form.notes")}
+            autoComplete="off"
             value={form.notes}
             onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
             rows={4}
