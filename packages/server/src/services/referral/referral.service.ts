@@ -273,6 +273,10 @@ export async function updateReferralStatus(
   }
 
   if (status === "bonus_paid") {
+    const effectiveBonus = bonusAmount ?? Number(referral.bonus_amount ?? 0);
+    if (!Number.isFinite(effectiveBonus) || effectiveBonus <= 0) {
+      throw new ValidationError("A positive bonus amount is required before marking a bonus as paid");
+    }
     (updateData as any).bonus_paid_at = new Date();
   }
 

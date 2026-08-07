@@ -219,8 +219,8 @@ export const createCandidateSchema = z.object({
   source: z.nativeEnum(CandidateSource).default(CandidateSource.DIRECT),
   linkedin_url: z.string().url().optional(),
   portfolio_url: z.string().url().optional(),
-  current_company: z.string().max(200).optional(),
-  current_title: z.string().max(200).optional(),
+  current_company: plainText(z.string().max(200)).optional(),
+  current_title: plainText(z.string().max(200)).optional(),
   experience_years: z
     .number()
     .min(0, "Experience (years) cannot be negative")
@@ -240,8 +240,8 @@ export const bulkImportCandidateRowSchema = z.object({
   email: z.string().email().max(128),
   phone: optionalPhone,
   source: z.nativeEnum(CandidateSource).optional(),
-  current_company: z.string().max(200).optional(),
-  current_title: z.string().max(200).optional(),
+  current_company: plainText(z.string().max(200)).optional(),
+  current_title: plainText(z.string().max(200)).optional(),
   experience_years: z.number().min(0).max(50).optional(),
   skills: z.array(z.string()).optional(),
 });
